@@ -89,30 +89,52 @@ git commit -m "chore: scaffold Next.js app (App Router, TS, Tailwind)"
 
 ## Task 2: Wire Prisma Client to the existing schema
 
+**Decision (2026-07-28, after fix-round 1 on this task):** Prisma 7 is current as of this plan and Prisma Compute's docs are written for it — use Prisma 7, not an older major picked to avoid touching `schema.prisma`. Prisma 7 requires removing the `url` field from the schema's `datasource` block (validation error P1012, confirmed against real `prisma generate` output) — connection URL moves to a new `prisma.config.ts` instead. `prisma/schema.prisma` is no longer fully off-limits for this task: the `datasource` block's `url` line may be removed. Every other model/field/enum in the file stays untouched.
+
 **Files:**
 - Create: `lib/prisma.ts`
-- Modify: `package.json` (add `@prisma/client`, `prisma` devDependency)
+- Create: `prisma.config.ts`
+- Modify: `prisma/schema.prisma` (datasource block only: remove the `url` line, keep `provider = "postgresql"`)
+- Modify: `package.json` (add `@prisma/client`, `prisma` devDependency, both major version 7)
 - Modify: `.gitignore` (ensure `.env` is ignored — create-next-app already ignores `.env*.local`, add plain `.env`)
 
 **Interfaces:**
 - Produces: `prisma` — singleton `PrismaClient` instance, imported as `import { prisma } from "@/lib/prisma"` by every later task that touches the database.
 
-- [ ] **Step 1: Install Prisma**
+- [ ] **Step 1: Install Prisma 7**
 
 ```bash
-bun add -d prisma
-bun add @prisma/client
+bun add -d prisma@7
+bun add @prisma/client@7
 ```
 
-- [ ] **Step 2: Generate the client from the existing schema**
+- [ ] **Step 2: Move the connection URL out of schema.prisma**
+
+Edit `prisma/schema.prisma`'s `datasource` block: delete the `url = env("DATABASE_URL")` line, keep `provider = "postgresql"`. Do not touch anything else in the file (models, enums, generator block all stay as-is — `prisma-client-js` is deprecated in v7 but still supported, no need to migrate to the new `prisma-client` provider for this task).
+
+Create `prisma.config.ts` at the repo root:
+
+```typescript
+import "dotenv/config";
+import { defineConfig, env } from "prisma/config";
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
+});
+```
+
+- [ ] **Step 3: Generate the client from the updated schema**
 
 ```bash
 bunx prisma generate
 ```
 
-Expected: succeeds, prints generated client location. `prisma/schema.prisma` is untouched — this only reads it.
+Expected: succeeds, prints generated client location. If it errors on a missing `DATABASE_URL`, that's expected when no `.env` exists yet — `prisma generate` doesn't need a reachable database, only a resolvable config; if it hard-fails instead of just warning, set a placeholder (`DATABASE_URL=postgresql://placeholder` in a local untracked `.env`) for this step only.
 
-- [ ] **Step 3: Write the singleton client**
+- [ ] **Step 4: Write the singleton client**
 
 ```typescript
 // lib/prisma.ts
@@ -129,7 +151,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 ```
 
-- [ ] **Step 4: Verify it compiles**
+- [ ] **Step 5: Verify it compiles**
 
 ```bash
 bunx tsc --noEmit
@@ -137,11 +159,11 @@ bunx tsc --noEmit
 
 Expected: no type errors.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add lib/prisma.ts package.json bun.lock .gitignore
-git commit -m "feat: add Prisma client singleton"
+git add lib/prisma.ts prisma.config.ts prisma/schema.prisma package.json bun.lock .gitignore
+git commit -m "feat: add Prisma client singleton, upgrade to Prisma 7"
 ```
 
 ---
