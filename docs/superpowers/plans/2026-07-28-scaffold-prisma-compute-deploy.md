@@ -172,32 +172,34 @@ git commit -m "feat: add Prisma client singleton, upgrade to Prisma 7"
 
 Wires authentication config against `UtilisateurApp` (from `prisma/schema.prisma`: `id`, `email`, `nom`, `motDePasse`, `role`, `actif`). No login page or route protection yet — that's a later, separate piece of work once real pages exist.
 
+**Decision (2026-07-28, verified against current authjs.dev docs before dispatch):** Auth.js's own docs now lead with "The Auth.js project is now part of Better Auth" and a "Migrate to Better Auth" link — the project has folded into Better Auth org-wise. It's still published and documented (`next-auth@beta` installs and works), and SPEC.md §1 explicitly mandates "Auth: Auth.js provider credentials" — that's a standing project decision, not something this task re-opens. Staying on Auth.js. Flag the Better Auth situation to the human partner as a heads-up (not a blocker) once this task lands. Two other things the docs' current canonical example does differently from an earlier draft of this plan: (1) install tag is `next-auth@beta`, not bare `next-auth`; (2) the canonical file layout is a single `auth.ts` at the repo root that calls `NextAuth({...})` once and exports `{ handlers, signIn, signOut, auth }`, with the route handler just re-exporting `handlers` — not a separate `lib/auth.ts` config object plus a second `NextAuth()` call in the route file. Follow the docs' layout.
+
 **Files:**
-- Create: `lib/auth.ts`
+- Create: `auth.ts` (repo root)
 - Create: `app/api/auth/[...nextauth]/route.ts`
-- Modify: `package.json` (add `next-auth`, `bcryptjs`, `@types/bcryptjs`)
+- Modify: `package.json` (add `next-auth@beta`, `bcryptjs`, `@types/bcryptjs`)
 
 **Interfaces:**
 - Consumes: `prisma` from `lib/prisma.ts` (Task 2)
-- Produces: `authOptions` (default export from `lib/auth.ts`) — the Auth.js config later protected pages will import.
+- Produces: `auth`, `signIn`, `signOut`, `handlers` (named exports from `auth.ts` at repo root) — later protected pages import `auth` to read the session; the route handler imports `handlers`.
 
 - [ ] **Step 1: Install dependencies**
 
 ```bash
-bun add next-auth bcryptjs
+bun add next-auth@beta bcryptjs
 bun add -d @types/bcryptjs
 ```
 
 - [ ] **Step 2: Write the auth config**
 
 ```typescript
-// lib/auth.ts
-import type { NextAuthConfig } from "next-auth";
+// auth.ts
+import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
-export const authConfig = {
+export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
       credentials: {
@@ -228,17 +230,15 @@ export const authConfig = {
   ],
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
-} satisfies NextAuthConfig;
+});
 ```
 
 - [ ] **Step 3: Wire the route handler**
 
 ```typescript
 // app/api/auth/[...nextauth]/route.ts
-import NextAuth from "next-auth";
-import { authConfig } from "@/lib/auth";
+import { handlers } from "@/auth";
 
-const { handlers } = NextAuth(authConfig);
 export const { GET, POST } = handlers;
 ```
 
@@ -253,7 +253,7 @@ Expected: no type errors. (`/login` route not existing yet is fine — `pages.si
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/auth.ts app/api/auth package.json bun.lock
+git add auth.ts app/api/auth package.json bun.lock
 git commit -m "feat: add Auth.js credentials provider stub"
 ```
 
