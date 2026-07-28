@@ -136,8 +136,10 @@ Expected: succeeds, prints generated client location. If it errors on a missing 
 
 - [ ] **Step 4: Write the singleton client**
 
+**Superseded (2026-07-28, discovered in Task 4):** Prisma 7's `PrismaClient` throws `PrismaClientInitializationError` at construction time with no arguments — since `datasource.url` no longer lives in `prisma/schema.prisma` (Step 2 above), the runtime client needs an explicit driver adapter, separate from `prisma.config.ts` (which only feeds the CLI). The snippet below is what Task 2 originally shipped; Task 4 amended `lib/prisma.ts` to the version underneath it. Recorded here so this file's history isn't confusing to a later reader — the amended version is the one on disk.
+
 ```typescript
-// lib/prisma.ts
+// lib/prisma.ts — original (Task 2), superseded by Task 4's amendment below
 import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
@@ -145,6 +147,26 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
+```
+
+```typescript
+// lib/prisma.ts — amended (Task 4), current
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
@@ -268,11 +290,15 @@ git commit -m "feat: add Auth.js credentials provider stub"
 **Interfaces:**
 - Consumes: `prisma` from `lib/prisma.ts` (Task 2)
 
+**Amendment (2026-07-28, after task review):** the original snippet below rendered as a static page (Next.js prerenders server components with no dynamic API usage), baking the DB status in at build time instead of checking it per request — defeats the purpose of a health check. Fixed by forcing dynamic rendering.
+
 - [ ] **Step 1: Write the health-check page**
 
 ```typescript
 // app/page.tsx
 import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 
 export default async function HealthPage() {
   let dbStatus: "ok" | "error" = "error";
