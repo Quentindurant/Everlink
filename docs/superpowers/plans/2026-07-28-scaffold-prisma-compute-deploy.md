@@ -404,6 +404,8 @@ git commit -m "docs: update SPEC.md deploy target to Prisma Compute"
 
 No local Postgres is available in this environment, and `prisma migrate dev` needs one (for its shadow database). Generate the migration SQL from the schema directly instead — this needs no database connection at all — then apply it with `migrate deploy` against the real database in Task 7.
 
+**Correction (2026-07-28, verified against current Prisma CLI reference before dispatch):** the flag is `--to-schema`, not `--to-schema-datamodel` (that name doesn't exist in the current CLI — checked the live docs after two earlier tasks on this plan got burned by unverified command/API assumptions).
+
 **Files:**
 - Create: `prisma/migrations/migration_lock.toml`
 - Create: `prisma/migrations/<timestamp>_init/migration.sql`
@@ -413,7 +415,7 @@ No local Postgres is available in this environment, and `prisma migrate dev` nee
 ```bash
 bunx prisma migrate diff \
   --from-empty \
-  --to-schema-datamodel prisma/schema.prisma \
+  --to-schema prisma/schema.prisma \
   --script > /tmp/init.sql
 ```
 
