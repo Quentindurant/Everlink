@@ -1,0 +1,362 @@
+// Schéma de référence pour l'outil de provisionnement SEWAN vers UNYC.
+// Cible: PostgreSQL. Vérifier la version de Prisma au scaffold et adapter si besoin.
+// Les statuts sont des chaînes contraintes par la table ListeValeur, pas des enums,
+// car l'utilisateur doit pouvoir ajouter des valeurs sans migration.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- Comptes
+
+enum RoleApp {
+  ADMIN
+  OPERATEUR
+}
+
+model UtilisateurApp {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  nom          String
+  motDePasse   String
+  role         RoleApp    @default(OPERATEUR)
+  actif        Boolean    @default(true)
+  creeLe       DateTime   @default(now())
+  majLe        DateTime   @updatedAt
+  importRuns   ImportRun[]
+  exportBatchs ExportBatch[]
+  auditLogs    AuditLog[]
+}
+
+// ---------------------------------------------------------------- Lots et clients
+
+model Lot {
+  id           String        @id @default(cuid())
+  nom          String        @unique // "LOT 1a"
+  reference    String?       @unique // "EVLOT0S27", utilisée pour nommer les exports
+  description  String?
+  clos         Boolean       @default(false)
+  creeLe       DateTime      @default(now())
+  majLe        DateTime      @updatedAt
+  clients      Client[]
+  exportBatchs ExportBatch[]
+}
+
+model Client {
+  id            String  @id @default(cuid())
+  // Clé fonctionnelle et clé de jointure des exports UNYC. Jamais reformatée.
+  raisonSociale String  @unique
+  // Forme normalisée (majuscules, espaces réduits) pour la recherche et le rapprochement Monday.
+  cleRapprochement String
+
+  lot   Lot?    @relation(fields: [lotId], references: [id])
+  lotId String?
+
+  // Regroupement d'agences d'un même groupe, sans impact sur les exports.
+  groupe  String?
+  filiale String?
+
+  // Champs alimentés par l'import Monday
+  codeMonday       String?  @unique
+  scenario         String?
+  adresse          String?
+  dateIntervention DateTime?
+  clientVip        Boolean  @default(false)
+  typeIntervention String?
+  statutMonday     String?
+  nbPostesAnnonce  Int?
+  contactNom       String?
+  contactPrenom    String?
+  contactFixe      String?
+  contactMobile    String?
+  contactEmail     String?
+  technoLien       String?
+  debit            String?
+  modeleCpe        String?
+  departement      String?
+  postesDeployesRaw String?
+  mondayRaw        Json?
+
+  // Champs de bascule
+  hebergeurSource String  @default("SEWAN")
+  hebergeurCible  String  @default("UNYC")
+  statutBascule   String  @default("À faire")
+  dateBascule     DateTime?
+  commentaire     String?
+
+  archiveA DateTime?
+  creeLe   DateTime @default(now())
+  majLe    DateTime @updatedAt
+
+  utilisateurs Utilisateur[]
+  numeros      Numero[]
+  equipements  Equipement[]
+
+  @@index([cleRapprochement])
+  @@index([lotId])
+  @@index([statutBascule])
+}
+
+model Utilisateur {
+  id       String @id @default(cuid())
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+
+  // Tel que saisi dans le Sheet, par exemple "BAUDON Émilie" ou "GARE Accueil".
+  nom         String
+  commentaire String?
+  ordre       Int      @default(0)
+
+  archiveA DateTime?
+  creeLe   DateTime @default(now())
+  majLe    DateTime @updatedAt
+
+  numeros     Numero[]
+  equipements Equipement[]
+  suivis      SuiviEtape[]
+
+  @@index([clientId])
+}
+
+// ---------------------------------------------------------------- Numéros
+
+enum NiveauControle {
+  OK
+  AVERTISSEMENT
+  ERREUR
+}
+
+model Numero {
+  id       String @id @default(cuid())
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+
+  utilisateur   Utilisateur? @relation(fields: [utilisateurId], references: [id])
+  utilisateurId String?
+
+  // Valeur telle que saisie, conservée pour l'affichage et la traçabilité.
+  numeroBrut String
+  // 10 chiffres, sans espace. Sert au contrôle d'unicité et à la recherche.
+  numeroNormalise String
+  // Un numéro peut porter plusieurs numéros courts, saisis "401/ 423/ 4123".
+  numerosCourts String[]
+
+  controleNiveau NiveauControle @default(OK)
+  controleDetail String?
+  controleForce  Boolean        @default(false)
+  controleMotif  String?
+  controlePar    String?
+  controleLe     DateTime?
+
+  statutBascule String    @default("À faire")
+  dateBascule   DateTime?
+  commentaire   String?
+
+  // Exclusion manuelle de l'export, indépendante du filtre d'éligibilité modèle.
+  exclureExport Boolean @default(false)
+  ordre         Int     @default(0)
+
+  archiveA DateTime?
+  creeLe   DateTime @default(now())
+  majLe    DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([utilisateurId])
+  @@index([numeroNormalise])
+}
+
+// ---------------------------------------------------------------- Équipements
+
+enum TypeEquipement {
+  POSTE_FIXE
+  COMBINE_DECT
+  BORNE_DECT
+  FAX
+  AUTRE
+}
+
+enum TypeIdentifiant {
+  MAC48    // 80:5E:0C:53:D6:70
+  IPUI     // 030AD2466B, combinés DECT
+  AUTRE
+}
+
+model ModeleEquipement {
+  id      String         @id @default(cuid())
+  libelle String         @unique // "Yealink T57W"
+  marque  String                  // "Yealink", "Panasonic", "Polycom", "DOKO", "Aastra"
+  type    TypeEquipement @default(POSTE_FIXE)
+
+  // Pilote le filtre des exports SDA et MAC. Initialisé à vrai pour Yealink uniquement.
+  eligibleExport Boolean @default(false)
+  // Variantes rencontrées dans les sources: "Yealnik w90B", "Yealink w73H", "Yealink W73H".
+  alias    String[]
+  actif    Boolean  @default(true)
+  creeLe   DateTime @default(now())
+  majLe    DateTime @updatedAt
+
+  equipements Equipement[]
+
+  @@index([marque])
+}
+
+model Equipement {
+  id       String @id @default(cuid())
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+
+  utilisateur   Utilisateur? @relation(fields: [utilisateurId], references: [id])
+  utilisateurId String?
+
+  modele   ModeleEquipement? @relation(fields: [modeleId], references: [id])
+  modeleId String?
+  // Libellé source non reconnu, conservé pour le rapport d'import.
+  modeleLibelleBrut String?
+
+  // Valeur exportée: macBrut avec espaces de bord supprimés. Aucune autre transformation.
+  macBrut String
+  // Hexadécimal en majuscules sans séparateur, uniquement pour le dédoublonnage et la recherche.
+  macNormalise    String
+  typeIdentifiant TypeIdentifiant @default(MAC48)
+
+  commentaire   String?
+  exclureExport Boolean @default(false)
+  ordre         Int     @default(0)
+
+  archiveA DateTime?
+  creeLe   DateTime @default(now())
+  majLe    DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([utilisateurId])
+  @@index([macNormalise])
+}
+
+// ---------------------------------------------------------------- Suivi téléphonie
+
+model EtapeModele {
+  id      String  @id @default(cuid())
+  libelle String  @unique // "Étape 1 : Créer les utilisateurs"
+  ordre   Int
+  actif   Boolean @default(true)
+  creeLe  DateTime @default(now())
+  majLe   DateTime @updatedAt
+
+  suivis SuiviEtape[]
+}
+
+model SuiviEtape {
+  id String @id @default(cuid())
+
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  utilisateurId String
+
+  etape   EtapeModele @relation(fields: [etapeId], references: [id], onDelete: Cascade)
+  etapeId String
+
+  statut      String    @default("À faire")
+  commentaire String?
+  faitLe      DateTime?
+  faitPar     String?
+  majLe       DateTime  @updatedAt
+
+  @@unique([utilisateurId, etapeId])
+  @@index([statut])
+}
+
+// ---------------------------------------------------------------- Paramétrage
+
+enum CategorieListe {
+  HEBERGEUR
+  STATUT_BASCULE
+  STATUT_ETAPE
+  SCENARIO
+  TYPE_INTERVENTION
+  STATUT_MONDAY
+  TECHNO_LIEN
+}
+
+model ListeValeur {
+  id        String         @id @default(cuid())
+  categorie CategorieListe
+  valeur    String
+  ordre     Int            @default(0)
+  actif     Boolean        @default(true)
+  creeLe    DateTime       @default(now())
+  majLe     DateTime       @updatedAt
+
+  @@unique([categorie, valeur])
+  @@index([categorie, ordre])
+}
+
+// ---------------------------------------------------------------- Traçabilité
+
+enum TypeImport {
+  MONDAY
+  SHEET
+}
+
+model ImportRun {
+  id        String     @id @default(cuid())
+  type      TypeImport
+  nomFichier String
+  tailleOctets Int?
+  // Compteurs: crees, misAJour, ignores, aRapprocher, modelesInconnus, erreurs
+  rapport   Json
+  succes    Boolean    @default(true)
+
+  auteur   UtilisateurApp? @relation(fields: [auteurId], references: [id])
+  auteurId String?
+
+  creeLe DateTime @default(now())
+
+  @@index([type, creeLe])
+}
+
+enum TypeExport {
+  SDA
+  MAC
+}
+
+model ExportBatch {
+  id     String     @id @default(cuid())
+  type   TypeExport
+  lot    Lot?       @relation(fields: [lotId], references: [id])
+  lotId  String?
+  // Clients retenus et options appliquées, pour rejouer un export à l'identique.
+  filtres Json
+  nomFichier String
+  nbLignes   Int
+  // Contenu généré, pour comparaison et audit.
+  contenu Json
+
+  auteur   UtilisateurApp? @relation(fields: [auteurId], references: [id])
+  auteurId String?
+
+  creeLe DateTime @default(now())
+
+  @@index([type, creeLe])
+}
+
+model AuditLog {
+  id      String @id @default(cuid())
+  entite  String // "Numero", "Equipement", "Client"
+  entiteId String
+  action  String // "CREATE", "UPDATE", "DELETE", "FORCE_CONTROLE"
+  champ   String?
+  avant   String?
+  apres   String?
+
+  auteur   UtilisateurApp? @relation(fields: [auteurId], references: [id])
+  auteurId String?
+
+  creeLe DateTime @default(now())
+
+  @@index([entite, entiteId])
+  @@index([creeLe])
+}
