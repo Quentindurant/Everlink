@@ -33,11 +33,13 @@ Ces trois xlsx servent de golden files pour les tests (section 11).
 - Lecture des xlsx d'import: même bibliothèque que l'écriture.
 - Auth: Auth.js provider credentials, table `UtilisateurApp`, rôles ADMIN et OPERATEUR.
   Pas d'inscription publique, création de comptes par un ADMIN.
-- Docker: image applicative multi-stage (`node:lts-alpine`, `output: "standalone"`), `docker-compose.yml`
-  avec les services `app`, `db` (postgres) et un volume nommé pour les données Postgres.
-  Reverse proxy (Caddy ou Nginx) hors compose ou en service supplémentaire, au choix.
+- Déploiement: Prisma Compute (`bunx @prisma/cli@latest app deploy`), projet `proj_cms4grybr13xb06f3x712e3u0`,
+  nom d'affichage "Everlink", région `eu-west-3`. `output: "standalone"` dans `next.config.ts`.
+  Variables d'environnement posées via `bunx @prisma/cli@latest project env add`, jamais de `.env` committé.
+  Migrations: `bunx prisma migrate deploy` contre la base du projet, jamais automatique au déploiement.
 - Tâches planifiées: pas de conteneur worker. Endpoint `POST /api/cron/sheets-sync` protégé par un
-  header `X-Cron-Secret`, appelé par la crontab du VPS.
+  header `X-Cron-Secret`, appelé par un scheduler externe (à définir — la crontab VPS n'existe plus
+  avec Prisma Compute).
 - Variables d'environnement: `DATABASE_URL`, `AUTH_SECRET`, `CRON_SECRET`, `GOOGLE_SERVICE_ACCOUNT_JSON`,
   `GOOGLE_SHEET_ID`. Fournir un `.env.example`.
 
