@@ -15,6 +15,18 @@ describe("buildMacRows", () => {
     ]);
   });
 
+  test("does not dedupe the same MAC across different clients", () => {
+    const rows = buildMacRows([
+      { clientRaisonSociale: "ACME SARL", macBrut: "030AD2466B", macNormalise: "030AD2466B" },
+      { clientRaisonSociale: "ZETA SARL", macBrut: "030AD2466B", macNormalise: "030AD2466B" },
+    ]);
+
+    expect(rows).toEqual([
+      ["ACME SARL", "030AD2466B"],
+      ["ZETA SARL", "030AD2466B"],
+    ]);
+  });
+
   test("headers match SPEC.md §6.3", () => {
     expect(MAC_HEADERS).toEqual(["Client (raison sociale)", "Adresse MAC équipement"]);
   });
