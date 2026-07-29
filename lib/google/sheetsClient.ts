@@ -18,10 +18,15 @@ function columnLetter(n: number): string {
   return s;
 }
 
+export interface SheetWriteResult {
+  written: string[];
+  failed: Record<string, string>;
+}
+
 export async function writeSheetTabs(
   spreadsheetId: string,
   tabs: SheetTabWrite[]
-): Promise<void> {
+): Promise<SheetWriteResult> {
   const credentialsJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   if (!credentialsJson) {
     throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is not set");
@@ -33,16 +38,26 @@ export async function writeSheetTabs(
   });
   const sheets = google.sheets({ version: "v4", auth });
 
-  for (const tab of tabs) {
-    const values = [[tab.banner], tab.headers, ...tab.rows];
-    const width = Math.max(tab.headers.length, 1);
-    const range = `${tab.tabName}!A1:${columnLetter(width)}${values.length}`;
+  const written: string[] = [];
+  const failed: Record<string, string> = {};
 
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range,
-      valueInputOption: "RAW",
-      requestBody: { values },
-    });
+  for (const tab of tabs) {
+    try {
+      const values = [[tab.banner], tab.headers, ...tab.rows];
+      const width = Math.max(tab.headers.length, 1);
+      const range = `${tab.tabName}!A1:${columnLetter(width)}${values.length}`;
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range,
+        valueInputOption: "RAW",
+        requestBody: { values },
+      });
+      written.push(tab.tabName);
+    } catch (err) {
+      failed[tab.tabName] = err instanceof Error ? err.message : String(err);
+    }
   }
+
+  return { written, failed };
 }

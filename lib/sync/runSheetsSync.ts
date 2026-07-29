@@ -89,9 +89,16 @@ export async function runSheetsSync(
     erreurs["_global"] = "GOOGLE_SHEET_ID is not set";
   } else if (tabs.length > 0) {
     try {
-      await writeSheetTabs(spreadsheetId, tabs);
+      const result = await writeSheetTabs(spreadsheetId, tabs);
+      for (const tabName of Object.keys(ongletsEcrits)) {
+        if (!result.written.includes(tabName)) {
+          delete ongletsEcrits[tabName];
+        }
+      }
+      Object.assign(erreurs, result.failed);
     } catch (err) {
       erreurs["_global"] = err instanceof Error ? err.message : String(err);
+      for (const key of Object.keys(ongletsEcrits)) delete ongletsEcrits[key];
     }
   }
 
