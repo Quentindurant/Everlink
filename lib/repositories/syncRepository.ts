@@ -33,7 +33,8 @@ export async function fetchProvisionningData(): Promise<{
     include: { modele: true },
     // Deterministic winner when a Utilisateur has multiple Equipement: highest `ordre` wins,
     // consistently across runs, since the accepted simplification is "show only one".
-    orderBy: { ordre: "asc" },
+    // `ordre` defaults to 0 for every row, so it ties routinely — `id` is the final tiebreak.
+    orderBy: [{ ordre: "asc" }, { id: "asc" }],
   });
   const equipementByUtilisateurId = new Map(
     equipementsForNumeros.map((e) => [e.utilisateurId as string, e])
