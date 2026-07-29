@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sync:sheets": "bun run scripts/sync-sheets.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
