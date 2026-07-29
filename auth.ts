@@ -33,5 +33,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   session: { strategy: "jwt" },
+  // TODO: add jwt/session callbacks to propagate `role` into the session, and build /login — see SPEC.md §1 (ADMIN/OPERATEUR)
   pages: { signIn: "/login" },
 });

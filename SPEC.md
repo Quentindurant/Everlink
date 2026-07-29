@@ -5,7 +5,7 @@ Document de référence pour l'implémentation. Cible: Claude Code CLI.
 ## 0. Contexte et objectif
 
 Remplacer le Google Sheet "Provisionning numéros - Bascule SEWAN-UNYC" par une application web
-hébergée sur VPS. Les onglets du Sheet deviennent des pages, ses formules deviennent des règles
+hébergée sur Prisma Compute. Les onglets du Sheet deviennent des pages, ses formules deviennent des règles
 serveur, ses onglets "Import SDA" et "Import MAC" deviennent des exports xlsx strictement conformes
 aux templates fournis.
 
@@ -314,7 +314,7 @@ onglets cibles du Sheet: Provisionning, Clients, Téléphone, Import SDA, Import
 - Authentification par compte de service Google, le Sheet étant partagé en écriture avec l'adresse du
   compte de service. Utiliser le client Node officiel Google APIs et l'API Sheets v4. Vérifier le nom
   du paquet, sa version et la signature des méthodes dans la doc avant d'écrire le code.
-- Déclenchement manuel depuis l'interface et automatique par la crontab du VPS via
+- Déclenchement manuel depuis l'interface et automatique par un scheduler externe (voir §1) via
   `POST /api/cron/sheets-sync`.
 - Journalisation de chaque synchronisation: date, onglets écrits, nombre de lignes, erreurs.
 - La synchronisation entrante (Sheet vers application) n'est pas implémentée. Toute modification
@@ -408,7 +408,7 @@ Non négociables, à écrire avant l'implémentation des exports.
 
 ## 12. Découpage proposé
 
-1. Scaffold, Docker, Postgres, Prisma, auth, seed des listes et du catalogue de modèles.
+1. Scaffold, Prisma Compute, Postgres, Prisma, auth, seed des listes et du catalogue de modèles.
 2. Modèle de données complet et migrations.
 3. Import du Sheet existant, avec rapport. C'est le jeu de données de tous les tests suivants.
 4. Exports SDA et MAC, avec les tests d'acceptation de la section 11.

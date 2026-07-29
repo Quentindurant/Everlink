@@ -14,7 +14,7 @@ code ou signaler l'écart, ne pas diverger en silence.
 
 ## Stack
 Next.js App Router, TypeScript, Prisma, PostgreSQL, Tailwind, shadcn/ui, TanStack Table.
-Docker et docker-compose pour le déploiement sur VPS. Pas de NestJS.
+Déploiement: Prisma Compute (voir SPEC.md §1). Pas de NestJS.
 Vérifier les versions et les API dans la doc officielle avant de scaffolder, ne rien écrire de mémoire.
 
 ## Invariants métier
