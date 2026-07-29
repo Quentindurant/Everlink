@@ -30,6 +30,7 @@ model UtilisateurApp {
   importRuns   ImportRun[]
   exportBatchs ExportBatch[]
   auditLogs    AuditLog[]
+  syncRuns     SheetSyncRun[]
 }
 
 // ---------------------------------------------------------------- Lots et clients
@@ -357,5 +358,28 @@ model AuditLog {
   creeLe DateTime @default(now())
 
   @@index([entite, entiteId])
+  @@index([creeLe])
+}
+
+// ---------------------------------------------------------------- Synchronisation Sheets
+
+enum DeclencheurSync {
+  MANUEL
+  CRON
+  CLI
+}
+
+model SheetSyncRun {
+  id            String          @id @default(cuid())
+  declencheur   DeclencheurSync
+  ongletsEcrits Json
+  erreurs       Json?
+  succes        Boolean         @default(true)
+
+  auteur   UtilisateurApp? @relation(fields: [auteurId], references: [id])
+  auteurId String?
+
+  creeLe DateTime @default(now())
+
   @@index([creeLe])
 }
