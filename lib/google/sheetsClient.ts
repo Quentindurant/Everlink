@@ -43,6 +43,16 @@ export async function writeSheetTabs(
 
   for (const tab of tabs) {
     try {
+      // Clear the whole tab first — a values.update call only touches cells within
+      // its own range, so without this, any pre-existing content past our new
+      // content's extent (a wider sheet, more rows, or simply a tab that already
+      // had real data before this app ever wrote to it) survives untouched and
+      // ends up mixed in under our banner/headers.
+      await sheets.spreadsheets.values.clear({
+        spreadsheetId,
+        range: tab.tabName,
+      });
+
       const values = [[tab.banner], tab.headers, ...tab.rows];
       const width = Math.max(tab.headers.length, 1);
       const range = `${tab.tabName}!A1:${columnLetter(width)}${values.length}`;
