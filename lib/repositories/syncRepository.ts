@@ -169,6 +169,7 @@ export async function fetchSdaData(): Promise<SdaSourceRow[]> {
       utilisateurId: { not: null },
     },
     include: { client: true },
+    orderBy: [{ client: { raisonSociale: "asc" } }, { ordre: "asc" }, { id: "asc" }],
   });
 
   const eligibleEquipements = await prisma.equipement.findMany({

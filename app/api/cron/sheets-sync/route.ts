@@ -9,6 +9,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await runSheetsSync("CRON");
-  return NextResponse.json(result, { status: result.succes ? 200 : 207 });
+  try {
+    const result = await runSheetsSync("CRON");
+    return NextResponse.json(result, { status: result.succes ? 200 : 207 });
+  } catch (err) {
+    console.error("Unhandled error during CRON sheets sync:", err);
+    return NextResponse.json({ error: "Sync failed unexpectedly" }, { status: 500 });
+  }
 }

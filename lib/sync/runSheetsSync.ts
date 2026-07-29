@@ -18,14 +18,11 @@ const BANNER = "⚠ Fichier généré automatiquement par Everlink — toute mod
 export interface SheetSyncRunResult {
   succes: boolean;
   ongletsEcrits: Record<string, number>;
+  ongletsIgnores: Record<string, number>;
   erreurs: Record<string, string>;
 }
 
-async function buildTab(
-  tabName: string,
-  headers: string[],
-  rows: string[][]
-): Promise<SheetTabWrite> {
+function buildTab(tabName: string, headers: string[], rows: string[][]): SheetTabWrite {
   return { tabName, banner: BANNER, headers, rows };
 }
 
@@ -34,6 +31,7 @@ export async function runSheetsSync(
   auteurId?: string
 ): Promise<SheetSyncRunResult> {
   const ongletsEcrits: Record<string, number> = {};
+  const ongletsIgnores: Record<string, number> = {};
   const erreurs: Record<string, string> = {};
   const tabs: SheetTabWrite[] = [];
 
@@ -74,9 +72,20 @@ export async function runSheetsSync(
     },
   ];
 
+  // Root-cause guard for the production incident: an empty-database sync run must never
+  // silently replace a Sheet tab that still holds real data with zero rows. Skip writing
+  // (neither clear nor update) any tab with no data rows, unless explicitly opted into via
+  // SHEETS_SYNC_ALLOW_EMPTY=1. Skips are recorded in ongletsIgnores so they're visible in
+  // the audit log rather than indistinguishable from a normal, successful, empty write.
+  const allowEmpty = process.env.SHEETS_SYNC_ALLOW_EMPTY === "1";
+
   for (const { name, build } of builders) {
     try {
       const tab = await build();
+      if (tab.rows.length === 0 && !allowEmpty) {
+        ongletsIgnores[name] = 0;
+        continue;
+      }
       tabs.push(tab);
       ongletsEcrits[name] = tab.rows.length;
     } catch (err) {
@@ -104,15 +113,32 @@ export async function runSheetsSync(
 
   const succes = Object.keys(erreurs).length === 0;
 
-  await prisma.sheetSyncRun.create({
-    data: {
-      declencheur,
-      ongletsEcrits,
-      erreurs: Object.keys(erreurs).length > 0 ? erreurs : undefined,
-      succes,
-      auteurId: auteurId ?? null,
-    },
-  });
+  // The audit-log write happens after the (possibly destructive) Sheet write, so it must
+  // never be allowed to throw: a failure here would otherwise mask that a sync just ran,
+  // leaving no record at all that data may have been touched. Log and move on instead.
+  //
+  // ongletsIgnores isn't its own Prisma column (no migration for it) — it's folded into the
+  // existing `erreurs` Json? column under a reserved key, the same convention already used
+  // for the "_global" error key, so a skip stays visible in the audit log without a schema
+  // change.
+  const persistedErreurs: Record<string, string | Record<string, number>> = { ...erreurs };
+  if (Object.keys(ongletsIgnores).length > 0) {
+    persistedErreurs["_ongletsIgnores"] = ongletsIgnores;
+  }
 
-  return { succes, ongletsEcrits, erreurs };
+  try {
+    await prisma.sheetSyncRun.create({
+      data: {
+        declencheur,
+        ongletsEcrits,
+        erreurs: Object.keys(persistedErreurs).length > 0 ? persistedErreurs : undefined,
+        succes,
+        auteurId: auteurId ?? null,
+      },
+    });
+  } catch (err) {
+    console.error("Failed to persist SheetSyncRun audit record:", err);
+  }
+
+  return { succes, ongletsEcrits, ongletsIgnores, erreurs };
 }

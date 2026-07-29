@@ -6,11 +6,10 @@ export interface SdaSourceRow {
   ordre: number;
 }
 
+// Order is decided upstream by the repository's SQL `orderBy` (raisonSociale, ordre, id),
+// which is the single source of truth so this tab's row order can't disagree with the
+// other tabs' Postgres-collation ordering. This function trusts input order and does not
+// re-sort it.
 export function buildSdaRows(rows: SdaSourceRow[]): string[][] {
-  return [...rows]
-    .sort((a, b) => {
-      const byName = a.clientRaisonSociale.localeCompare(b.clientRaisonSociale, "fr");
-      return byName !== 0 ? byName : a.ordre - b.ordre;
-    })
-    .map((r) => [r.clientRaisonSociale, r.numeroBrut]);
+  return rows.map((r) => [r.clientRaisonSociale, r.numeroBrut]);
 }
