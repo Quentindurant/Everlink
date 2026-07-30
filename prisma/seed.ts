@@ -82,6 +82,24 @@ async function main() {
     });
   }
 
+  // Étapes de suivi téléphonie (SPEC §3.3). Ce sont des données éditables depuis Paramètres,
+  // seedées ici pour que la page Téléphone soit exploitable dès l'installation.
+  const etapes = [
+    "Créer les utilisateurs",
+    "Mettre les équipements sur les utilisateurs",
+    "Mettre les BLF et raccourcis",
+    "Récupérer messages SVI, PRÉDÉCROCHÉ, ATTENTE, RÉPONDEUR",
+    "Configurer groupes d'appel, SVI, routes d'appel",
+    "Vérifier l'annuaire",
+  ];
+  for (const [ordre, libelle] of etapes.entries()) {
+    await prisma.etapeModele.upsert({
+      where: { libelle },
+      update: {},
+      create: { libelle, ordre },
+    });
+  }
+
   console.log("Seed complete.");
 }
 
