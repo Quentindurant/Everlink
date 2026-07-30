@@ -1,21 +1,14 @@
-import { prisma } from "@/lib/prisma";
+import { fetchProvisionningLignes } from "@/lib/repositories/provisionningRepository";
+import { ProvisionningTable } from "@/app/provisionning/ProvisionningTable";
 
 export const dynamic = "force-dynamic";
 
-export default async function HealthPage() {
-  let dbStatus: "ok" | "error" = "error";
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    dbStatus = "ok";
-  } catch {
-    dbStatus = "error";
-  }
-
+export default async function ProvisionningPage() {
+  const lignes = await fetchProvisionningLignes();
   return (
-    <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-      <h1>Everlink</h1>
-      <p>App: ok</p>
-      <p>Database: {dbStatus}</p>
+    <main style={{ padding: "1rem" }}>
+      <h1>Provisionning</h1>
+      <ProvisionningTable lignes={lignes} />
     </main>
   );
 }
