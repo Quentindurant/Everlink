@@ -8,5 +8,7 @@ export const proxy = auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // Exclusions ancrées sur le segment: sans le "/" final, une route comme /apidocs ou
+  // /_next/staticky échapperait au contrôle d'authentification.
+  matcher: ["/((?!api/|_next/static/|_next/image/|favicon.ico).*)"],
 };

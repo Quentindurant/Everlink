@@ -203,6 +203,9 @@ export async function fetchMacData(): Promise<MacSourceRow[]> {
       exclureExport: false,
       client: { archiveA: null },
       modele: { eligibleExport: true },
+      // Même garde que fetchSdaData: un utilisateur archivé ne doit pas faire sortir sa MAC.
+      // Le cas orphelin (équipement sans utilisateur) reste un export légitime.
+      OR: [{ utilisateurId: null }, { utilisateur: { archiveA: null } }],
     },
     include: { client: true },
     // buildMacRows (Task 6) deliberately preserves input order rather than sorting, so this

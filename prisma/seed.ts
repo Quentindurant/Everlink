@@ -6,11 +6,16 @@ import bcrypt from "bcryptjs";
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set");
 }
+// Le seed tourne aussi en production: un mot de passe ADMIN en dur dans le dépôt serait un
+// identifiant public. Pas de valeur par défaut, l'échec est volontaire.
+if (!process.env.SEED_ADMIN_PASSWORD) {
+  throw new Error("SEED_ADMIN_PASSWORD is not set");
+}
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 async function main() {
-  const motDePasse = await bcrypt.hash("changeme", 10);
+  const motDePasse = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD as string, 10);
   await prisma.utilisateurApp.upsert({
     where: { email: "admin@everlink.local" },
     update: {},
