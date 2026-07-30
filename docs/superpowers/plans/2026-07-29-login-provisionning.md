@@ -919,7 +919,7 @@ const columns: ColumnDef<ProvisionningLigne>[] = [
       if (!controleDetail) return badge;
       return (
         <Tooltip>
-          <TooltipTrigger asChild>{badge}</TooltipTrigger>
+          <TooltipTrigger render={badge} />
           <TooltipContent>{controleDetail}</TooltipContent>
         </Tooltip>
       );
@@ -1235,28 +1235,33 @@ import { forcerControleAction } from "./actions";
 
 function ControleCell({ ligne }: { ligne: ProvisionningLigne }) {
   const [isPending, startTransition] = useTransition();
+
+  // Orphan équipement rows have no Numero, hence no Contrôle N° at all — nothing to render or
+  // force. This action only applies to Numero-backed rows (ligne.numeroId non-null).
+  if (!ligne.controleNiveau || !ligne.numeroId) return null;
+  const numeroId = ligne.numeroId;
+
   const badge = <Badge variant={NIVEAU_COULEUR[ligne.controleNiveau]}>{ligne.controleNiveau}</Badge>;
+  const trigger = ligne.controleDetail ? (
+    <Tooltip>
+      <TooltipTrigger render={badge} />
+      <TooltipContent>{ligne.controleDetail}</TooltipContent>
+    </Tooltip>
+  ) : (
+    badge
+  );
 
   const forcer = () => {
     const motif = window.prompt("Motif du forçage:");
     if (!motif) return;
     startTransition(async () => {
-      await forcerControleAction(ligne.numeroId, motif);
+      await forcerControleAction(numeroId, motif);
     });
   };
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        {ligne.controleDetail ? (
-          <Tooltip>
-            <TooltipTrigger asChild>{badge}</TooltipTrigger>
-            <TooltipContent>{ligne.controleDetail}</TooltipContent>
-          </Tooltip>
-        ) : (
-          badge
-        )}
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger render={trigger} />
       {ligne.controleNiveau !== "OK" && (
         <DropdownMenuContent>
           <DropdownMenuItem onClick={forcer} disabled={isPending}>
@@ -1507,9 +1512,7 @@ function AjouterLigneMenu({ clientId }: { clientId: string }) {
   };
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button disabled={isPending}>+ Ajouter</button>
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger render={<button disabled={isPending}>+ Ajouter</button>} />
       <DropdownMenuContent>
         <DropdownMenuItem onClick={() => ajouter("numero")}>Numéro seul</DropdownMenuItem>
         <DropdownMenuItem onClick={() => ajouter("equipement")}>Équipement seul</DropdownMenuItem>
@@ -1645,9 +1648,7 @@ function BarreActionsMasse({ selection }: { selection: string[] }) {
     <div style={{ display: "flex", gap: "0.5rem", padding: "0.5rem", background: "#eef" }}>
       <span>{selection.length} ligne(s) sélectionnée(s)</span>
       <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <button disabled={isPending}>Passer à Fait</button>
-        </AlertDialogTrigger>
+        <AlertDialogTrigger render={<button disabled={isPending}>Passer à Fait</button>} />
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la bascule</AlertDialogTitle>
@@ -1668,9 +1669,7 @@ function BarreActionsMasse({ selection }: { selection: string[] }) {
         </AlertDialogContent>
       </AlertDialog>
       <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <button disabled={isPending}>Exclure de l'export</button>
-        </AlertDialogTrigger>
+        <AlertDialogTrigger render={<button disabled={isPending}>Exclure de l'export</button>} />
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer l'exclusion</AlertDialogTitle>
