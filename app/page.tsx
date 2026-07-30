@@ -1,4 +1,10 @@
-import { fetchProvisionningLignes, type ProvisionningFiltres } from "@/lib/repositories/provisionningRepository";
+import {
+  fetchProvisionningLignes,
+  listClientsActifs,
+  listLotsActifs,
+  listValeursStatutBascule,
+  type ProvisionningFiltres,
+} from "@/lib/repositories/provisionningRepository";
 import { ProvisionningTable } from "@/app/provisionning/ProvisionningTable";
 import { ProvisionningFiltresBar } from "@/app/provisionning/ProvisionningFiltres";
 
@@ -19,12 +25,21 @@ export default async function ProvisionningPage({
     avecAnomalieSeulement: params.anomalie === "1",
     recherche: params.q,
   };
-  const lignes = await fetchProvisionningLignes(filtres);
+  const [lignes, lots, clients, valeursStatutBascule] = await Promise.all([
+    fetchProvisionningLignes(filtres),
+    listLotsActifs(),
+    listClientsActifs(),
+    listValeursStatutBascule(),
+  ]);
   return (
     <main style={{ padding: "1rem" }}>
       <h1>Provisionning</h1>
-      <ProvisionningFiltresBar />
-      <ProvisionningTable lignes={lignes} />
+      <ProvisionningFiltresBar
+        lots={lots}
+        clients={clients}
+        valeursStatutBascule={valeursStatutBascule}
+      />
+      <ProvisionningTable lignes={lignes} valeursStatutBascule={valeursStatutBascule} />
     </main>
   );
 }

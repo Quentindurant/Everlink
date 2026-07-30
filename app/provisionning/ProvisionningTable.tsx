@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,6 +8,7 @@ import {
   getExpandedRowModel,
   flexRender,
   type ColumnDef,
+  type Row,
 } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -91,12 +92,58 @@ function EditableCell({
   );
 }
 
+function StatutBasculeCell({
+  numeroId,
+  valeurInitiale,
+  valeurs,
+}: {
+  numeroId: string;
+  valeurInitiale: string;
+  valeurs: string[];
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  // Le statut peut porter une valeur historique retirée de la liste (import legacy): on l'ajoute
+  // aux options plutôt que de la faire disparaître silencieusement du select.
+  const options = valeurs.includes(valeurInitiale) || valeurInitiale === ""
+    ? valeurs
+    : [valeurInitiale, ...valeurs];
+
+  return (
+    <div>
+      <select
+        value={valeurInitiale}
+        disabled={isPending}
+        onChange={(e) => {
+          const valeur = e.target.value;
+          startTransition(async () => {
+            const result = await updateNumeroCellAction(numeroId, "statutBascule", valeur);
+            if (!result.success) {
+              setErreur(result.error ?? "Échec de la sauvegarde.");
+              setTimeout(() => setErreur(null), 3000);
+            }
+          });
+        }}
+        style={{ width: "100%" }}
+      >
+        <option value=""></option>
+        {options.map((v) => (
+          <option key={v} value={v}>
+            {v}
+          </option>
+        ))}
+      </select>
+      {erreur && <span style={{ color: "red", fontSize: "0.75rem" }}>{erreur}</span>}
+    </div>
+  );
+}
+
 function ControleCell({ ligne }: { ligne: ProvisionningLigne }) {
   const [isPending, startTransition] = useTransition();
 
-  // Orphan équipement rows have no Numero, hence no Contrôle N° at all — nothing to render or
-  // force. This action only applies to Numero-backed rows (ligne.numeroId non-null).
-  if (!ligne.controleNiveau || !ligne.numeroId) return null;
+  // Orphan équipement rows have no Numero, hence no Contrôle N° at all — nothing to render.
+  if (!ligne.controleNiveau) return null;
   const numeroId = ligne.numeroId;
 
   const badge = <Badge variant={NIVEAU_COULEUR[ligne.controleNiveau]}>{ligne.controleNiveau}</Badge>;
@@ -108,6 +155,10 @@ function ControleCell({ ligne }: { ligne: ProvisionningLigne }) {
   ) : (
     badge
   );
+
+  // Ligne de duplication (utilisateur multi-équipements): elle affiche le contrôle du même numéro
+  // mais ne le possède pas. Badge en lecture seule, le forçage reste sur la ligne porteuse.
+  if (!numeroId) return trigger;
 
   const forcer = () => {
     const motif = window.prompt("Motif du forçage:");
@@ -272,7 +323,8 @@ function BarreActionsMasse({
 
 function buildColumns(
   selection: string[],
-  basculerSelection: (numeroId: string) => void
+  basculerSelection: (numeroId: string) => void,
+  valeursStatutBascule: string[]
 ): ColumnDef<ProvisionningLigne>[] {
   return [
   {
@@ -294,7 +346,11 @@ function buildColumns(
     id: "numeroBrut",
     cell: ({ row }) =>
       row.original.numeroId ? (
+        // `key` inclut la valeur serveur: quand elle change (action de masse, revalidate), le
+        // champ est remonté et se resynchronise, au lieu de garder un état périmé qu'un blur
+        // réécrirait par-dessus la mise à jour.
         <EditableCell
+          key={`numeroBrut:${row.id}:${row.original.numeroBrut ?? ""}`}
           valeurInitiale={row.original.numeroBrut ?? ""}
           onSave={(v) => updateNumeroCellAction(row.original.numeroId as string, "numeroBrut", v)}
         />
@@ -308,6 +364,7 @@ function buildColumns(
     cell: ({ row }) =>
       row.original.numeroId ? (
         <EditableCell
+          key={`numerosCourts:${row.id}:${row.original.numerosCourts.join("/")}`}
           valeurInitiale={row.original.numerosCourts.join("/")}
           onSave={(v) => updateNumeroCellAction(row.original.numeroId as string, "numerosCourts", v)}
         />
@@ -327,6 +384,7 @@ function buildColumns(
     cell: ({ row }) =>
       row.original.equipementId ? (
         <EditableCell
+          key={`equipementMacBrut:${row.id}:${row.original.equipementMacBrut ?? ""}`}
           valeurInitiale={row.original.equipementMacBrut ?? ""}
           onSave={(v) => updateEquipementMacAction(row.original.equipementId as string, v)}
         />
@@ -340,6 +398,7 @@ function buildColumns(
     cell: ({ row }) =>
       row.original.utilisateurId ? (
         <EditableCell
+          key={`utilisateurNom:${row.id}:${row.original.utilisateurNom ?? ""}`}
           valeurInitiale={row.original.utilisateurNom ?? ""}
           onSave={(v) => updateUtilisateurNomAction(row.original.utilisateurId as string, v)}
         />
@@ -354,9 +413,11 @@ function buildColumns(
     id: "statutBascule",
     cell: ({ row }) =>
       row.original.numeroId ? (
-        <EditableCell
+        <StatutBasculeCell
+          key={`statutBascule:${row.id}:${row.original.statutBascule ?? ""}`}
+          numeroId={row.original.numeroId}
           valeurInitiale={row.original.statutBascule ?? ""}
-          onSave={(v) => updateNumeroCellAction(row.original.numeroId as string, "statutBascule", v)}
+          valeurs={valeursStatutBascule}
         />
       ) : (
         row.original.statutBascule ?? ""
@@ -372,6 +433,7 @@ function buildColumns(
     cell: ({ row }) =>
       row.original.numeroId ? (
         <EditableCell
+          key={`commentaire:${row.id}:${row.original.commentaire ?? ""}`}
           valeurInitiale={row.original.commentaire ?? ""}
           onSave={(v) => updateNumeroCellAction(row.original.numeroId as string, "commentaire", v)}
         />
@@ -382,7 +444,13 @@ function buildColumns(
   ];
 }
 
-export function ProvisionningTable({ lignes }: { lignes: ProvisionningLigne[] }) {
+export function ProvisionningTable({
+  lignes,
+  valeursStatutBascule,
+}: {
+  lignes: ProvisionningLigne[];
+  valeursStatutBascule: string[];
+}) {
   const data = useMemo(() => lignes, [lignes]);
   const [selection, setSelection] = useState<string[]>([]);
   const basculerSelection = (numeroId: string) => {
@@ -390,23 +458,35 @@ export function ProvisionningTable({ lignes }: { lignes: ProvisionningLigne[] })
       prev.includes(numeroId) ? prev.filter((id) => id !== numeroId) : [...prev, numeroId]
     );
   };
-  const columns = useMemo(() => buildColumns(selection, basculerSelection), [selection]);
+  // Une sélection survivant à un changement de filtre ou à un archivage viserait des numéros
+  // invisibles: l'action de masse s'appliquerait alors à des lignes que l'opérateur ne voit plus.
+  useEffect(() => {
+    setSelection((prev) => prev.filter((id) => lignes.some((l) => l.numeroId === id)));
+  }, [lignes]);
+  const columns = useMemo(
+    () => buildColumns(selection, basculerSelection, valeursStatutBascule),
+    [selection, valeursStatutBascule]
+  );
   const table = useReactTable({
     data,
     columns,
+    // Sans `getRowId`, l'id de ligne est l'index du tableau. Après un ajout ou un revalidate les
+    // index glissent, et un EditableCell monté conserve son état pendant que sa closure `onSave`
+    // vise désormais un autre enregistrement: le numéro d'un client atterrit chez un autre.
+    getRowId: (row) => row.numeroId ?? `eq-${row.equipementId}`,
     getCoreRowModel: getCoreRowModel(),
     getGroupedRowModel: getGroupedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
   });
 
-  const groupes = useMemo(() => {
-    const map = new Map<string, ProvisionningLigne[]>();
-    for (const ligne of lignes) {
-      const liste = map.get(ligne.clientRaisonSociale) ?? [];
-      map.set(ligne.clientRaisonSociale, [...liste, ligne]);
-    }
-    return map;
-  }, [lignes]);
+  // Un seul passage sur le row model: le regroupement précédent refiltrait l'intégralité des
+  // lignes pour chaque client, soit un coût quadratique sur une page volontairement dense.
+  const groupes = new Map<string, Row<ProvisionningLigne>[]>();
+  for (const row of table.getRowModel().rows) {
+    const liste = groupes.get(row.original.clientRaisonSociale);
+    if (liste) liste.push(row);
+    else groupes.set(row.original.clientRaisonSociale, [row]);
+  }
 
   return (
     <>
@@ -424,24 +504,29 @@ export function ProvisionningTable({ lignes }: { lignes: ProvisionningLigne[] })
         ))}
       </thead>
       <tbody>
-        {Array.from(groupes.entries()).map(([raisonSociale, lignesDuClient]) => {
-          const clientId = lignesDuClient[0]?.clientId;
+        {Array.from(groupes.entries()).map(([raisonSociale, rowsDuClient]) => {
+          const clientId = rowsDuClient[0]?.original.clientId;
           return (
             <Fragment key={raisonSociale}>
               <tr style={{ background: "#f0f0f0" }}>
                 <td colSpan={columns.length} style={{ padding: "0.25rem", fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span>
-                    {raisonSociale} — {lignesDuClient.filter((l) => l.numeroId).length} numéro(s),{" "}
-                    {lignesDuClient.filter((l) => l.equipementMacBrut).length} MAC,{" "}
-                    {lignesDuClient.filter((l) => l.statutBascule === "Fait").length} bascule(s) faite(s)
+                    {raisonSociale} —{" "}
+                    {rowsDuClient.filter((r) => r.original.numeroId).length} numéro(s),{" "}
+                    {rowsDuClient.filter((r) => r.original.equipementMacBrut).length} MAC,{" "}
+                    {/* Une ligne de duplication (2e équipement d'un utilisateur) répète le statut
+                        du même numéro: seule la ligne porteuse du numeroId est comptée. */}
+                    {
+                      rowsDuClient.filter(
+                        (r) => r.original.numeroId && r.original.statutBascule === "Fait"
+                      ).length
+                    }{" "}
+                    bascule(s) faite(s)
                   </span>
                   {clientId && <AjouterLigneMenu clientId={clientId} />}
                 </td>
               </tr>
-            {table
-              .getRowModel()
-              .rows.filter((r) => r.original.clientRaisonSociale === raisonSociale)
-              .map((row) => (
+              {rowsDuClient.map((row) => (
                 <tr key={row.id}>
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} style={{ padding: "0.25rem" }}>

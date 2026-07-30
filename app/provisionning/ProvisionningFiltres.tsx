@@ -3,7 +3,15 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition, useRef } from "react";
 
-export function ProvisionningFiltresBar() {
+export function ProvisionningFiltresBar({
+  lots,
+  clients,
+  valeursStatutBascule,
+}: {
+  lots: { id: string; nom: string }[];
+  clients: { id: string; raisonSociale: string }[];
+  valeursStatutBascule: string[];
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
@@ -31,6 +39,28 @@ export function ProvisionningFiltresBar() {
         onChange={(e) => setParamDebounced("q", e.target.value)}
       />
       <select
+        defaultValue={searchParams.get("lot") ?? ""}
+        onChange={(e) => setParam("lot", e.target.value)}
+      >
+        <option value="">Lot (tous)</option>
+        {lots.map((lot) => (
+          <option key={lot.id} value={lot.id}>
+            {lot.nom}
+          </option>
+        ))}
+      </select>
+      <select
+        defaultValue={searchParams.get("client") ?? ""}
+        onChange={(e) => setParam("client", e.target.value)}
+      >
+        <option value="">Client (tous)</option>
+        {clients.map((client) => (
+          <option key={client.id} value={client.id}>
+            {client.raisonSociale}
+          </option>
+        ))}
+      </select>
+      <select
         defaultValue={searchParams.get("hebergeur") ?? ""}
         onChange={(e) => setParam("hebergeur", e.target.value)}
       >
@@ -43,10 +73,11 @@ export function ProvisionningFiltresBar() {
         onChange={(e) => setParam("statut", e.target.value)}
       >
         <option value="">Statut bascule (tous)</option>
-        <option value="À faire">À faire</option>
-        <option value="En cours">En cours</option>
-        <option value="Fait">Fait</option>
-        <option value="Bloqué">Bloqué</option>
+        {valeursStatutBascule.map((v) => (
+          <option key={v} value={v}>
+            {v}
+          </option>
+        ))}
       </select>
       <label>
         <input
