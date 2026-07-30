@@ -1,0 +1,258 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import type { ClientDetail } from "@/lib/repositories/clientsRepository";
+
+const NIVEAU_CLASSES: Record<string, string> = {
+  OK: "border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  AVERTISSEMENT: "border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  ERREUR: "border-transparent bg-destructive/15 text-destructive",
+};
+
+const ONGLETS = [
+  "Numéros",
+  "Équipements",
+  "Utilisateurs",
+  "Suivi téléphonie",
+  "Monday",
+  "Historique",
+] as const;
+type Onglet = (typeof ONGLETS)[number];
+
+function EnteteTableau({ colonnes }: { colonnes: string[] }) {
+  return (
+    <TableHeader>
+      <TableRow className="hover:bg-transparent">
+        {colonnes.map((c) => (
+          <TableHead
+            key={c}
+            className="h-9 text-xs font-semibold whitespace-nowrap text-muted-foreground"
+          >
+            {c}
+          </TableHead>
+        ))}
+      </TableRow>
+    </TableHeader>
+  );
+}
+
+export function FicheClient({ detail }: { detail: ClientDetail }) {
+  const [onglet, setOnglet] = useState<Onglet>("Numéros");
+  const { client, etapes, auditLogs } = detail;
+
+  const nbCellulesSuivi = client.utilisateurs.length * etapes.length;
+  const nbFaits = client.utilisateurs
+    .flatMap((u) => u.suivis)
+    .filter((s) => s.statut === "Fait").length;
+  const pctSuivi = nbCellulesSuivi > 0 ? Math.round((nbFaits / nbCellulesSuivi) * 100) : 0;
+
+  const mondayRaw = (client.mondayRaw ?? null) as Record<string, unknown> | null;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex gap-1 border-b">
+        {ONGLETS.map((o) => (
+          <button
+            key={o}
+            onClick={() => setOnglet(o)}
+            className={cn(
+              "-mb-px border-b-2 px-3 py-2 text-sm transition-colors",
+              onglet === o
+                ? "border-primary font-medium text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {o}
+            {o === "Suivi téléphonie" && (
+              <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">
+                {pctSuivi}%
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {onglet === "Numéros" && (
+        <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
+          <Table>
+            <EnteteTableau
+              colonnes={["Numéro", "Numéros courts", "Contrôle", "Utilisateur", "Bascule", "Date", "Commentaire"]}
+            />
+            <TableBody>
+              {client.numeros.map((n) => (
+                <TableRow key={n.id}>
+                  <TableCell className="font-mono text-[13px] tabular-nums">{n.numeroBrut}</TableCell>
+                  <TableCell className="font-mono text-[13px]">{n.numerosCourts.join("/") || "—"}</TableCell>
+                  <TableCell>
+                    <Badge className={NIVEAU_CLASSES[n.controleNiveau]}>
+                      {n.controleNiveau}
+                      {n.controleForce ? " (forcé)" : ""}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{n.utilisateur?.nom ?? "—"}</TableCell>
+                  <TableCell>{n.statutBascule}</TableCell>
+                  <TableCell className="tabular-nums">
+                    {n.dateBascule ? n.dateBascule.toISOString().slice(0, 10) : "—"}
+                  </TableCell>
+                  <TableCell className="max-w-64 truncate" title={n.commentaire ?? undefined}>
+                    {n.commentaire ?? "—"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {onglet === "Équipements" && (
+        <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
+          <Table>
+            <EnteteTableau colonnes={["Modèle", "MAC", "Utilisateur", "Éligible export", "Commentaire"]} />
+            <TableBody>
+              {client.equipements.map((e) => (
+                <TableRow key={e.id}>
+                  <TableCell>{e.modele?.libelle ?? e.modeleLibelleBrut ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-[13px]">{e.macBrut}</TableCell>
+                  <TableCell>{e.utilisateur?.nom ?? "—"}</TableCell>
+                  <TableCell>
+                    {e.modele?.eligibleExport ? (
+                      <Badge className={NIVEAU_CLASSES.OK}>Oui</Badge>
+                    ) : (
+                      <Badge variant="outline">
+                        Non{e.modele ? "" : " (modèle inconnu)"}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="max-w-64 truncate" title={e.commentaire ?? undefined}>
+                    {e.commentaire ?? "—"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {onglet === "Utilisateurs" && (
+        <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
+          <Table>
+            <EnteteTableau colonnes={["Nom", "Étapes faites", "Commentaire"]} />
+            <TableBody>
+              {client.utilisateurs.map((u) => (
+                <TableRow key={u.id}>
+                  <TableCell className="font-medium">{u.nom}</TableCell>
+                  <TableCell className="tabular-nums">
+                    {u.suivis.filter((s) => s.statut === "Fait").length}/{etapes.length}
+                  </TableCell>
+                  <TableCell className="max-w-64 truncate">{u.commentaire ?? "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {onglet === "Suivi téléphonie" && (
+        <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
+          <Table>
+            <EnteteTableau colonnes={["Utilisateur", ...etapes.map((e) => e.libelle)]} />
+            <TableBody>
+              {client.utilisateurs.map((u) => {
+                const parEtape = new Map(u.suivis.map((s) => [s.etapeId, s.statut]));
+                return (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium whitespace-nowrap">{u.nom}</TableCell>
+                    {etapes.map((e) => {
+                      const statut = parEtape.get(e.id) ?? "À faire";
+                      return (
+                        <TableCell key={e.id}>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              statut === "Fait" && NIVEAU_CLASSES.OK,
+                              statut === "En cours" && NIVEAU_CLASSES.AVERTISSEMENT
+                            )}
+                          >
+                            {statut}
+                          </Badge>
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          <p className="border-t p-3 text-xs text-muted-foreground">
+            Édition des statuts sur la page{" "}
+            <Link href={`/telephone?client=${client.id}`} className="underline">
+              Téléphone
+            </Link>
+            .
+          </p>
+        </div>
+      )}
+
+      {onglet === "Monday" && (
+        <div className="rounded-xl border bg-card p-4 shadow-xs">
+          {mondayRaw ? (
+            <dl className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              {Object.entries(mondayRaw).map(([k, v]) => (
+                <div key={k} className="flex flex-col">
+                  <dt className="text-xs text-muted-foreground">{k}</dt>
+                  <dd>{v === null || v === "" ? "—" : String(v)}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Aucune donnée Monday pour ce client. Lancez un import Monday pour les alimenter.
+            </p>
+          )}
+        </div>
+      )}
+
+      {onglet === "Historique" && (
+        <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
+          {auditLogs.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">Aucune modification enregistrée.</p>
+          ) : (
+            <Table>
+              <EnteteTableau colonnes={["Date", "Entité", "Action", "Champ", "Avant", "Après", "Auteur"]} />
+              <TableBody>
+                {auditLogs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="whitespace-nowrap tabular-nums">
+                      {log.creeLe.toISOString().slice(0, 16).replace("T", " ")}
+                    </TableCell>
+                    <TableCell>{log.entite}</TableCell>
+                    <TableCell>{log.action}</TableCell>
+                    <TableCell>{log.champ ?? "—"}</TableCell>
+                    <TableCell className="max-w-48 truncate" title={log.avant ?? undefined}>
+                      {log.avant ?? "—"}
+                    </TableCell>
+                    <TableCell className="max-w-48 truncate" title={log.apres ?? undefined}>
+                      {log.apres ?? "—"}
+                    </TableCell>
+                    <TableCell>{log.auteur?.email ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
