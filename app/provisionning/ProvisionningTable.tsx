@@ -11,8 +11,14 @@ import {
 } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { ProvisionningLigne } from "@/lib/repositories/provisionningRepository";
-import { updateNumeroCellAction } from "./actions";
+import { updateNumeroCellAction, forcerControleAction } from "./actions";
 
 const NIVEAU_COULEUR: Record<string, "default" | "secondary" | "destructive"> = {
   OK: "default",
@@ -61,6 +67,46 @@ function EditableCell({
   );
 }
 
+function ControleCell({ ligne }: { ligne: ProvisionningLigne }) {
+  const [isPending, startTransition] = useTransition();
+
+  // Orphan équipement rows have no Numero, hence no Contrôle N° at all — nothing to render or
+  // force. This action only applies to Numero-backed rows (ligne.numeroId non-null).
+  if (!ligne.controleNiveau || !ligne.numeroId) return null;
+  const numeroId = ligne.numeroId;
+
+  const badge = <Badge variant={NIVEAU_COULEUR[ligne.controleNiveau]}>{ligne.controleNiveau}</Badge>;
+  const trigger = ligne.controleDetail ? (
+    <Tooltip>
+      <TooltipTrigger render={badge} />
+      <TooltipContent>{ligne.controleDetail}</TooltipContent>
+    </Tooltip>
+  ) : (
+    badge
+  );
+
+  const forcer = () => {
+    const motif = window.prompt("Motif du forçage:");
+    if (!motif) return;
+    startTransition(async () => {
+      await forcerControleAction(numeroId, motif);
+    });
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={trigger} />
+      {ligne.controleNiveau !== "OK" && (
+        <DropdownMenuContent>
+          <DropdownMenuItem onClick={forcer} disabled={isPending}>
+            Forcer OK
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      )}
+    </DropdownMenu>
+  );
+}
+
 const columns: ColumnDef<ProvisionningLigne>[] = [
   { header: "Client (raison sociale)", accessorKey: "clientRaisonSociale" },
   { header: "Numéro à porter", accessorKey: "numeroBrut" },
@@ -71,22 +117,7 @@ const columns: ColumnDef<ProvisionningLigne>[] = [
   {
     header: "Contrôle N°",
     id: "controle",
-    cell: ({ row }) => {
-      const { controleNiveau, controleDetail } = row.original;
-      // controleNiveau is null on orphan équipement rows (no Numero, nothing to control) —
-      // render nothing rather than a badge with an empty/undefined variant.
-      if (!controleNiveau) return null;
-      const badge = <Badge variant={NIVEAU_COULEUR[controleNiveau]}>{controleNiveau}</Badge>;
-      if (!controleDetail) return badge;
-      return (
-        <Tooltip>
-          {/* This project's Tooltip is built on @base-ui/react, not Radix — the trigger is
-              swapped out via the `render` prop (a ReactElement), not Radix's `asChild`. */}
-          <TooltipTrigger render={badge} />
-          <TooltipContent>{controleDetail}</TooltipContent>
-        </Tooltip>
-      );
-    },
+    cell: ({ row }) => <ControleCell ligne={row.original} />,
   },
   { header: "Equipement", accessorKey: "equipementLibelle" },
   { header: "Adresse MAC équipement", accessorKey: "equipementMacBrut" },

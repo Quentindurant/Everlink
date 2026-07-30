@@ -34,3 +34,33 @@ export async function updateNumeroCellAction(
     return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
   }
 }
+
+export async function forcerControleAction(
+  numeroId: string,
+  motif: string
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "Non authentifié." };
+  }
+  if (!motif.trim()) {
+    return { success: false, error: "Le motif est obligatoire." };
+  }
+
+  try {
+    await prisma.numero.update({
+      where: { id: numeroId },
+      data: {
+        controleNiveau: "OK",
+        controleForce: true,
+        controleMotif: motif,
+        controlePar: session.user.id,
+        controleLe: new Date(),
+      },
+    });
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
+  }
+}
