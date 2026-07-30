@@ -39,14 +39,19 @@ export function evaluerControle(
     }
   }
 
-  const occurrences = contexte.numerosNormalisesActifs.filter(
-    (n) => n === numero.numeroNormalise
-  ).length;
-  if (occurrences > 1) {
-    anomalies.push({
-      niveau: "ERREUR",
-      message: "Ce numéro est en doublon sur les lots actifs.",
-    });
+  // Une ligne vierge (numéro non saisi) n'est pas le doublon d'une autre ligne vierge: plusieurs
+  // lignes fraîchement ajoutées coexistent légitimement. L'ERREUR "10 chiffres" ci-dessus couvre
+  // déjà le cas, inutile d'y ajouter un faux doublon.
+  if (numero.numeroNormalise !== "") {
+    const occurrences = contexte.numerosNormalisesActifs.filter(
+      (n) => n === numero.numeroNormalise
+    ).length;
+    if (occurrences > 1) {
+      anomalies.push({
+        niveau: "ERREUR",
+        message: "Ce numéro est en doublon sur les lots actifs.",
+      });
+    }
   }
 
   if (numero.utilisateurId && numero.aEquipement === false) {

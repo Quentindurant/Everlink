@@ -72,6 +72,16 @@ describe("evaluerControle", () => {
     expect(result.detail).toContain("numéro court");
   });
 
+  test("deux numéros vides ne sont pas des doublons l'un de l'autre", () => {
+    const result = evaluerControle(
+      { numeroNormalise: "", utilisateurId: null, numerosCourts: [] },
+      { numerosNormalisesActifs: ["", ""], numerosCourtsDuClient: [] }
+    );
+    expect(result.niveau).toBe("ERREUR");
+    expect(result.detail).toContain("10 chiffres");
+    expect(result.detail).not.toContain("doublon");
+  });
+
   test("plusieurs anomalies: le niveau le plus sévère gagne, le détail liste tout", () => {
     const result = evaluerControle(
       { numeroNormalise: "0680873345", utilisateurId: null, numerosCourts: [], aEquipement: false },
