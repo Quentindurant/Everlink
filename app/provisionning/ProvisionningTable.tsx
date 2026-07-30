@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -12,12 +12,54 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ProvisionningLigne } from "@/lib/repositories/provisionningRepository";
+import { updateNumeroCellAction } from "./actions";
 
 const NIVEAU_COULEUR: Record<string, "default" | "secondary" | "destructive"> = {
   OK: "default",
   AVERTISSEMENT: "secondary",
   ERREUR: "destructive",
 };
+
+function EditableCell({
+  numeroId,
+  champ,
+  valeurInitiale,
+}: {
+  numeroId: string;
+  champ: string;
+  valeurInitiale: string;
+}) {
+  const [valeur, setValeur] = useState(valeurInitiale);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const enregistrer = () => {
+    if (valeur === valeurInitiale) return;
+    const valeurPrecedente = valeurInitiale;
+    startTransition(async () => {
+      const result = await updateNumeroCellAction(numeroId, champ, valeur);
+      if (!result.success) {
+        setValeur(valeurPrecedente);
+        setErreur(result.error ?? "Échec de la sauvegarde.");
+        setTimeout(() => setErreur(null), 3000);
+      }
+    });
+  };
+
+  return (
+    <div>
+      <input
+        value={valeur}
+        onChange={(e) => setValeur(e.target.value)}
+        onBlur={enregistrer}
+        onKeyDown={(e) => e.key === "Enter" && enregistrer()}
+        disabled={isPending}
+        style={{ width: "100%", border: "none", background: "transparent" }}
+      />
+      {erreur && <span style={{ color: "red", fontSize: "0.75rem" }}>{erreur}</span>}
+    </div>
+  );
+}
 
 const columns: ColumnDef<ProvisionningLigne>[] = [
   { header: "Client (raison sociale)", accessorKey: "clientRaisonSociale" },
@@ -51,12 +93,38 @@ const columns: ColumnDef<ProvisionningLigne>[] = [
   { header: "Utilisateur", accessorKey: "utilisateurNom" },
   { header: "Hébergeur source", accessorKey: "hebergeurSource" },
   { header: "Hébergeur cible", accessorKey: "hebergeurCible" },
-  { header: "Bascule des numéros", accessorKey: "statutBascule" },
+  {
+    header: "Bascule des numéros",
+    id: "statutBascule",
+    cell: ({ row }) =>
+      row.original.numeroId ? (
+        <EditableCell
+          numeroId={row.original.numeroId}
+          champ="statutBascule"
+          valeurInitiale={row.original.statutBascule ?? ""}
+        />
+      ) : (
+        row.original.statutBascule ?? ""
+      ),
+  },
   {
     header: "Date bascule",
     accessorFn: (row) => (row.dateBascule ? row.dateBascule.toISOString().slice(0, 10) : ""),
   },
-  { header: "Commentaires", accessorKey: "commentaire" },
+  {
+    header: "Commentaires",
+    id: "commentaire",
+    cell: ({ row }) =>
+      row.original.numeroId ? (
+        <EditableCell
+          numeroId={row.original.numeroId}
+          champ="commentaire"
+          valeurInitiale={row.original.commentaire ?? ""}
+        />
+      ) : (
+        row.original.commentaire ?? ""
+      ),
+  },
 ];
 
 export function ProvisionningTable({ lignes }: { lignes: ProvisionningLigne[] }) {

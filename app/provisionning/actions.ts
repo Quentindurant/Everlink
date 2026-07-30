@@ -1,0 +1,36 @@
+"use server";
+
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+
+const CHAMPS_EDITABLES = [
+  "commentaire",
+  "statutBascule",
+  "dateBascule",
+] as const;
+type ChampEditable = (typeof CHAMPS_EDITABLES)[number];
+
+export async function updateNumeroCellAction(
+  numeroId: string,
+  champ: string,
+  valeur: string
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session) {
+    return { success: false, error: "Non authentifié." };
+  }
+  if (!CHAMPS_EDITABLES.includes(champ as ChampEditable)) {
+    return { success: false, error: "Champ non éditable." };
+  }
+
+  try {
+    const data: Record<string, string | Date> =
+      champ === "dateBascule" ? { dateBascule: new Date(valeur) } : { [champ]: valeur };
+    await prisma.numero.update({ where: { id: numeroId }, data });
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
+  }
+}
