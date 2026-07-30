@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
+import { useTransition, useRef } from "react";
 
 export function ProvisionningFiltresBar() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setParam = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -17,12 +18,17 @@ export function ProvisionningFiltresBar() {
     });
   };
 
+  const setParamDebounced = (key: string, value: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setParam(key, value), 300);
+  };
+
   return (
     <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
       <input
         placeholder="Rechercher (numéro, MAC, utilisateur, raison sociale)"
         defaultValue={searchParams.get("q") ?? ""}
-        onChange={(e) => setParam("q", e.target.value)}
+        onChange={(e) => setParamDebounced("q", e.target.value)}
       />
       <select
         defaultValue={searchParams.get("hebergeur") ?? ""}
@@ -38,7 +44,9 @@ export function ProvisionningFiltresBar() {
       >
         <option value="">Statut bascule (tous)</option>
         <option value="À faire">À faire</option>
+        <option value="En cours">En cours</option>
         <option value="Fait">Fait</option>
+        <option value="Bloqué">Bloqué</option>
       </select>
       <label>
         <input
