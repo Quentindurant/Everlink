@@ -565,7 +565,13 @@ git commit -m "feat: add Contrôle N° rule engine"
 - Consumes: `prisma` from `lib/prisma.ts`, `evaluerControle` from Task 4.
 - Produces:
   - `ProvisionningLigne` type — one row's full display data (client, numéro, utilisateur,
-    équipement, contrôle, etc.)
+    équipement, contrôle, etc.). Numéro-specific fields (`numeroId`, `numeroBrut`,
+    `numeroNormalise`, `controleNiveau`, `controleDetail`, `statutBascule`, `dateBascule`) are
+    nullable — a row can represent either a `Numero` or an orphan `Equipement` with no numéro at
+    all (SPEC §3.1's "équipement seul" line type: DECT bornes, or any device whose utilisateur has
+    no active numéro). Task 6 (the grid) and Task 7 (inline editing) must render/guard against
+    `numeroId === null` accordingly — editable cells that call `updateNumeroCellAction` (Task 7)
+    only make sense on rows where `numeroId` is non-null.
   - `fetchProvisionningLignes(filtres?: ProvisionningFiltres): Promise<ProvisionningLigne[]>`
   - `ProvisionningFiltres` type — `{ lotId?: string; clientId?: string; hebergeur?: string; statutBascule?: string; eligibleExportSeulement?: boolean; avecAnomalieSeulement?: boolean; recherche?: string }`
 
@@ -579,6 +585,7 @@ repository queries.
 // lib/repositories/provisionningRepository.ts
 import { prisma } from "@/lib/prisma";
 import { evaluerControle, type NiveauControle } from "@/lib/domain/controle/controleNumero";
+import type { Equipement, ModeleEquipement } from "@prisma/client";
 
 export interface ProvisionningFiltres {
   lotId?: string;
@@ -591,13 +598,13 @@ export interface ProvisionningFiltres {
 }
 
 export interface ProvisionningLigne {
-  numeroId: string;
+  numeroId: string | null;
   clientId: string;
   clientRaisonSociale: string;
-  numeroBrut: string;
-  numeroNormalise: string;
+  numeroBrut: string | null;
+  numeroNormalise: string | null;
   numerosCourts: string[];
-  controleNiveau: NiveauControle;
+  controleNiveau: NiveauControle | null;
   controleDetail: string | null;
   controleForce: boolean;
   equipementId: string | null;
@@ -607,31 +614,67 @@ export interface ProvisionningLigne {
   utilisateurNom: string | null;
   hebergeurSource: string;
   hebergeurCible: string;
-  statutBascule: string;
+  statutBascule: string | null;
   dateBascule: Date | null;
   commentaire: string | null;
   exclureExport: boolean;
 }
 
+function equipementLabel(e: Equipement & { modele: ModeleEquipement | null }): string | null {
+  return e.modele?.libelle ?? e.modeleLibelleBrut ?? null;
+}
+
 export async function fetchProvisionningLignes(
   filtres: ProvisionningFiltres = {}
 ): Promise<ProvisionningLigne[]> {
+  const clientWhere = {
+    archiveA: null as null,
+    ...(filtres.clientId ? { id: filtres.clientId } : {}),
+    ...(filtres.lotId ? { lotId: filtres.lotId } : {}),
+    ...(filtres.hebergeur ? { hebergeurCible: filtres.hebergeur } : {}),
+  };
+
+  // Contrôle N° context (uniqueness rules) is global (SPEC §5, rules 3 and 5) — it must be built
+  // from every active numéro regardless of the page's active filters, or a row's anomaly status
+  // would silently change depending on what the user happens to be filtering by.
+  const tousNumerosActifs = await prisma.numero.findMany({
+    where: { archiveA: null, client: { archiveA: null } },
+    select: { clientId: true, numeroNormalise: true, numerosCourts: true },
+  });
+  const numerosNormalisesActifs = tousNumerosActifs.map((n) => n.numeroNormalise);
+  const numerosCourtsParClient = new Map<string, string[]>();
+  for (const n of tousNumerosActifs) {
+    const liste = numerosCourtsParClient.get(n.clientId) ?? [];
+    numerosCourtsParClient.set(n.clientId, [...liste, ...n.numerosCourts]);
+  }
+
   const numeros = await prisma.numero.findMany({
     where: {
       archiveA: null,
-      client: {
-        archiveA: null,
-        ...(filtres.clientId ? { id: filtres.clientId } : {}),
-        ...(filtres.lotId ? { lotId: filtres.lotId } : {}),
-        ...(filtres.hebergeur ? { hebergeurCible: filtres.hebergeur } : {}),
-      },
+      client: clientWhere,
       ...(filtres.statutBascule ? { statutBascule: filtres.statutBascule } : {}),
       ...(filtres.recherche
         ? {
             OR: [
               { numeroBrut: { contains: filtres.recherche, mode: "insensitive" } },
               { client: { raisonSociale: { contains: filtres.recherche, mode: "insensitive" } } },
-              { utilisateur: { nom: { contains: filtres.recherche, mode: "insensitive" } } },
+              {
+                utilisateur: {
+                  archiveA: null,
+                  nom: { contains: filtres.recherche, mode: "insensitive" },
+                },
+              },
+              {
+                utilisateur: {
+                  archiveA: null,
+                  equipements: {
+                    some: {
+                      archiveA: null,
+                      macBrut: { contains: filtres.recherche, mode: "insensitive" },
+                    },
+                  },
+                },
+              },
             ],
           }
         : {}),
@@ -643,37 +686,47 @@ export async function fetchProvisionningLignes(
   const utilisateurIds = numeros
     .map((n) => n.utilisateurId)
     .filter((id): id is string => id !== null);
-  const equipements = await prisma.equipement.findMany({
+
+  // Eligibility ("eligibleExportSeulement") is a row FILTER, applied after mapping (below) — it
+  // must never change what this lookup itself returns, or Contrôle N°'s coherence check would
+  // see a false "no équipement" for a row whose device simply isn't export-eligible.
+  const equipementsActifs = await prisma.equipement.findMany({
     where: {
       archiveA: null,
+      client: { archiveA: null },
       utilisateurId: { in: utilisateurIds },
       utilisateur: { archiveA: null },
-      ...(filtres.eligibleExportSeulement ? { modele: { eligibleExport: true } } : {}),
     },
     include: { modele: true },
     orderBy: [{ ordre: "asc" }, { id: "asc" }],
   });
-  const equipementParUtilisateur = new Map(equipements.map((e) => [e.utilisateurId as string, e]));
-
-  const numerosNormalisesActifs = numeros.map((n) => n.numeroNormalise);
-  const numerosCourtsParClient = new Map<string, string[]>();
-  for (const n of numeros) {
-    const liste = numerosCourtsParClient.get(n.clientId) ?? [];
-    numerosCourtsParClient.set(n.clientId, [...liste, ...n.numerosCourts]);
+  // First équipement (lowest ordre/id, matching the ascending orderBy above) wins when a
+  // utilisateur has several — SPEC's row format has one équipement/MAC slot per row, same
+  // simplification as lib/repositories/syncRepository.ts's fetchProvisionningData.
+  const equipementParUtilisateur = new Map<string, (typeof equipementsActifs)[number]>();
+  for (const e of equipementsActifs) {
+    if (e.utilisateurId && !equipementParUtilisateur.has(e.utilisateurId)) {
+      equipementParUtilisateur.set(e.utilisateurId, e);
+    }
   }
 
-  const lignes: ProvisionningLigne[] = numeros.map((n) => {
-    const equipement = n.utilisateurId ? equipementParUtilisateur.get(n.utilisateurId) : undefined;
+  interface LigneAvecEligibilite {
+    ligne: ProvisionningLigne;
+    eligible: boolean;
+  }
+
+  const lignesNumero: LigneAvecEligibilite[] = numeros.map((n) => {
     const utilisateurActif = n.utilisateur && n.utilisateur.archiveA === null ? n.utilisateur : null;
+    const equipement = utilisateurActif ? equipementParUtilisateur.get(utilisateurActif.id) : undefined;
 
     const resultat = n.controleForce
       ? { niveau: n.controleNiveau, detail: n.controleDetail }
       : evaluerControle(
           {
             numeroNormalise: n.numeroNormalise,
-            utilisateurId: n.utilisateurId,
+            utilisateurId: utilisateurActif?.id ?? null,
             numerosCourts: n.numerosCourts,
-            aEquipement: n.utilisateurId ? Boolean(equipement) : undefined,
+            aEquipement: utilisateurActif ? Boolean(equipement) : undefined,
           },
           {
             numerosNormalisesActifs,
@@ -682,35 +735,98 @@ export async function fetchProvisionningLignes(
         );
 
     return {
-      numeroId: n.id,
-      clientId: n.clientId,
-      clientRaisonSociale: n.client.raisonSociale,
-      numeroBrut: n.numeroBrut,
-      numeroNormalise: n.numeroNormalise,
-      numerosCourts: n.numerosCourts,
-      controleNiveau: resultat.niveau,
-      controleDetail: resultat.detail,
-      controleForce: n.controleForce,
-      equipementId: equipement?.id ?? null,
-      equipementLibelle: equipement?.modele?.libelle ?? equipement?.modeleLibelleBrut ?? null,
-      equipementMacBrut: equipement?.macBrut ?? null,
-      utilisateurId: utilisateurActif?.id ?? null,
-      utilisateurNom: utilisateurActif?.nom ?? null,
-      hebergeurSource: n.client.hebergeurSource,
-      hebergeurCible: n.client.hebergeurCible,
-      statutBascule: n.statutBascule,
-      dateBascule: n.dateBascule,
-      commentaire: n.commentaire,
-      exclureExport: n.exclureExport,
+      ligne: {
+        numeroId: n.id,
+        clientId: n.clientId,
+        clientRaisonSociale: n.client.raisonSociale,
+        numeroBrut: n.numeroBrut,
+        numeroNormalise: n.numeroNormalise,
+        numerosCourts: n.numerosCourts,
+        controleNiveau: resultat.niveau,
+        controleDetail: resultat.detail,
+        controleForce: n.controleForce,
+        equipementId: equipement?.id ?? null,
+        equipementLibelle: equipement ? equipementLabel(equipement) : null,
+        equipementMacBrut: equipement?.macBrut ?? null,
+        utilisateurId: utilisateurActif?.id ?? null,
+        utilisateurNom: utilisateurActif?.nom ?? null,
+        hebergeurSource: n.client.hebergeurSource,
+        hebergeurCible: n.client.hebergeurCible,
+        statutBascule: n.statutBascule,
+        dateBascule: n.dateBascule,
+        commentaire: n.commentaire,
+        exclureExport: n.exclureExport,
+      },
+      eligible: Boolean(equipement?.modele?.eligibleExport),
     };
   });
 
+  // Orphan équipements: no utilisateur at all (DECT bornes), or a utilisateur with zero active
+  // numéro — neither has a Numero row to attach to, so each gets its own grid row (numéro fields
+  // null), matching SPEC §3.1's "équipement seul" line and lib/repositories/syncRepository.ts's
+  // equivalent handling.
+  const utilisateursAvecNumeroActif = new Set(
+    numeros.map((n) => n.utilisateurId).filter((id): id is string => id !== null)
+  );
+  const equipementsOrphelins = await prisma.equipement.findMany({
+    where: {
+      archiveA: null,
+      client: clientWhere,
+      OR: [
+        { utilisateurId: null },
+        {
+          utilisateur: { archiveA: null },
+          utilisateurId: { notIn: [...utilisateursAvecNumeroActif] },
+        },
+      ],
+    },
+    include: { client: true, modele: true },
+    orderBy: [{ ordre: "asc" }, { id: "asc" }],
+  });
+
+  const lignesOrphelines: LigneAvecEligibilite[] = equipementsOrphelins.map((e) => ({
+    ligne: {
+      numeroId: null,
+      clientId: e.clientId,
+      clientRaisonSociale: e.client.raisonSociale,
+      numeroBrut: null,
+      numeroNormalise: null,
+      numerosCourts: [],
+      controleNiveau: null,
+      controleDetail: null,
+      controleForce: false,
+      equipementId: e.id,
+      equipementLibelle: equipementLabel(e),
+      equipementMacBrut: e.macBrut,
+      utilisateurId: null,
+      utilisateurNom: null,
+      hebergeurSource: e.client.hebergeurSource,
+      hebergeurCible: e.client.hebergeurCible,
+      statutBascule: null,
+      dateBascule: null,
+      commentaire: e.commentaire,
+      exclureExport: e.exclureExport,
+    },
+    eligible: Boolean(e.modele?.eligibleExport),
+  }));
+
+  let toutes = [...lignesNumero, ...lignesOrphelines];
+  if (filtres.eligibleExportSeulement) {
+    toutes = toutes.filter((item) => item.eligible);
+  }
+
+  let lignes = toutes.map((item) => item.ligne);
   if (filtres.avecAnomalieSeulement) {
-    return lignes.filter((l) => l.controleNiveau !== "OK");
+    lignes = lignes.filter((l) => l.controleNiveau !== null && l.controleNiveau !== "OK");
   }
   return lignes;
 }
 ```
+
+Known simplification, deferred: SPEC §5 rule 3 says uniqueness applies "sur les lots actifs"
+(`Lot.clos === false`) — `tousNumerosActifs` above doesn't filter on `Lot.clos` (or exclude clients
+with no lot at all), so a duplicate in a closed lot still counts. Revisit once the Lots page
+(separate future sub-project) makes `Lot.clos` a meaningful, editable state.
 
 - [ ] **Step 2: Verify it compiles**
 
