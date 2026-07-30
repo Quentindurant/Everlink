@@ -10,8 +10,19 @@ import {
   type ColumnDef,
   type Row,
 } from "@tanstack/react-table";
+import { CheckCheck, FileX2, Inbox, Plus, Server, Undo2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,18 +58,20 @@ import {
   actionMasseAction,
 } from "./actions";
 
-const NIVEAU_COULEUR: Record<string, "default" | "secondary" | "destructive"> = {
-  OK: "default",
-  AVERTISSEMENT: "secondary",
-  ERREUR: "destructive",
+const NIVEAU_CLASSES: Record<string, string> = {
+  OK: "border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  AVERTISSEMENT: "border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  ERREUR: "border-transparent bg-destructive/15 text-destructive",
 };
 
 function EditableCell({
   valeurInitiale,
   onSave,
+  mono = false,
 }: {
   valeurInitiale: string;
   onSave: (valeur: string) => Promise<{ success: boolean; error?: string }>;
+  mono?: boolean;
 }) {
   const [valeur, setValeur] = useState(valeurInitiale);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -85,9 +98,12 @@ function EditableCell({
         onBlur={enregistrer}
         onKeyDown={(e) => e.key === "Enter" && enregistrer()}
         disabled={isPending}
-        style={{ width: "100%", border: "none", background: "transparent" }}
+        className={cn(
+          "w-full rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-sm transition-colors outline-none hover:border-input focus:border-ring focus:ring-2 focus:ring-ring/40 disabled:opacity-50",
+          mono && "font-mono text-[13px] tabular-nums"
+        )}
       />
-      {erreur && <span style={{ color: "red", fontSize: "0.75rem" }}>{erreur}</span>}
+      {erreur && <span className="text-xs text-destructive">{erreur}</span>}
     </div>
   );
 }
@@ -125,7 +141,10 @@ function StatutBasculeCell({
             }
           });
         }}
-        style={{ width: "100%" }}
+        className={cn(
+          "w-full rounded-md border border-transparent bg-transparent px-1 py-0.5 text-sm transition-colors outline-none hover:border-input focus:border-ring focus:ring-2 focus:ring-ring/40 disabled:opacity-50",
+          valeurInitiale === "Fait" && "font-medium text-emerald-700 dark:text-emerald-400"
+        )}
       >
         <option value=""></option>
         {options.map((v) => (
@@ -134,7 +153,7 @@ function StatutBasculeCell({
           </option>
         ))}
       </select>
-      {erreur && <span style={{ color: "red", fontSize: "0.75rem" }}>{erreur}</span>}
+      {erreur && <span className="text-xs text-destructive">{erreur}</span>}
     </div>
   );
 }
@@ -146,7 +165,9 @@ function ControleCell({ ligne }: { ligne: ProvisionningLigne }) {
   if (!ligne.controleNiveau) return null;
   const numeroId = ligne.numeroId;
 
-  const badge = <Badge variant={NIVEAU_COULEUR[ligne.controleNiveau]}>{ligne.controleNiveau}</Badge>;
+  const badge = (
+    <Badge className={NIVEAU_CLASSES[ligne.controleNiveau]}>{ligne.controleNiveau}</Badge>
+  );
   const trigger = ligne.controleDetail ? (
     <Tooltip>
       <TooltipTrigger render={badge} />
@@ -191,7 +212,14 @@ function AjouterLigneMenu({ clientId }: { clientId: string }) {
   };
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<button disabled={isPending}>+ Ajouter</button>} />
+      <DropdownMenuTrigger
+        render={
+          <Button variant="outline" size="xs" disabled={isPending}>
+            <Plus data-icon="inline-start" />
+            Ajouter
+          </Button>
+        }
+      />
       <DropdownMenuContent>
         <DropdownMenuItem onClick={() => ajouter("numero")}>Numéro seul</DropdownMenuItem>
         <DropdownMenuItem onClick={() => ajouter("equipement")}>Équipement seul</DropdownMenuItem>
@@ -226,97 +254,130 @@ function BarreActionsMasse({
   };
 
   return (
-    <div style={{ display: "flex", gap: "0.5rem", padding: "0.5rem", background: "#eef", alignItems: "center" }}>
-      <span>{selection.length} ligne(s) sélectionnée(s)</span>
-      {erreur && <span style={{ color: "red" }}>{erreur}</span>}
-      <AlertDialog>
-        <AlertDialogTrigger render={<button disabled={isPending}>Passer à Fait</button>} />
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la bascule</AlertDialogTitle>
-            <AlertDialogDescription>
-              Passer {selection.length} numéro(s) à "Fait" avec la date d'aujourd'hui ?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() =>
-                executer({ type: "basculeFaite", date: new Date().toISOString() })
-              }
-            >
-              Confirmer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <AlertDialog>
-        <AlertDialogTrigger render={<button disabled={isPending}>Exclure de l'export</button>} />
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer l'exclusion</AlertDialogTitle>
-            <AlertDialogDescription>
-              Exclure {selection.length} numéro(s) de l'export ?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => executer({ type: "exclureExport", valeur: true })}
-            >
-              Confirmer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <AlertDialog>
-        <AlertDialogTrigger render={<button disabled={isPending}>Réintégrer dans l'export</button>} />
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la réintégration</AlertDialogTitle>
-            <AlertDialogDescription>
-              Réintégrer {selection.length} numéro(s) dans l'export ?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => executer({ type: "exclureExport", valeur: false })}
-            >
-              Confirmer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <Select value={hebergeur} onValueChange={(v) => setHebergeur(v as string)}>
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="SEWAN">SEWAN</SelectItem>
-          <SelectItem value="UNYC">UNYC</SelectItem>
-        </SelectContent>
-      </Select>
-      <AlertDialog>
-        <AlertDialogTrigger render={<button disabled={isPending}>Affecter hébergeur cible</button>} />
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer l'affectation</AlertDialogTitle>
-            <AlertDialogDescription>
-              Affecter l'hébergeur cible "{hebergeur}" au(x) client(s) des {selection.length} numéro(s)
-              sélectionné(s) ?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => executer({ type: "hebergeurCible", valeur: hebergeur })}
-            >
-              Confirmer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+    <div className="sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-background/95 p-2 shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <Badge className="tabular-nums">{selection.length}</Badge>
+      <span className="text-sm font-medium">
+        ligne{selection.length > 1 ? "s" : ""} sélectionnée{selection.length > 1 ? "s" : ""}
+      </span>
+      {erreur && <span className="text-sm text-destructive">{erreur}</span>}
+      <div className="ml-auto flex flex-wrap items-center gap-2">
+        <AlertDialog>
+          <AlertDialogTrigger
+            render={
+              <Button size="sm" disabled={isPending}>
+                <CheckCheck data-icon="inline-start" />
+                Passer à Fait
+              </Button>
+            }
+          />
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer la bascule</AlertDialogTitle>
+              <AlertDialogDescription>
+                Passer {selection.length} numéro(s) à "Fait" avec la date d'aujourd'hui ?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() =>
+                  executer({ type: "basculeFaite", date: new Date().toISOString() })
+                }
+              >
+                Confirmer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <AlertDialog>
+          <AlertDialogTrigger
+            render={
+              <Button variant="outline" size="sm" disabled={isPending}>
+                <FileX2 data-icon="inline-start" />
+                Exclure de l'export
+              </Button>
+            }
+          />
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer l'exclusion</AlertDialogTitle>
+              <AlertDialogDescription>
+                Exclure {selection.length} numéro(s) de l'export ?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => executer({ type: "exclureExport", valeur: true })}
+              >
+                Confirmer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <AlertDialog>
+          <AlertDialogTrigger
+            render={
+              <Button variant="outline" size="sm" disabled={isPending}>
+                <Undo2 data-icon="inline-start" />
+                Réintégrer dans l'export
+              </Button>
+            }
+          />
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer la réintégration</AlertDialogTitle>
+              <AlertDialogDescription>
+                Réintégrer {selection.length} numéro(s) dans l'export ?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => executer({ type: "exclureExport", valeur: false })}
+              >
+                Confirmer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <Select value={hebergeur} onValueChange={(v) => setHebergeur(v as string)}>
+          <SelectTrigger size="sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="SEWAN">SEWAN</SelectItem>
+            <SelectItem value="UNYC">UNYC</SelectItem>
+          </SelectContent>
+        </Select>
+        <AlertDialog>
+          <AlertDialogTrigger
+            render={
+              <Button variant="outline" size="sm" disabled={isPending}>
+                <Server data-icon="inline-start" />
+                Affecter hébergeur cible
+              </Button>
+            }
+          />
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer l'affectation</AlertDialogTitle>
+              <AlertDialogDescription>
+                Affecter l'hébergeur cible "{hebergeur}" au(x) client(s) des {selection.length}{" "}
+                numéro(s) sélectionné(s) ?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => executer({ type: "hebergeurCible", valeur: hebergeur })}
+              >
+                Confirmer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }
@@ -353,9 +414,10 @@ function buildColumns(
           key={`numeroBrut:${row.id}:${row.original.numeroBrut ?? ""}`}
           valeurInitiale={row.original.numeroBrut ?? ""}
           onSave={(v) => updateNumeroCellAction(row.original.numeroId as string, "numeroBrut", v)}
+          mono
         />
       ) : (
-        row.original.numeroBrut ?? ""
+        <span className="font-mono text-[13px] tabular-nums">{row.original.numeroBrut ?? ""}</span>
       ),
   },
   {
@@ -367,9 +429,12 @@ function buildColumns(
           key={`numerosCourts:${row.id}:${row.original.numerosCourts.join("/")}`}
           valeurInitiale={row.original.numerosCourts.join("/")}
           onSave={(v) => updateNumeroCellAction(row.original.numeroId as string, "numerosCourts", v)}
+          mono
         />
       ) : (
-        row.original.numerosCourts.join("/")
+        <span className="font-mono text-[13px] tabular-nums">
+          {row.original.numerosCourts.join("/")}
+        </span>
       ),
   },
   {
@@ -387,9 +452,12 @@ function buildColumns(
           key={`equipementMacBrut:${row.id}:${row.original.equipementMacBrut ?? ""}`}
           valeurInitiale={row.original.equipementMacBrut ?? ""}
           onSave={(v) => updateEquipementMacAction(row.original.equipementId as string, v)}
+          mono
         />
       ) : (
-        row.original.equipementMacBrut ?? ""
+        <span className="font-mono text-[13px] tabular-nums">
+          {row.original.equipementMacBrut ?? ""}
+        </span>
       ),
   },
   {
@@ -488,58 +556,99 @@ export function ProvisionningTable({
     else groupes.set(row.original.clientRaisonSociale, [row]);
   }
 
+  if (lignes.length === 0) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-24 text-center">
+        <Inbox className="size-10 text-muted-foreground/50" />
+        <div>
+          <p className="font-medium">Aucune ligne à afficher</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Ajustez les filtres ci-dessus, ou lancez une synchronisation pour importer les données.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <>
-    <BarreActionsMasse selection={selection} onDone={() => setSelection([])} />
-    <table style={{ borderCollapse: "collapse", width: "100%" }}>
-      <thead>
-        {table.getHeaderGroups().map((headerGroup) => (
-          <tr key={headerGroup.id}>
-            {headerGroup.headers.map((header) => (
-              <th key={header.id} style={{ textAlign: "left", padding: "0.25rem" }}>
-                {flexRender(header.column.columnDef.header, header.getContext())}
-              </th>
+    <div className="flex flex-col gap-2">
+      <BarreActionsMasse selection={selection} onDone={() => setSelection([])} />
+      <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
+        <Table>
+          <TableHeader className="sticky top-0 z-10 bg-card">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    className="h-9 text-xs font-semibold whitespace-nowrap text-muted-foreground"
+                  >
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
             ))}
-          </tr>
-        ))}
-      </thead>
-      <tbody>
-        {Array.from(groupes.entries()).map(([raisonSociale, rowsDuClient]) => {
-          const clientId = rowsDuClient[0]?.original.clientId;
-          return (
-            <Fragment key={raisonSociale}>
-              <tr style={{ background: "#f0f0f0" }}>
-                <td colSpan={columns.length} style={{ padding: "0.25rem", fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span>
-                    {raisonSociale} —{" "}
-                    {rowsDuClient.filter((r) => r.original.numeroId).length} numéro(s),{" "}
-                    {rowsDuClient.filter((r) => r.original.equipementMacBrut).length} MAC,{" "}
-                    {/* Une ligne de duplication (2e équipement d'un utilisateur) répète le statut
-                        du même numéro: seule la ligne porteuse du numeroId est comptée. */}
-                    {
-                      rowsDuClient.filter(
-                        (r) => r.original.numeroId && r.original.statutBascule === "Fait"
-                      ).length
-                    }{" "}
-                    bascule(s) faite(s)
-                  </span>
-                  {clientId && <AjouterLigneMenu clientId={clientId} />}
-                </td>
-              </tr>
-              {rowsDuClient.map((row) => (
-                <tr key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} style={{ padding: "0.25rem" }}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
+          </TableHeader>
+          <TableBody>
+            {Array.from(groupes.entries()).map(([raisonSociale, rowsDuClient]) => {
+              const clientId = rowsDuClient[0]?.original.clientId;
+              const nbNumeros = rowsDuClient.filter((r) => r.original.numeroId).length;
+              const nbMac = rowsDuClient.filter((r) => r.original.equipementMacBrut).length;
+              // Une ligne de duplication (2e équipement d'un utilisateur) répète le statut
+              // du même numéro: seule la ligne porteuse du numeroId est comptée.
+              const nbFaites = rowsDuClient.filter(
+                (r) => r.original.numeroId && r.original.statutBascule === "Fait"
+              ).length;
+              return (
+                <Fragment key={raisonSociale}>
+                  <TableRow className="border-l-2 border-l-primary bg-muted/60 hover:bg-muted/60">
+                    <TableCell colSpan={columns.length} className="py-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2">
+                          <span className="text-sm font-semibold">{raisonSociale}</span>
+                          <Badge variant="outline" className="tabular-nums">
+                            {nbNumeros} numéro{nbNumeros > 1 ? "s" : ""}
+                          </Badge>
+                          <Badge variant="outline" className="tabular-nums">
+                            {nbMac} MAC
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "tabular-nums",
+                              nbFaites > 0 && nbFaites === nbNumeros && NIVEAU_CLASSES.OK
+                            )}
+                          >
+                            {nbFaites}/{nbNumeros} bascule{nbFaites > 1 ? "s" : ""} faite
+                            {nbFaites > 1 ? "s" : ""}
+                          </Badge>
+                        </span>
+                        {clientId && <AjouterLigneMenu clientId={clientId} />}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  {rowsDuClient.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      className={cn(
+                        row.original.numeroId &&
+                          selection.includes(row.original.numeroId) &&
+                          "bg-primary/5 hover:bg-primary/10"
+                      )}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id} className="py-1 whitespace-nowrap">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
                   ))}
-                </tr>
-              ))}
-            </Fragment>
-          );
-        })}
-      </tbody>
-    </table>
-    </>
+                </Fragment>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 }

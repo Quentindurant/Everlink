@@ -31,9 +31,22 @@ export default async function ProvisionningPage({
     listClientsActifs(),
     listValeursStatutBascule(),
   ]);
+  const nbNumeros = lignes.filter((l) => l.numeroId).length;
+  const nbClients = new Set(lignes.map((l) => l.clientId)).size;
   return (
-    <main style={{ padding: "1rem" }}>
-      <h1>Provisionning</h1>
+    <main className="flex flex-1 flex-col gap-4 p-6">
+      <header className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+            Everlink
+          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">Provisionning</h1>
+        </div>
+        <p className="text-sm text-muted-foreground tabular-nums">
+          {nbNumeros} numéro{nbNumeros > 1 ? "s" : ""} · {nbClients} client
+          {nbClients > 1 ? "s" : ""}
+        </p>
+      </header>
       <ProvisionningFiltresBar
         lots={lots}
         clients={clients}

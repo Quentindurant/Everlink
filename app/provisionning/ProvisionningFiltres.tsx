@@ -2,6 +2,20 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition, useRef } from "react";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Base UI Select n'accepte pas de valeur vide pour un item: "tous" sert de sentinelle
+// et est retraduit en suppression du paramètre d'URL.
+const TOUS = "tous";
 
 export function ProvisionningFiltresBar({
   lots,
@@ -31,67 +45,110 @@ export function ProvisionningFiltresBar({
     debounceRef.current = setTimeout(() => setParam(key, value), 300);
   };
 
+  const setSelectParam = (key: string) => (value: string | null) => {
+    setParam(key, value === TOUS || value === null ? "" : value);
+  };
+
   return (
-    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
-      <input
-        placeholder="Rechercher (numéro, MAC, utilisateur, raison sociale)"
-        defaultValue={searchParams.get("q") ?? ""}
-        onChange={(e) => setParamDebounced("q", e.target.value)}
-      />
-      <select
-        defaultValue={searchParams.get("lot") ?? ""}
-        onChange={(e) => setParam("lot", e.target.value)}
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3 shadow-xs">
+      <div className="relative min-w-64 flex-1">
+        <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          className="pl-8"
+          placeholder="Rechercher un numéro, une MAC, un utilisateur, une raison sociale…"
+          defaultValue={searchParams.get("q") ?? ""}
+          onChange={(e) => setParamDebounced("q", e.target.value)}
+        />
+      </div>
+      <Select
+        items={[
+          { value: TOUS, label: "Lot : tous" },
+          ...lots.map((lot) => ({ value: lot.id, label: lot.nom })),
+        ]}
+        defaultValue={searchParams.get("lot") ?? TOUS}
+        onValueChange={setSelectParam("lot")}
       >
-        <option value="">Lot (tous)</option>
-        {lots.map((lot) => (
-          <option key={lot.id} value={lot.id}>
-            {lot.nom}
-          </option>
-        ))}
-      </select>
-      <select
-        defaultValue={searchParams.get("client") ?? ""}
-        onChange={(e) => setParam("client", e.target.value)}
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={TOUS}>Lot : tous</SelectItem>
+          {lots.map((lot) => (
+            <SelectItem key={lot.id} value={lot.id}>
+              {lot.nom}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
+        items={[
+          { value: TOUS, label: "Client : tous" },
+          ...clients.map((c) => ({ value: c.id, label: c.raisonSociale })),
+        ]}
+        defaultValue={searchParams.get("client") ?? TOUS}
+        onValueChange={setSelectParam("client")}
       >
-        <option value="">Client (tous)</option>
-        {clients.map((client) => (
-          <option key={client.id} value={client.id}>
-            {client.raisonSociale}
-          </option>
-        ))}
-      </select>
-      <select
-        defaultValue={searchParams.get("hebergeur") ?? ""}
-        onChange={(e) => setParam("hebergeur", e.target.value)}
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={TOUS}>Client : tous</SelectItem>
+          {clients.map((client) => (
+            <SelectItem key={client.id} value={client.id}>
+              {client.raisonSociale}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
+        items={[
+          { value: TOUS, label: "Hébergeur : tous" },
+          { value: "SEWAN", label: "SEWAN" },
+          { value: "UNYC", label: "UNYC" },
+        ]}
+        defaultValue={searchParams.get("hebergeur") ?? TOUS}
+        onValueChange={setSelectParam("hebergeur")}
       >
-        <option value="">Hébergeur (tous)</option>
-        <option value="SEWAN">SEWAN</option>
-        <option value="UNYC">UNYC</option>
-      </select>
-      <select
-        defaultValue={searchParams.get("statut") ?? ""}
-        onChange={(e) => setParam("statut", e.target.value)}
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={TOUS}>Hébergeur : tous</SelectItem>
+          <SelectItem value="SEWAN">SEWAN</SelectItem>
+          <SelectItem value="UNYC">UNYC</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select
+        items={[
+          { value: TOUS, label: "Bascule : toutes" },
+          ...valeursStatutBascule.map((v) => ({ value: v, label: v })),
+        ]}
+        defaultValue={searchParams.get("statut") ?? TOUS}
+        onValueChange={setSelectParam("statut")}
       >
-        <option value="">Statut bascule (tous)</option>
-        {valeursStatutBascule.map((v) => (
-          <option key={v} value={v}>
-            {v}
-          </option>
-        ))}
-      </select>
-      <label>
-        <input
-          type="checkbox"
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={TOUS}>Bascule : toutes</SelectItem>
+          {valeursStatutBascule.map((v) => (
+            <SelectItem key={v} value={v}>
+              {v}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm text-muted-foreground transition-colors select-none has-[[data-checked]]:border-primary/40 has-[[data-checked]]:bg-primary/5 has-[[data-checked]]:text-foreground">
+        <Checkbox
           defaultChecked={searchParams.get("anomalie") === "1"}
-          onChange={(e) => setParam("anomalie", e.target.checked ? "1" : "")}
+          onCheckedChange={(checked) => setParam("anomalie", checked ? "1" : "")}
         />
         Anomalies seulement
       </label>
-      <label>
-        <input
-          type="checkbox"
+      <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm text-muted-foreground transition-colors select-none has-[[data-checked]]:border-primary/40 has-[[data-checked]]:bg-primary/5 has-[[data-checked]]:text-foreground">
+        <Checkbox
           defaultChecked={searchParams.get("eligible") === "1"}
-          onChange={(e) => setParam("eligible", e.target.checked ? "1" : "")}
+          onCheckedChange={(checked) => setParam("eligible", checked ? "1" : "")}
         />
         Éligibles export seulement
       </label>
