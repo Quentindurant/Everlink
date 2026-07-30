@@ -33,7 +33,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   session: { strategy: "jwt" },
-  // TODO: add jwt/session callbacks to propagate `role` into the session, and build /login — see SPEC.md §1 (ADMIN/OPERATEUR)
+  callbacks: {
+    jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as any;
+      }
+      return session;
+    },
+  },
   pages: { signIn: "/login" },
   // Prisma Compute isn't Vercel/Cloudflare Pages, so Auth.js won't auto-trust the
   // reverse proxy's X-Forwarded-Host — without this, every /api/auth/* route 500s
