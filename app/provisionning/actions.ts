@@ -165,3 +165,55 @@ export async function ajouterLigneAction(
     return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
   }
 }
+
+type ActionMasse =
+  | { type: "hebergeurCible"; valeur: string }
+  | { type: "basculeFaite"; date: string }
+  | { type: "exclureExport"; valeur: boolean };
+
+export async function actionMasseAction(
+  numeroIds: string[],
+  action: ActionMasse
+): Promise<{ success: boolean; count?: number; error?: string }> {
+  const session = await auth();
+  if (!session) {
+    return { success: false, error: "Non authentifié." };
+  }
+  if (numeroIds.length === 0) {
+    return { success: false, error: "Aucune ligne sélectionnée." };
+  }
+
+  try {
+    if (action.type === "hebergeurCible") {
+      const numeros = await prisma.numero.findMany({
+        where: { id: { in: numeroIds } },
+        select: { clientId: true },
+      });
+      const clientIds = [...new Set(numeros.map((n) => n.clientId))];
+      await prisma.client.updateMany({
+        where: { id: { in: clientIds } },
+        data: { hebergeurCible: action.valeur },
+      });
+      revalidatePath("/");
+      return { success: true, count: clientIds.length };
+    }
+
+    if (action.type === "basculeFaite") {
+      const result = await prisma.numero.updateMany({
+        where: { id: { in: numeroIds } },
+        data: { statutBascule: "Fait", dateBascule: new Date(action.date) },
+      });
+      revalidatePath("/");
+      return { success: true, count: result.count };
+    }
+
+    const result = await prisma.numero.updateMany({
+      where: { id: { in: numeroIds } },
+      data: { exclureExport: action.valeur },
+    });
+    revalidatePath("/");
+    return { success: true, count: result.count };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
+  }
+}

@@ -17,6 +17,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { ProvisionningLigne } from "@/lib/repositories/provisionningRepository";
 import {
   updateNumeroCellAction,
@@ -24,6 +43,7 @@ import {
   ajouterLigneAction,
   updateEquipementMacAction,
   updateUtilisateurNomAction,
+  actionMasseAction,
 } from "./actions";
 
 const NIVEAU_COULEUR: Record<string, "default" | "secondary" | "destructive"> = {
@@ -130,7 +150,111 @@ function AjouterLigneMenu({ clientId }: { clientId: string }) {
   );
 }
 
-const columns: ColumnDef<ProvisionningLigne>[] = [
+function BarreActionsMasse({ selection }: { selection: string[] }) {
+  const [isPending, startTransition] = useTransition();
+  const [hebergeur, setHebergeur] = useState("UNYC");
+  if (selection.length === 0) return null;
+
+  const executer = (action: Parameters<typeof actionMasseAction>[1]) => {
+    startTransition(async () => {
+      await actionMasseAction(selection, action);
+    });
+  };
+
+  return (
+    <div style={{ display: "flex", gap: "0.5rem", padding: "0.5rem", background: "#eef", alignItems: "center" }}>
+      <span>{selection.length} ligne(s) sélectionnée(s)</span>
+      <AlertDialog>
+        <AlertDialogTrigger render={<button disabled={isPending}>Passer à Fait</button>} />
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la bascule</AlertDialogTitle>
+            <AlertDialogDescription>
+              Passer {selection.length} numéro(s) à "Fait" avec la date d'aujourd'hui ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                executer({ type: "basculeFaite", date: new Date().toISOString() })
+              }
+            >
+              Confirmer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog>
+        <AlertDialogTrigger render={<button disabled={isPending}>Exclure de l'export</button>} />
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer l'exclusion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Exclure {selection.length} numéro(s) de l'export ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => executer({ type: "exclureExport", valeur: true })}
+            >
+              Confirmer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <Select value={hebergeur} onValueChange={(v) => setHebergeur(v as string)}>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="SEWAN">SEWAN</SelectItem>
+          <SelectItem value="UNYC">UNYC</SelectItem>
+        </SelectContent>
+      </Select>
+      <AlertDialog>
+        <AlertDialogTrigger render={<button disabled={isPending}>Affecter hébergeur cible</button>} />
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer l'affectation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Affecter l'hébergeur cible "{hebergeur}" au(x) client(s) des {selection.length} numéro(s)
+              sélectionné(s) ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => executer({ type: "hebergeurCible", valeur: hebergeur })}
+            >
+              Confirmer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function buildColumns(
+  selection: string[],
+  basculerSelection: (numeroId: string) => void
+): ColumnDef<ProvisionningLigne>[] {
+  return [
+  {
+    id: "selection",
+    header: "",
+    // Bulk actions (actionMasseAction) operate on Numero ids — orphan équipement rows have none,
+    // so they get no checkbox rather than one that would call basculerSelection(null).
+    cell: ({ row }) =>
+      row.original.numeroId ? (
+        <Checkbox
+          checked={selection.includes(row.original.numeroId)}
+          onCheckedChange={() => basculerSelection(row.original.numeroId as string)}
+        />
+      ) : null,
+  },
   { header: "Client (raison sociale)", accessorKey: "clientRaisonSociale" },
   {
     header: "Numéro à porter",
@@ -222,10 +346,18 @@ const columns: ColumnDef<ProvisionningLigne>[] = [
         row.original.commentaire ?? ""
       ),
   },
-];
+  ];
+}
 
 export function ProvisionningTable({ lignes }: { lignes: ProvisionningLigne[] }) {
   const data = useMemo(() => lignes, [lignes]);
+  const [selection, setSelection] = useState<string[]>([]);
+  const basculerSelection = (numeroId: string) => {
+    setSelection((prev) =>
+      prev.includes(numeroId) ? prev.filter((id) => id !== numeroId) : [...prev, numeroId]
+    );
+  };
+  const columns = useMemo(() => buildColumns(selection, basculerSelection), [selection]);
   const table = useReactTable({
     data,
     columns,
@@ -244,6 +376,8 @@ export function ProvisionningTable({ lignes }: { lignes: ProvisionningLigne[] })
   }, [lignes]);
 
   return (
+    <>
+    <BarreActionsMasse selection={selection} />
     <table style={{ borderCollapse: "collapse", width: "100%" }}>
       <thead>
         {table.getHeaderGroups().map((headerGroup) => (
@@ -288,5 +422,6 @@ export function ProvisionningTable({ lignes }: { lignes: ProvisionningLigne[] })
         })}
       </tbody>
     </table>
+    </>
   );
 }
