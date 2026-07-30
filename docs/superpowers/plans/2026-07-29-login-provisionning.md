@@ -1131,31 +1131,40 @@ function EditableCell({
 }
 ```
 
-Update the two column definitions:
+Update the two column definitions. `numeroId` is nullable (orphan équipement rows have none) — this
+action only applies to Numero-backed rows, so orphan rows render their value as plain, non-editable
+text instead of `EditableCell` (editing an orphan row's own `commentaire` — an `Equipement` field,
+not a `Numero` field — is out of scope for this task, which only wires `updateNumeroCellAction`):
 
 ```typescript
 {
   header: "Bascule des numéros",
   id: "statutBascule",
-  cell: ({ row }) => (
-    <EditableCell
-      numeroId={row.original.numeroId}
-      champ="statutBascule"
-      valeurInitiale={row.original.statutBascule}
-    />
-  ),
+  cell: ({ row }) =>
+    row.original.numeroId ? (
+      <EditableCell
+        numeroId={row.original.numeroId}
+        champ="statutBascule"
+        valeurInitiale={row.original.statutBascule ?? ""}
+      />
+    ) : (
+      row.original.statutBascule ?? ""
+    ),
 },
 // ...
 {
   header: "Commentaires",
   id: "commentaire",
-  cell: ({ row }) => (
-    <EditableCell
-      numeroId={row.original.numeroId}
-      champ="commentaire"
-      valeurInitiale={row.original.commentaire ?? ""}
-    />
-  ),
+  cell: ({ row }) =>
+    row.original.numeroId ? (
+      <EditableCell
+        numeroId={row.original.numeroId}
+        champ="commentaire"
+        valeurInitiale={row.original.commentaire ?? ""}
+      />
+    ) : (
+      row.original.commentaire ?? ""
+    ),
 },
 ```
 
@@ -1704,24 +1713,10 @@ const basculerSelection = (numeroId: string) => {
 };
 ```
 
-Add a checkbox column (first column) and render `<BarreActionsMasse selection={selection} />`
-above the `<table>`:
-
-```typescript
-{
-  id: "selection",
-  header: "",
-  cell: ({ row }) => (
-    <Checkbox
-      checked={selection.includes(row.original.numeroId)}
-      onCheckedChange={() => basculerSelection(row.original.numeroId)}
-    />
-  ),
-},
-```
-
-The module-level `columns` constant from Task 6 can't close over `selection`/`basculerSelection`
-(component state), so turn it into a function and call it inside the component:
+A checkbox column needs to be prepended to the column list, and `<BarreActionsMasse selection={selection} />`
+rendered above the `<table>`. The module-level `columns` constant from Task 6 can't close over
+`selection`/`basculerSelection` (component state), so turn it into a function and call it inside
+the component — the full column list (including the new checkbox column) is consolidated below:
 
 ```typescript
 // Replace `const columns: ColumnDef<ProvisionningLigne>[] = [...]` with:
@@ -1733,12 +1728,15 @@ function buildColumns(
     {
       id: "selection",
       header: "",
-      cell: ({ row }) => (
-        <Checkbox
-          checked={selection.includes(row.original.numeroId)}
-          onCheckedChange={() => basculerSelection(row.original.numeroId)}
-        />
-      ),
+      // Bulk actions (actionMasseAction) operate on Numero ids — orphan équipement rows have
+      // none, so they get no checkbox rather than one that would call basculerSelection(null).
+      cell: ({ row }) =>
+        row.original.numeroId ? (
+          <Checkbox
+            checked={selection.includes(row.original.numeroId)}
+            onCheckedChange={() => basculerSelection(row.original.numeroId as string)}
+          />
+        ) : null,
     },
     { header: "Client (raison sociale)", accessorKey: "clientRaisonSociale" },
     { header: "Numéro à porter", accessorKey: "numeroBrut" },
@@ -1752,13 +1750,16 @@ function buildColumns(
     {
       header: "Bascule des numéros",
       id: "statutBascule",
-      cell: ({ row }) => (
-        <EditableCell
-          numeroId={row.original.numeroId}
-          champ="statutBascule"
-          valeurInitiale={row.original.statutBascule}
-        />
-      ),
+      cell: ({ row }) =>
+        row.original.numeroId ? (
+          <EditableCell
+            numeroId={row.original.numeroId}
+            champ="statutBascule"
+            valeurInitiale={row.original.statutBascule ?? ""}
+          />
+        ) : (
+          row.original.statutBascule ?? ""
+        ),
     },
     {
       header: "Date bascule",
@@ -1767,13 +1768,16 @@ function buildColumns(
     {
       header: "Commentaires",
       id: "commentaire",
-      cell: ({ row }) => (
-        <EditableCell
-          numeroId={row.original.numeroId}
-          champ="commentaire"
-          valeurInitiale={row.original.commentaire ?? ""}
-        />
-      ),
+      cell: ({ row }) =>
+        row.original.numeroId ? (
+          <EditableCell
+            numeroId={row.original.numeroId}
+            champ="commentaire"
+            valeurInitiale={row.original.commentaire ?? ""}
+          />
+        ) : (
+          row.original.commentaire ?? ""
+        ),
     },
   ];
 }
