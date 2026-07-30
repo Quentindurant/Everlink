@@ -56,6 +56,13 @@ export function evaluerControle(
     });
   }
 
+  if (!numero.utilisateurId && numero.aEquipement === true) {
+    anomalies.push({
+      niveau: "AVERTISSEMENT",
+      message: "Incohérence: un équipement est renseigné sans utilisateur.",
+    });
+  }
+
   for (const court of numero.numerosCourts) {
     const occurrencesCourt = contexte.numerosCourtsDuClient.filter((c) => c === court).length;
     if (occurrencesCourt > 1) {

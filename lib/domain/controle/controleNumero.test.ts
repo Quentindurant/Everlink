@@ -54,6 +54,15 @@ describe("evaluerControle", () => {
     expect(result.detail).toContain("cohérence");
   });
 
+  test("équipement renseigné sans utilisateur → AVERTISSEMENT", () => {
+    const result = evaluerControle(
+      { numeroNormalise: "0180873345", utilisateurId: null, numerosCourts: [], aEquipement: true },
+      { numerosNormalisesActifs: ["0180873345"], numerosCourtsDuClient: [] }
+    );
+    expect(result.niveau).toBe("AVERTISSEMENT");
+    expect(result.detail).toContain("cohérence");
+  });
+
   test("numéro court dupliqué au sein du même client → AVERTISSEMENT", () => {
     const result = evaluerControle(
       { numeroNormalise: "0180873345", utilisateurId: null, numerosCourts: ["401"] },
