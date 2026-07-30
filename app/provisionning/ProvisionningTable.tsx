@@ -150,20 +150,34 @@ function AjouterLigneMenu({ clientId }: { clientId: string }) {
   );
 }
 
-function BarreActionsMasse({ selection }: { selection: string[] }) {
+function BarreActionsMasse({
+  selection,
+  onDone,
+}: {
+  selection: string[];
+  onDone: () => void;
+}) {
   const [isPending, startTransition] = useTransition();
   const [hebergeur, setHebergeur] = useState("UNYC");
+  const [erreur, setErreur] = useState<string | null>(null);
   if (selection.length === 0) return null;
 
   const executer = (action: Parameters<typeof actionMasseAction>[1]) => {
     startTransition(async () => {
-      await actionMasseAction(selection, action);
+      const result = await actionMasseAction(selection, action);
+      if (result.success) {
+        onDone();
+      } else {
+        setErreur(result.error ?? "Échec de l'action.");
+        setTimeout(() => setErreur(null), 5000);
+      }
     });
   };
 
   return (
     <div style={{ display: "flex", gap: "0.5rem", padding: "0.5rem", background: "#eef", alignItems: "center" }}>
       <span>{selection.length} ligne(s) sélectionnée(s)</span>
+      {erreur && <span style={{ color: "red" }}>{erreur}</span>}
       <AlertDialog>
         <AlertDialogTrigger render={<button disabled={isPending}>Passer à Fait</button>} />
         <AlertDialogContent>
@@ -198,6 +212,25 @@ function BarreActionsMasse({ selection }: { selection: string[] }) {
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => executer({ type: "exclureExport", valeur: true })}
+            >
+              Confirmer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog>
+        <AlertDialogTrigger render={<button disabled={isPending}>Réintégrer dans l'export</button>} />
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la réintégration</AlertDialogTitle>
+            <AlertDialogDescription>
+              Réintégrer {selection.length} numéro(s) dans l'export ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => executer({ type: "exclureExport", valeur: false })}
             >
               Confirmer
             </AlertDialogAction>
@@ -377,7 +410,7 @@ export function ProvisionningTable({ lignes }: { lignes: ProvisionningLigne[] })
 
   return (
     <>
-    <BarreActionsMasse selection={selection} />
+    <BarreActionsMasse selection={selection} onDone={() => setSelection([])} />
     <table style={{ borderCollapse: "collapse", width: "100%" }}>
       <thead>
         {table.getHeaderGroups().map((headerGroup) => (
