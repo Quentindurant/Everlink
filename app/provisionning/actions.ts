@@ -3,11 +3,14 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { normaliserNumero, normaliserMac } from "@/lib/domain/normalisation";
 
 const CHAMPS_EDITABLES = [
   "commentaire",
   "statutBascule",
   "dateBascule",
+  "numeroBrut",
+  "numerosCourts",
 ] as const;
 type ChampEditable = (typeof CHAMPS_EDITABLES)[number];
 
@@ -25,8 +28,14 @@ export async function updateNumeroCellAction(
   }
 
   try {
-    const data: Record<string, string | Date> =
-      champ === "dateBascule" ? { dateBascule: new Date(valeur) } : { [champ]: valeur };
+    const data: Record<string, string | Date | string[]> =
+      champ === "dateBascule"
+        ? { dateBascule: new Date(valeur) }
+        : champ === "numeroBrut"
+          ? { numeroBrut: valeur, numeroNormalise: normaliserNumero(valeur) }
+          : champ === "numerosCourts"
+            ? { numerosCourts: valeur.split("/").map((s) => s.trim()).filter(Boolean) }
+            : { [champ]: valeur };
     await prisma.numero.update({ where: { id: numeroId }, data });
     revalidatePath("/");
     return { success: true };
@@ -65,6 +74,48 @@ export async function forcerControleAction(
   }
 }
 
+export async function updateEquipementMacAction(
+  equipementId: string,
+  macBrut: string
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session) {
+    return { success: false, error: "Non authentifié." };
+  }
+
+  try {
+    await prisma.equipement.update({
+      where: { id: equipementId },
+      data: { macBrut, macNormalise: normaliserMac(macBrut) },
+    });
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
+  }
+}
+
+export async function updateUtilisateurNomAction(
+  utilisateurId: string,
+  nom: string
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session) {
+    return { success: false, error: "Non authentifié." };
+  }
+
+  try {
+    await prisma.utilisateur.update({
+      where: { id: utilisateurId },
+      data: { nom },
+    });
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
+  }
+}
+
 export async function ajouterLigneAction(
   clientId: string,
   type: "numero" | "equipement" | "complete"
@@ -83,6 +134,23 @@ export async function ajouterLigneAction(
       return { success: true };
     }
 
+    if (type === "complete") {
+      const result = await prisma.$transaction(async (tx) => {
+        const utilisateur = await tx.utilisateur.create({
+          data: { clientId, nom: "" },
+        });
+        const numero = await tx.numero.create({
+          data: { clientId, utilisateurId: utilisateur.id, numeroBrut: "", numeroNormalise: "" },
+        });
+        await tx.equipement.create({
+          data: { clientId, utilisateurId: utilisateur.id, macBrut: "", macNormalise: "" },
+        });
+        return numero;
+      });
+      revalidatePath("/");
+      return { success: true, numeroId: result.id };
+    }
+
     const numero = await prisma.numero.create({
       data: {
         clientId,
@@ -90,12 +158,6 @@ export async function ajouterLigneAction(
         numeroNormalise: "",
       },
     });
-
-    if (type === "complete") {
-      await prisma.equipement.create({
-        data: { clientId, macBrut: "", macNormalise: "", utilisateurId: null },
-      });
-    }
 
     revalidatePath("/");
     return { success: true, numeroId: numero.id };

@@ -18,7 +18,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { ProvisionningLigne } from "@/lib/repositories/provisionningRepository";
-import { updateNumeroCellAction, forcerControleAction, ajouterLigneAction } from "./actions";
+import {
+  updateNumeroCellAction,
+  forcerControleAction,
+  ajouterLigneAction,
+  updateEquipementMacAction,
+  updateUtilisateurNomAction,
+} from "./actions";
 
 const NIVEAU_COULEUR: Record<string, "default" | "secondary" | "destructive"> = {
   OK: "default",
@@ -27,13 +33,11 @@ const NIVEAU_COULEUR: Record<string, "default" | "secondary" | "destructive"> = 
 };
 
 function EditableCell({
-  numeroId,
-  champ,
   valeurInitiale,
+  onSave,
 }: {
-  numeroId: string;
-  champ: string;
   valeurInitiale: string;
+  onSave: (valeur: string) => Promise<{ success: boolean; error?: string }>;
 }) {
   const [valeur, setValeur] = useState(valeurInitiale);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -43,7 +47,7 @@ function EditableCell({
     if (valeur === valeurInitiale) return;
     const valeurPrecedente = valeurInitiale;
     startTransition(async () => {
-      const result = await updateNumeroCellAction(numeroId, champ, valeur);
+      const result = await onSave(valeur);
       if (!result.success) {
         setValeur(valeurPrecedente);
         setErreur(result.error ?? "Échec de la sauvegarde.");
@@ -128,10 +132,31 @@ function AjouterLigneMenu({ clientId }: { clientId: string }) {
 
 const columns: ColumnDef<ProvisionningLigne>[] = [
   { header: "Client (raison sociale)", accessorKey: "clientRaisonSociale" },
-  { header: "Numéro à porter", accessorKey: "numeroBrut" },
+  {
+    header: "Numéro à porter",
+    id: "numeroBrut",
+    cell: ({ row }) =>
+      row.original.numeroId ? (
+        <EditableCell
+          valeurInitiale={row.original.numeroBrut ?? ""}
+          onSave={(v) => updateNumeroCellAction(row.original.numeroId as string, "numeroBrut", v)}
+        />
+      ) : (
+        row.original.numeroBrut ?? ""
+      ),
+  },
   {
     header: "Numéro court",
-    accessorFn: (row) => row.numerosCourts.join("/"),
+    id: "numerosCourts",
+    cell: ({ row }) =>
+      row.original.numeroId ? (
+        <EditableCell
+          valeurInitiale={row.original.numerosCourts.join("/")}
+          onSave={(v) => updateNumeroCellAction(row.original.numeroId as string, "numerosCourts", v)}
+        />
+      ) : (
+        row.original.numerosCourts.join("/")
+      ),
   },
   {
     header: "Contrôle N°",
@@ -139,8 +164,32 @@ const columns: ColumnDef<ProvisionningLigne>[] = [
     cell: ({ row }) => <ControleCell ligne={row.original} />,
   },
   { header: "Equipement", accessorKey: "equipementLibelle" },
-  { header: "Adresse MAC équipement", accessorKey: "equipementMacBrut" },
-  { header: "Utilisateur", accessorKey: "utilisateurNom" },
+  {
+    header: "Adresse MAC équipement",
+    id: "equipementMacBrut",
+    cell: ({ row }) =>
+      row.original.equipementId ? (
+        <EditableCell
+          valeurInitiale={row.original.equipementMacBrut ?? ""}
+          onSave={(v) => updateEquipementMacAction(row.original.equipementId as string, v)}
+        />
+      ) : (
+        row.original.equipementMacBrut ?? ""
+      ),
+  },
+  {
+    header: "Utilisateur",
+    id: "utilisateurNom",
+    cell: ({ row }) =>
+      row.original.utilisateurId ? (
+        <EditableCell
+          valeurInitiale={row.original.utilisateurNom ?? ""}
+          onSave={(v) => updateUtilisateurNomAction(row.original.utilisateurId as string, v)}
+        />
+      ) : (
+        row.original.utilisateurNom ?? ""
+      ),
+  },
   { header: "Hébergeur source", accessorKey: "hebergeurSource" },
   { header: "Hébergeur cible", accessorKey: "hebergeurCible" },
   {
@@ -149,9 +198,8 @@ const columns: ColumnDef<ProvisionningLigne>[] = [
     cell: ({ row }) =>
       row.original.numeroId ? (
         <EditableCell
-          numeroId={row.original.numeroId}
-          champ="statutBascule"
           valeurInitiale={row.original.statutBascule ?? ""}
+          onSave={(v) => updateNumeroCellAction(row.original.numeroId as string, "statutBascule", v)}
         />
       ) : (
         row.original.statutBascule ?? ""
@@ -167,9 +215,8 @@ const columns: ColumnDef<ProvisionningLigne>[] = [
     cell: ({ row }) =>
       row.original.numeroId ? (
         <EditableCell
-          numeroId={row.original.numeroId}
-          champ="commentaire"
           valeurInitiale={row.original.commentaire ?? ""}
+          onSave={(v) => updateNumeroCellAction(row.original.numeroId as string, "commentaire", v)}
         />
       ) : (
         row.original.commentaire ?? ""
