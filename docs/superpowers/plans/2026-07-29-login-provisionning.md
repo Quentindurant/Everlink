@@ -912,6 +912,9 @@ const columns: ColumnDef<ProvisionningLigne>[] = [
     id: "controle",
     cell: ({ row }) => {
       const { controleNiveau, controleDetail } = row.original;
+      // controleNiveau is null on orphan équipement rows (no Numero, nothing to control) —
+      // render nothing rather than a badge with an empty/undefined variant.
+      if (!controleNiveau) return null;
       const badge = <Badge variant={NIVEAU_COULEUR[controleNiveau]}>{controleNiveau}</Badge>;
       if (!controleDetail) return badge;
       return (
@@ -972,7 +975,7 @@ export function ProvisionningTable({ lignes }: { lignes: ProvisionningLigne[] })
           <Fragment key={raisonSociale}>
             <tr style={{ background: "#f0f0f0" }}>
               <td colSpan={columns.length} style={{ padding: "0.25rem", fontWeight: "bold" }}>
-                {raisonSociale} — {lignesDuClient.length} numéro(s),{" "}
+                {raisonSociale} — {lignesDuClient.filter((l) => l.numeroId).length} numéro(s),{" "}
                 {lignesDuClient.filter((l) => l.equipementMacBrut).length} MAC,{" "}
                 {lignesDuClient.filter((l) => l.statutBascule === "Fait").length} bascule(s) faite(s)
               </td>
