@@ -8,6 +8,31 @@ import type { TelephoneUtilisateurRow } from "@/lib/domain/sync/telephone";
 import type { SdaSourceRow } from "@/lib/domain/exports/sda";
 import type { MacSourceRow } from "@/lib/domain/exports/mac";
 
+// Portée d'export (SPEC §6.4): lot entier, client(s) précis, et option d'exclusion des
+// clients déjà basculés (décochée par défaut — ETIKEO sort alors que sa bascule est "Fait").
+export interface ExportScope {
+  lotId?: string;
+  clientIds?: string[];
+  exclureBascules?: boolean;
+}
+
+export interface ExportEcart {
+  raisonSociale: string;
+  valeur: string;
+  motif: string;
+}
+
+function clientScopeWhere(scope: ExportScope) {
+  return {
+    archiveA: null,
+    ...(scope.lotId ? { lotId: scope.lotId } : {}),
+    ...(scope.clientIds && scope.clientIds.length > 0
+      ? { id: { in: scope.clientIds } }
+      : {}),
+    ...(scope.exclureBascules ? { statutBascule: { not: "Fait" } } : {}),
+  };
+}
+
 export async function fetchProvisionningData(): Promise<{
   numeros: ProvisionningNumeroRow[];
   equipementsOrphelins: ProvisionningEquipementRow[];
@@ -160,12 +185,12 @@ export async function fetchTelephoneData(): Promise<{
   return { utilisateurs: rows, etapeLibelles };
 }
 
-export async function fetchSdaData(): Promise<SdaSourceRow[]> {
+export async function fetchSdaData(scope: ExportScope = {}): Promise<SdaSourceRow[]> {
   const numeros = await prisma.numero.findMany({
     where: {
       archiveA: null,
       exclureExport: false,
-      client: { archiveA: null },
+      client: clientScopeWhere(scope),
       utilisateurId: { not: null },
     },
     include: { client: true },
@@ -176,7 +201,7 @@ export async function fetchSdaData(): Promise<SdaSourceRow[]> {
     where: {
       archiveA: null,
       exclureExport: false,
-      client: { archiveA: null },
+      client: clientScopeWhere(scope),
       utilisateurId: { in: numeros.map((n) => n.utilisateurId).filter((id): id is string => id !== null) },
       // Numero.clientId and Utilisateur.clientId aren't schema-enforced to match, and an
       // archived Utilisateur shouldn't make its numéro export-eligible.
@@ -196,12 +221,12 @@ export async function fetchSdaData(): Promise<SdaSourceRow[]> {
     }));
 }
 
-export async function fetchMacData(): Promise<MacSourceRow[]> {
+export async function fetchMacData(scope: ExportScope = {}): Promise<MacSourceRow[]> {
   const equipements = await prisma.equipement.findMany({
     where: {
       archiveA: null,
       exclureExport: false,
-      client: { archiveA: null },
+      client: clientScopeWhere(scope),
       modele: { eligibleExport: true },
       // Même garde que fetchSdaData: un utilisateur archivé ne doit pas faire sortir sa MAC.
       // Le cas orphelin (équipement sans utilisateur) reste un export légitime.
@@ -225,4 +250,78 @@ export async function fetchMacData(): Promise<MacSourceRow[]> {
     macBrut: e.macBrut,
     macNormalise: e.macNormalise,
   }));
+}
+
+// Lignes écartées de l'export SDA avec motif (SPEC §3.4). Parcourt tous les numéros actifs
+// du scope et explique pourquoi chacun ne sort pas.
+export async function fetchSdaEcarts(scope: ExportScope = {}): Promise<ExportEcart[]> {
+  const numeros = await prisma.numero.findMany({
+    where: { archiveA: null, client: clientScopeWhere(scope) },
+    include: {
+      client: { select: { raisonSociale: true } },
+      utilisateur: {
+        include: {
+          equipements: {
+            where: { archiveA: null, exclureExport: false },
+            include: { modele: { select: { eligibleExport: true } } },
+          },
+        },
+      },
+    },
+    orderBy: [{ client: { raisonSociale: "asc" } }, { ordre: "asc" }, { id: "asc" }],
+  });
+
+  const ecarts: ExportEcart[] = [];
+  for (const n of numeros) {
+    const base = { raisonSociale: n.client.raisonSociale, valeur: n.numeroBrut };
+    if (n.exclureExport) {
+      ecarts.push({ ...base, motif: "exclusion manuelle" });
+    } else if (!n.utilisateurId || !n.utilisateur || n.utilisateur.archiveA) {
+      ecarts.push({ ...base, motif: "pas d'utilisateur (numéro en stock)" });
+    } else if (n.utilisateur.equipements.length === 0) {
+      ecarts.push({ ...base, motif: "pas de MAC pour l'utilisateur" });
+    } else if (!n.utilisateur.equipements.some((e) => e.modele?.eligibleExport)) {
+      ecarts.push({ ...base, motif: "modèle non éligible" });
+    }
+  }
+  return ecarts;
+}
+
+// Lignes écartées de l'export MAC avec motif (SPEC §3.4).
+export async function fetchMacEcarts(scope: ExportScope = {}): Promise<ExportEcart[]> {
+  const equipements = await prisma.equipement.findMany({
+    where: { archiveA: null, client: clientScopeWhere(scope) },
+    include: {
+      client: { select: { raisonSociale: true } },
+      utilisateur: { select: { archiveA: true } },
+      modele: { select: { eligibleExport: true } },
+    },
+    orderBy: [
+      { client: { creeLe: "asc" } },
+      { ordre: "asc" },
+      { client: { id: "asc" } },
+      { id: "asc" },
+    ],
+  });
+
+  const ecarts: ExportEcart[] = [];
+  const vues = new Set<string>();
+  for (const e of equipements) {
+    const base = { raisonSociale: e.client.raisonSociale, valeur: e.macBrut };
+    const cle = `${e.client.raisonSociale} ${e.macNormalise}`;
+    if (e.exclureExport) {
+      ecarts.push({ ...base, motif: "exclusion manuelle" });
+    } else if (e.utilisateur?.archiveA) {
+      ecarts.push({ ...base, motif: "utilisateur archivé" });
+    } else if (!e.modele) {
+      ecarts.push({ ...base, motif: "modèle inconnu" });
+    } else if (!e.modele.eligibleExport) {
+      ecarts.push({ ...base, motif: "modèle non éligible" });
+    } else if (vues.has(cle)) {
+      ecarts.push({ ...base, motif: "doublon (MAC déjà exportée pour ce client)" });
+    } else {
+      vues.add(cle);
+    }
+  }
+  return ecarts;
 }
