@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { ProvisionningLigne } from "@/lib/repositories/provisionningRepository";
-import { updateNumeroCellAction, forcerControleAction } from "./actions";
+import { updateNumeroCellAction, forcerControleAction, ajouterLigneAction } from "./actions";
 
 const NIVEAU_COULEUR: Record<string, "default" | "secondary" | "destructive"> = {
   OK: "default",
@@ -107,6 +107,25 @@ function ControleCell({ ligne }: { ligne: ProvisionningLigne }) {
   );
 }
 
+function AjouterLigneMenu({ clientId }: { clientId: string }) {
+  const [isPending, startTransition] = useTransition();
+  const ajouter = (type: "numero" | "equipement" | "complete") => {
+    startTransition(async () => {
+      await ajouterLigneAction(clientId, type);
+    });
+  };
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<button disabled={isPending}>+ Ajouter</button>} />
+      <DropdownMenuContent>
+        <DropdownMenuItem onClick={() => ajouter("numero")}>Numéro seul</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => ajouter("equipement")}>Équipement seul</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => ajouter("complete")}>Ligne complète</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 const columns: ColumnDef<ProvisionningLigne>[] = [
   { header: "Client (raison sociale)", accessorKey: "clientRaisonSociale" },
   { header: "Numéro à porter", accessorKey: "numeroBrut" },
@@ -191,15 +210,20 @@ export function ProvisionningTable({ lignes }: { lignes: ProvisionningLigne[] })
         ))}
       </thead>
       <tbody>
-        {Array.from(groupes.entries()).map(([raisonSociale, lignesDuClient]) => (
-          <Fragment key={raisonSociale}>
-            <tr style={{ background: "#f0f0f0" }}>
-              <td colSpan={columns.length} style={{ padding: "0.25rem", fontWeight: "bold" }}>
-                {raisonSociale} — {lignesDuClient.filter((l) => l.numeroId).length} numéro(s),{" "}
-                {lignesDuClient.filter((l) => l.equipementMacBrut).length} MAC,{" "}
-                {lignesDuClient.filter((l) => l.statutBascule === "Fait").length} bascule(s) faite(s)
-              </td>
-            </tr>
+        {Array.from(groupes.entries()).map(([raisonSociale, lignesDuClient]) => {
+          const clientId = lignesDuClient[0]?.clientId;
+          return (
+            <Fragment key={raisonSociale}>
+              <tr style={{ background: "#f0f0f0" }}>
+                <td colSpan={columns.length} style={{ padding: "0.25rem", fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>
+                    {raisonSociale} — {lignesDuClient.filter((l) => l.numeroId).length} numéro(s),{" "}
+                    {lignesDuClient.filter((l) => l.equipementMacBrut).length} MAC,{" "}
+                    {lignesDuClient.filter((l) => l.statutBascule === "Fait").length} bascule(s) faite(s)
+                  </span>
+                  {clientId && <AjouterLigneMenu clientId={clientId} />}
+                </td>
+              </tr>
             {table
               .getRowModel()
               .rows.filter((r) => r.original.clientRaisonSociale === raisonSociale)
@@ -212,8 +236,9 @@ export function ProvisionningTable({ lignes }: { lignes: ProvisionningLigne[] })
                   ))}
                 </tr>
               ))}
-          </Fragment>
-        ))}
+            </Fragment>
+          );
+        })}
       </tbody>
     </table>
   );

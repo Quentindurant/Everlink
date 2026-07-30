@@ -64,3 +64,42 @@ export async function forcerControleAction(
     return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
   }
 }
+
+export async function ajouterLigneAction(
+  clientId: string,
+  type: "numero" | "equipement" | "complete"
+): Promise<{ success: boolean; numeroId?: string; error?: string }> {
+  const session = await auth();
+  if (!session) {
+    return { success: false, error: "Non authentifié." };
+  }
+
+  try {
+    if (type === "equipement") {
+      await prisma.equipement.create({
+        data: { clientId, macBrut: "", macNormalise: "" },
+      });
+      revalidatePath("/");
+      return { success: true };
+    }
+
+    const numero = await prisma.numero.create({
+      data: {
+        clientId,
+        numeroBrut: "",
+        numeroNormalise: "",
+      },
+    });
+
+    if (type === "complete") {
+      await prisma.equipement.create({
+        data: { clientId, macBrut: "", macNormalise: "", utilisateurId: null },
+      });
+    }
+
+    revalidatePath("/");
+    return { success: true, numeroId: numero.id };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
+  }
+}
