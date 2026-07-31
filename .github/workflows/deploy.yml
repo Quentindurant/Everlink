@@ -40,5 +40,7 @@ jobs:
             NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
             # reload = zéro coupure si l'app tourne déjà; sinon on la démarre.
-            pm2 reload everlink || pm2 start npm --name everlink -- start
+            # -p 3005: next start ne lit pas PORT depuis .env, le port doit être
+            # passé en argument. Le vhost nginx everlink.quentindurant.com proxifie dessus.
+            pm2 reload everlink || pm2 start npm --name everlink -- start -- -p 3005
             pm2 save
