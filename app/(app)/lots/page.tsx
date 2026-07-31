@@ -15,7 +15,7 @@ export default async function LotsPage() {
         title="Vagues de<br />bascule"
         description="Un lot = les clients qui basculent la même nuit, et la référence portée par les exports."
         kpis={[
-          { value: nbActifs, label: "lot actif" },
+          { value: nbActifs, label: nbActifs > 1 ? "lots actifs" : "lot actif" },
           { value: "0%", label: "avancement", color: "var(--ev-text-secondary)" },
         ]}
       />

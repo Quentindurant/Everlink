@@ -35,7 +35,7 @@ export default async function ImportMondayPage() {
         title="Le lot arrive<br />de Monday"
         description="Upload, prévisualisation du rapprochement, validation. Import idempotent : vos saisies ne sont jamais écrasées."
         kpis={[
-          { value: totalCrees, label: "clients créés", color: "var(--ev-green)" },
+          { value: totalCrees, label: totalCrees > 1 ? "clients créés" : "client créé", color: "var(--ev-green)" },
           { value: 0, label: "écrasés", color: "var(--ev-text-secondary)" },
         ]}
       />

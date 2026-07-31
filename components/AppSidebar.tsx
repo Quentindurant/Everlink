@@ -28,11 +28,13 @@ export function AppSidebar({
   role,
   onLogout,
   badges = {},
+  progression,
 }: {
   email: string;
   role: string;
   onLogout: () => Promise<void>;
   badges?: Record<string, string | number | undefined>;
+  progression?: { faites: number; total: number; pct: number };
 }) {
   const pathname = usePathname();
   const estActif = (href: string) =>
@@ -105,23 +107,22 @@ export function AppSidebar({
           </span>{" "}
           UNYC
         </div>
-        <div className="mt-3 flex gap-0.5">
-          <span
-            className="h-[7px] flex-1 rounded-sm"
-            style={{ background: "var(--ev-blue)" }}
-          />
-          <span
-            className="h-[7px] flex-1 rounded-sm"
-            style={{ background: "var(--ev-navy-border)" }}
-          />
-        </div>
-        <div
-          className="mt-2 flex justify-between font-mono text-[10px]"
-          style={{ color: "var(--ev-text-tertiary)" }}
-        >
-          <span>0 / 2 basculés</span>
-          <span style={{ color: "#8fa3c2" }}>LOT 1a</span>
-        </div>
+        {progression && (
+          <>
+            <div className="mt-3 h-[7px] overflow-hidden rounded-sm" style={{ background: "var(--ev-navy-border)" }}>
+              <div
+                className="h-full rounded-sm"
+                style={{ background: "var(--ev-blue)", width: `${progression.pct}%` }}
+              />
+            </div>
+            <div
+              className="mt-2 font-mono text-[10px]"
+              style={{ color: "var(--ev-text-tertiary)" }}
+            >
+              {progression.faites} / {progression.total} basculés &middot; {progression.pct}%
+            </div>
+          </>
+        )}
       </div>
 
       {/* ── Navigation ── */}

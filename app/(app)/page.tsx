@@ -63,10 +63,18 @@ export default async function ProvisionningPage({
         title="Les numéros<br />en mouvement"
         description="Un numéro, un trajet : saisie, contrôle, export, bascule. Tout ce qui bloque est rouge."
         kpis={[
-          { value: nbNumeros, label: "numéros suivis" },
-          { value: nbBascules, label: "basculés" },
-          { value: nbAnomalies, label: "anomalie", color: "var(--ev-red)" },
-          { value: nbClientsSansLignes, label: "clients sans ligne", color: "var(--ev-text-secondary)" },
+          { value: nbNumeros, label: nbNumeros > 1 ? "numéros suivis" : "numéro suivi" },
+          { value: nbBascules, label: nbBascules > 1 ? "basculés" : "basculé" },
+          {
+            value: nbAnomalies,
+            label: nbAnomalies > 1 ? "anomalies" : "anomalie",
+            color: "var(--ev-red)",
+          },
+          {
+            value: nbClientsSansLignes,
+            label: nbClientsSansLignes > 1 ? "clients sans ligne" : "client sans ligne",
+            color: "var(--ev-text-secondary)",
+          },
         ]}
       />
       <ProvisionningFiltresBar

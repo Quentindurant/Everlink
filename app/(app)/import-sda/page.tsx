@@ -33,7 +33,7 @@ export default async function ImportSdaPage({
         title="Fichier SDA<br />à générer"
         description="Une ligne par numéro rattaché à un utilisateur équipé d'un modèle éligible, triée par raison sociale."
         kpis={[
-          { value: rows.length, label: "lignes exportées" },
+          { value: rows.length, label: rows.length > 1 ? "lignes exportées" : "ligne exportée" },
           {
             value: ecarts.length,
             label: "écartées",

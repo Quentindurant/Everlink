@@ -33,7 +33,7 @@ export default async function ImportMacPage({
         title="Parc<br />à déclarer"
         description="Une ligne par MAC éligible, bornes DECT incluses, dans l'ordre de saisie et dédoublonnée par client."
         kpis={[
-          { value: rows.length, label: "MAC exportées" },
+          { value: rows.length, label: rows.length > 1 ? "MAC exportées" : "MAC exportée" },
           {
             value: ecarts.length,
             label: "écartée",

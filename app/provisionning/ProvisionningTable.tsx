@@ -10,7 +10,7 @@ import {
   type ColumnDef,
   type Row,
 } from "@tanstack/react-table";
-import { CheckCheck, FileX2, Inbox, Plus, Server, Undo2 } from "lucide-react";
+import { CheckCheck, FileX2, Inbox, Plus, Server, Trash2, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,7 @@ import {
   updateEquipementModeleAction,
   updateUtilisateurNomAction,
   actionMasseAction,
+  supprimerLigneAction,
 } from "./actions";
 
 const NIVEAU_CLASSES: Record<string, string> = {
@@ -69,10 +70,12 @@ function EditableCell({
   valeurInitiale,
   onSave,
   mono = false,
+  placeholder = "Saisir…",
 }: {
   valeurInitiale: string;
   onSave: (valeur: string) => Promise<{ success: boolean; error?: string }>;
   mono?: boolean;
+  placeholder?: string;
 }) {
   const [valeur, setValeur] = useState(valeurInitiale);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -91,16 +94,24 @@ function EditableCell({
     });
   };
 
+  const estVide = valeur === "";
+
   return (
     <div>
       <input
         value={valeur}
+        placeholder={placeholder}
         onChange={(e) => setValeur(e.target.value)}
         onBlur={enregistrer}
         onKeyDown={(e) => e.key === "Enter" && enregistrer()}
         disabled={isPending}
         className={cn(
-          "w-full rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-sm transition-colors outline-none hover:border-input focus:border-ring focus:ring-2 focus:ring-ring/40 disabled:opacity-50",
+          "w-full min-w-24 rounded-md border px-1.5 py-0.5 text-sm transition-colors outline-none placeholder:text-muted-foreground/50 focus:border-ring focus:ring-2 focus:ring-ring/40 disabled:opacity-50",
+          // Champ vide: bordure pointillée visible pour signaler qu'il est éditable.
+          // Champ rempli: bordure transparente qui apparaît au survol, pour ne pas alourdir.
+          estVide
+            ? "border-dashed border-input bg-muted/30"
+            : "border-transparent bg-transparent hover:border-input",
           mono && "font-mono text-[13px] tabular-nums"
         )}
       />
@@ -215,6 +226,56 @@ function EquipementModeleCell({
       )}
       {erreur && <span className="text-xs text-destructive">{erreur}</span>}
     </div>
+  );
+}
+
+function SupprimerLigneCell({ ligne }: { ligne: ProvisionningLigne }) {
+  const [isPending, startTransition] = useTransition();
+  // Une ligne de duplication (2e équipement sans numeroId, mais equipementId présent) reste
+  // supprimable via son équipement. Une ligne totalement vide n'a rien à supprimer.
+  if (!ligne.numeroId && !ligne.equipementId) return null;
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            disabled={isPending}
+            className="text-muted-foreground hover:text-destructive"
+            aria-label="Supprimer la ligne"
+          >
+            <Trash2 />
+          </Button>
+        }
+      />
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Supprimer cette ligne ?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Le numéro, son équipement et son utilisateur (s&apos;il ne porte rien d&apos;autre)
+            seront archivés. Ils disparaissent de la grille et des exports.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Annuler</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() =>
+              startTransition(async () => {
+                await supprimerLigneAction({
+                  numeroId: ligne.numeroId,
+                  equipementId: ligne.equipementId,
+                  utilisateurId: ligne.utilisateurId,
+                });
+              })
+            }
+          >
+            Supprimer
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -584,6 +645,11 @@ function buildColumns(
       ) : (
         row.original.commentaire ?? ""
       ),
+  },
+  {
+    id: "actions",
+    header: "",
+    cell: ({ row }) => <SupprimerLigneCell ligne={row.original} />,
   },
   ];
 }

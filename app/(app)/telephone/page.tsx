@@ -41,7 +41,7 @@ export default async function TelephonePage({
         title="Poste<br />par poste"
         description="Chaque utilisateur suit les mêmes étapes. Cliquez pour avancer."
         kpis={[
-          { value: totalUtilisateurs, label: "utilisateur" },
+          { value: totalUtilisateurs, label: totalUtilisateurs > 1 ? "utilisateurs" : "utilisateur" },
           {
             value: `${totalFait}%`,
             label: "fait",

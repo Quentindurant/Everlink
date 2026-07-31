@@ -242,6 +242,60 @@ export async function ajouterLigneAction(
   }
 }
 
+// Supprime une ligne de la grille en archivant les entités qu'elle porte. Archivage (soft
+// delete) plutôt que suppression dure: on garde la trace, et les exports/contrôles filtrent
+// déjà sur `archiveA: null`. Une "ligne complète" retire le numéro, son équipement et son
+// utilisateur; une ligne orpheline (équipement seul) retire l'équipement.
+export async function supprimerLigneAction(cibles: {
+  numeroId?: string | null;
+  equipementId?: string | null;
+  utilisateurId?: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session) {
+    return { success: false, error: "Non authentifié." };
+  }
+  if (!cibles.numeroId && !cibles.equipementId && !cibles.utilisateurId) {
+    return { success: false, error: "Rien à supprimer." };
+  }
+
+  const maintenant = new Date();
+  try {
+    await prisma.$transaction(async (tx) => {
+      if (cibles.numeroId) {
+        await tx.numero.updateMany({
+          where: { id: cibles.numeroId, archiveA: null },
+          data: { archiveA: maintenant },
+        });
+      }
+      if (cibles.equipementId) {
+        await tx.equipement.updateMany({
+          where: { id: cibles.equipementId, archiveA: null },
+          data: { archiveA: maintenant },
+        });
+      }
+      // L'utilisateur n'est archivé que s'il ne porte plus aucun numéro ni équipement actif,
+      // pour ne pas faire disparaître les autres lignes du même utilisateur.
+      if (cibles.utilisateurId) {
+        const [restNum, restEq] = await Promise.all([
+          tx.numero.count({ where: { utilisateurId: cibles.utilisateurId, archiveA: null } }),
+          tx.equipement.count({ where: { utilisateurId: cibles.utilisateurId, archiveA: null } }),
+        ]);
+        if (restNum === 0 && restEq === 0) {
+          await tx.utilisateur.updateMany({
+            where: { id: cibles.utilisateurId, archiveA: null },
+            data: { archiveA: maintenant },
+          });
+        }
+      }
+    });
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
+  }
+}
+
 type ActionMasse =
   | { type: "hebergeurCible"; valeur: string }
   | { type: "basculeFaite"; date: string }

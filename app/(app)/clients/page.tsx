@@ -37,13 +37,13 @@ export default async function ClientsPage({
         title={`${clients.length} clients,<br />${scenarios.size} scénarios`}
         description="Regroupés par scénario de migration : c'est lui qui dicte le matériel et l'ordre des bascules."
         kpis={[
-          { value: nbPostesAnnonces, label: "postes annoncés" },
+          { value: nbPostesAnnonces, label: nbPostesAnnonces > 1 ? "postes annoncés" : "poste annoncé" },
           {
             value: nbPostesEcart > 0 ? `+${nbPostesEcart}` : "0",
             label: "écart à saisir",
             color: nbPostesEcart > 0 ? "var(--ev-amber)" : undefined,
           },
-          { value: nbEquipes, label: "client équipé", color: "var(--ev-text-secondary)" },
+          { value: nbEquipes, label: nbEquipes > 1 ? "clients équipés" : "client équipé", color: "var(--ev-text-secondary)" },
         ]}
       />
       <ClientsFiltres lots={lots.map((l) => ({ id: l.id, nom: l.nom }))} />
