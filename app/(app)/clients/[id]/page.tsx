@@ -45,7 +45,6 @@ export default async function ClientDetailPage({
               VIP
             </Badge>
           )}
-          <Badge variant="outline">{client.statutBascule}</Badge>
           <Button size="sm" className="ml-auto" render={<Link href={`/?client=${client.id}`} />}>
             <PencilLine data-icon="inline-start" />
             Saisir les utilisateurs et numéros

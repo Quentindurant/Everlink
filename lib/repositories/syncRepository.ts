@@ -7,6 +7,7 @@ import type { ClientSyncRow } from "@/lib/domain/sync/clients";
 import type { TelephoneUtilisateurRow } from "@/lib/domain/sync/telephone";
 import type { SdaSourceRow } from "@/lib/domain/exports/sda";
 import type { MacSourceRow } from "@/lib/domain/exports/mac";
+import { ETAPE_TERMINALE } from "@/lib/domain/migration/etapes";
 
 // Portée d'export (SPEC §6.4): lot entier, client(s) précis, et option d'exclusion des
 // clients déjà basculés (décochée par défaut — ETIKEO sort alors que sa bascule est "Fait").
@@ -22,15 +23,24 @@ export interface ExportEcart {
   motif: string;
 }
 
-function clientScopeWhere(scope: ExportScope) {
-  return {
+// "Exclure les clients déjà basculés" filtre désormais sur l'étape de migration (source de
+// vérité) et non plus sur Client.statutBascule: un client est basculé quand son étape a un
+// ordre >= à celui de l'étape terminale. Async car il faut lire l'ordre de l'étape terminale.
+async function clientScopeWhere(scope: ExportScope) {
+  const base = {
     archiveA: null,
     ...(scope.lotId ? { lotId: scope.lotId } : {}),
     ...(scope.clientIds && scope.clientIds.length > 0
       ? { id: { in: scope.clientIds } }
       : {}),
-    ...(scope.exclureBascules ? { statutBascule: { not: "Fait" } } : {}),
   };
+  if (!scope.exclureBascules) return base;
+  const terminale = await prisma.etapeMigration.findFirst({
+    where: { libelle: ETAPE_TERMINALE },
+    select: { ordre: true },
+  });
+  if (!terminale) return base;
+  return { ...base, NOT: { etapeMigration: { ordre: { gte: terminale.ordre } } } };
 }
 
 export async function fetchProvisionningData(): Promise<{
@@ -123,6 +133,7 @@ export async function fetchClientsData(): Promise<ClientSyncRow[]> {
     where: { archiveA: null },
     include: {
       lot: true,
+      etapeMigration: { select: { libelle: true } },
       numeros: { where: { archiveA: null } },
       equipements: { where: { archiveA: null } },
     },
@@ -138,7 +149,8 @@ export async function fetchClientsData(): Promise<ClientSyncRow[]> {
       nbMacSaisis: nbEquipements,
       nbMacDistincts: new Set(c.equipements.map((e) => e.macNormalise)).size,
       nbBasculesFaites: c.numeros.filter((n) => n.statutBascule === "Fait").length,
-      statutGlobal: c.statutBascule,
+      // statutGlobal reflète désormais l'étape du parcours de migration (source de vérité).
+      statutGlobal: c.etapeMigration?.libelle ?? "À qualifier",
       scenario: c.scenario,
       adresse: c.adresse,
       contactNom: c.contactNom,
@@ -186,11 +198,12 @@ export async function fetchTelephoneData(): Promise<{
 }
 
 export async function fetchSdaData(scope: ExportScope = {}): Promise<SdaSourceRow[]> {
+  const clientWhere = await clientScopeWhere(scope);
   const numeros = await prisma.numero.findMany({
     where: {
       archiveA: null,
       exclureExport: false,
-      client: clientScopeWhere(scope),
+      client: clientWhere,
       utilisateurId: { not: null },
     },
     include: { client: true },
@@ -201,7 +214,7 @@ export async function fetchSdaData(scope: ExportScope = {}): Promise<SdaSourceRo
     where: {
       archiveA: null,
       exclureExport: false,
-      client: clientScopeWhere(scope),
+      client: clientWhere,
       utilisateurId: { in: numeros.map((n) => n.utilisateurId).filter((id): id is string => id !== null) },
       // Numero.clientId and Utilisateur.clientId aren't schema-enforced to match, and an
       // archived Utilisateur shouldn't make its numéro export-eligible.
@@ -222,11 +235,12 @@ export async function fetchSdaData(scope: ExportScope = {}): Promise<SdaSourceRo
 }
 
 export async function fetchMacData(scope: ExportScope = {}): Promise<MacSourceRow[]> {
+  const clientWhere = await clientScopeWhere(scope);
   const equipements = await prisma.equipement.findMany({
     where: {
       archiveA: null,
       exclureExport: false,
-      client: clientScopeWhere(scope),
+      client: clientWhere,
       modele: { eligibleExport: true },
       // Même garde que fetchSdaData: un utilisateur archivé ne doit pas faire sortir sa MAC.
       // Le cas orphelin (équipement sans utilisateur) reste un export légitime.
@@ -255,8 +269,9 @@ export async function fetchMacData(scope: ExportScope = {}): Promise<MacSourceRo
 // Lignes écartées de l'export SDA avec motif (SPEC §3.4). Parcourt tous les numéros actifs
 // du scope et explique pourquoi chacun ne sort pas.
 export async function fetchSdaEcarts(scope: ExportScope = {}): Promise<ExportEcart[]> {
+  const clientWhere = await clientScopeWhere(scope);
   const numeros = await prisma.numero.findMany({
-    where: { archiveA: null, client: clientScopeWhere(scope) },
+    where: { archiveA: null, client: clientWhere },
     include: {
       client: { select: { raisonSociale: true } },
       utilisateur: {
@@ -289,8 +304,9 @@ export async function fetchSdaEcarts(scope: ExportScope = {}): Promise<ExportEca
 
 // Lignes écartées de l'export MAC avec motif (SPEC §3.4).
 export async function fetchMacEcarts(scope: ExportScope = {}): Promise<ExportEcart[]> {
+  const clientWhere = await clientScopeWhere(scope);
   const equipements = await prisma.equipement.findMany({
-    where: { archiveA: null, client: clientScopeWhere(scope) },
+    where: { archiveA: null, client: clientWhere },
     include: {
       client: { select: { raisonSociale: true } },
       utilisateur: { select: { archiveA: true } },
