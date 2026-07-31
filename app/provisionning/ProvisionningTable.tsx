@@ -49,6 +49,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ProvisionningLigne } from "@/lib/repositories/provisionningRepository";
+import type { EtapeMigrationLite } from "@/lib/domain/migration/etapes";
+import { EtapeMigrationSelect } from "@/components/migration/EtapeMigrationSelect";
 import {
   updateNumeroCellAction,
   forcerControleAction,
@@ -659,11 +661,15 @@ export function ProvisionningTable({
   clientsSansLignes = [],
   valeursStatutBascule,
   modeles,
+  etapesMigration,
+  etapeParClient,
 }: {
   lignes: ProvisionningLigne[];
   clientsSansLignes?: { id: string; raisonSociale: string }[];
   valeursStatutBascule: string[];
   modeles: { id: string; libelle: string; eligibleExport: boolean }[];
+  etapesMigration: EtapeMigrationLite[];
+  etapeParClient: Record<string, string | null>;
 }) {
   const data = useMemo(() => lignes, [lignes]);
   const [selection, setSelection] = useState<string[]>([]);
@@ -775,7 +781,16 @@ export function ProvisionningTable({
                             {nbFaites > 1 ? "s" : ""}
                           </Badge>
                         </span>
-                        {clientId && <AjouterLigneMenu clientId={clientId} />}
+                        <span className="flex items-center gap-2">
+                          {clientId && (
+                            <EtapeMigrationSelect
+                              clientId={clientId}
+                              etapeCouranteId={etapeParClient[clientId] ?? null}
+                              etapes={etapesMigration}
+                            />
+                          )}
+                          {clientId && <AjouterLigneMenu clientId={clientId} />}
+                        </span>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -813,7 +828,14 @@ export function ProvisionningTable({
                         aucune ligne
                       </Badge>
                     </span>
-                    <AjouterLigneMenu clientId={client.id} />
+                    <span className="flex items-center gap-2">
+                      <EtapeMigrationSelect
+                        clientId={client.id}
+                        etapeCouranteId={etapeParClient[client.id] ?? null}
+                        etapes={etapesMigration}
+                      />
+                      <AjouterLigneMenu clientId={client.id} />
+                    </span>
                   </div>
                 </TableCell>
               </TableRow>

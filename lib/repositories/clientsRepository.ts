@@ -19,11 +19,14 @@ export interface ClientListeLigne {
   nbPostesAnnonce: number | null;
   // Écart entre postes annoncés par Monday et équipements réellement saisis.
   ecartPostes: number | null;
+  // Étape du parcours de migration (null si non renseignée).
+  etape: { id: string; libelle: string; couleur: string } | null;
 }
 
 export interface ClientsListeFiltres {
   lotId?: string;
   recherche?: string;
+  etapeMigrationId?: string;
 }
 
 export async function fetchClientsListe(
@@ -33,6 +36,7 @@ export async function fetchClientsListe(
     where: {
       archiveA: null,
       ...(filtres.lotId ? { lotId: filtres.lotId } : {}),
+      ...(filtres.etapeMigrationId ? { etapeMigrationId: filtres.etapeMigrationId } : {}),
       ...(filtres.recherche
         ? {
             OR: [
@@ -46,6 +50,7 @@ export async function fetchClientsListe(
     },
     include: {
       lot: true,
+      etapeMigration: { select: { id: true, libelle: true, couleur: true } },
       numeros: { where: { archiveA: null }, select: { statutBascule: true } },
       equipements: { where: { archiveA: null }, select: { macNormalise: true } },
     },
@@ -70,6 +75,9 @@ export async function fetchClientsListe(
     nbPostesAnnonce: c.nbPostesAnnonce,
     ecartPostes:
       c.nbPostesAnnonce === null ? null : c.nbPostesAnnonce - c.equipements.length,
+    etape: c.etapeMigration
+      ? { id: c.etapeMigration.id, libelle: c.etapeMigration.libelle, couleur: c.etapeMigration.couleur }
+      : null,
   }));
 }
 
@@ -78,6 +86,7 @@ export async function fetchClientDetail(id: string) {
     where: { id },
     include: {
       lot: true,
+      etapeMigration: true,
       numeros: {
         where: { archiveA: null },
         include: { utilisateur: true },

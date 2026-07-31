@@ -1,5 +1,6 @@
 import { fetchClientsListe } from "@/lib/repositories/clientsRepository";
 import { fetchLots } from "@/lib/repositories/lotsRepository";
+import { listEtapesMigration } from "@/lib/repositories/migrationRepository";
 import { ClientsFiltres, ClientsTable } from "./ClientsTable";
 import { PageHero } from "@/components/PageHero";
 
@@ -11,9 +12,10 @@ export default async function ClientsPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
-  const [clients, lots] = await Promise.all([
-    fetchClientsListe({ lotId: params.lot, recherche: params.q }),
+  const [clients, lots, etapesMigration] = await Promise.all([
+    fetchClientsListe({ lotId: params.lot, recherche: params.q, etapeMigrationId: params.etape }),
     fetchLots(),
+    listEtapesMigration(),
   ]);
 
   const nbPostesAnnonces = clients.reduce(
@@ -46,8 +48,11 @@ export default async function ClientsPage({
           { value: nbEquipes, label: nbEquipes > 1 ? "clients équipés" : "client équipé", color: "var(--ev-text-secondary)" },
         ]}
       />
-      <ClientsFiltres lots={lots.map((l) => ({ id: l.id, nom: l.nom }))} />
-      <ClientsTable clients={clients} />
+      <ClientsFiltres
+        lots={lots.map((l) => ({ id: l.id, nom: l.nom }))}
+        etapes={etapesMigration}
+      />
+      <ClientsTable clients={clients} etapes={etapesMigration} />
     </main>
   );
 }

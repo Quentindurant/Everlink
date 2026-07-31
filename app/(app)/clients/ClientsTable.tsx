@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useTransition } from "react";
 import { Search } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -23,16 +21,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ClientListeLigne } from "@/lib/repositories/clientsRepository";
+import type { EtapeMigrationLite } from "@/lib/domain/migration/etapes";
+import { EtapeMigrationSelect } from "@/components/migration/EtapeMigrationSelect";
 
 const TOUS = "tous";
 
-const STATUT_CLASSES: Record<string, string> = {
-  Fait: "border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  "En cours": "border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  Bloqué: "border-transparent bg-destructive/15 text-destructive",
-};
-
-export function ClientsFiltres({ lots }: { lots: { id: string; nom: string }[] }) {
+export function ClientsFiltres({
+  lots,
+  etapes,
+}: {
+  lots: { id: string; nom: string }[];
+  etapes: EtapeMigrationLite[];
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
@@ -81,11 +81,37 @@ export function ClientsFiltres({ lots }: { lots: { id: string; nom: string }[] }
           ))}
         </SelectContent>
       </Select>
+      <Select
+        items={[
+          { value: TOUS, label: "Étape : toutes" },
+          ...etapes.map((e) => ({ value: e.id, label: e.libelle })),
+        ]}
+        defaultValue={searchParams.get("etape") ?? TOUS}
+        onValueChange={(v) => setParam("etape", v === TOUS || v === null ? "" : (v as string))}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={TOUS}>Étape : toutes</SelectItem>
+          {etapes.map((e) => (
+            <SelectItem key={e.id} value={e.id}>
+              {e.libelle}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
 
-export function ClientsTable({ clients }: { clients: ClientListeLigne[] }) {
+export function ClientsTable({
+  clients,
+  etapes,
+}: {
+  clients: ClientListeLigne[];
+  etapes: EtapeMigrationLite[];
+}) {
   if (clients.length === 0) {
     return (
       <div className="rounded-xl border border-dashed py-16 text-center text-sm text-muted-foreground">
@@ -101,12 +127,12 @@ export function ClientsTable({ clients }: { clients: ClientListeLigne[] }) {
           <TableRow className="hover:bg-transparent">
             {[
               "Raison sociale",
+              "Étape",
               "Lot",
               "Numéros",
               "MAC saisis",
               "MAC distincts",
               "Bascules",
-              "Statut",
               "Scénario",
               "Postes annoncés",
               "Écart postes",
@@ -135,6 +161,13 @@ export function ClientsTable({ clients }: { clients: ClientListeLigne[] }) {
                   </span>
                 )}
               </TableCell>
+              <TableCell>
+                <EtapeMigrationSelect
+                  clientId={c.id}
+                  etapeCouranteId={c.etape?.id ?? null}
+                  etapes={etapes}
+                />
+              </TableCell>
               <TableCell className="whitespace-nowrap">{c.lotNom ?? "—"}</TableCell>
               <TableCell className="tabular-nums">{c.nbNumeros}</TableCell>
               <TableCell className="tabular-nums">{c.nbMacSaisis}</TableCell>
@@ -148,11 +181,6 @@ export function ClientsTable({ clients }: { clients: ClientListeLigne[] }) {
               </TableCell>
               <TableCell className="tabular-nums">
                 {c.nbBasculesFaites}/{c.nbNumeros}
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline" className={cn(STATUT_CLASSES[c.statutGlobal])}>
-                  {c.statutGlobal}
-                </Badge>
               </TableCell>
               <TableCell className="whitespace-nowrap">{c.scenario ?? "—"}</TableCell>
               <TableCell className="tabular-nums">{c.nbPostesAnnonce ?? "—"}</TableCell>

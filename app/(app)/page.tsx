@@ -7,6 +7,10 @@ import {
   listValeursStatutBascule,
   type ProvisionningFiltres,
 } from "@/lib/repositories/provisionningRepository";
+import {
+  listEtapesMigration,
+  mapEtapeParClient,
+} from "@/lib/repositories/migrationRepository";
 import { ProvisionningTable } from "@/app/provisionning/ProvisionningTable";
 import { ProvisionningFiltresBar } from "@/app/provisionning/ProvisionningFiltres";
 import { PageHero } from "@/components/PageHero";
@@ -28,13 +32,16 @@ export default async function ProvisionningPage({
     avecAnomalieSeulement: params.anomalie === "1",
     recherche: params.q,
   };
-  const [lignes, lots, clients, valeursStatutBascule, modeles] = await Promise.all([
-    fetchProvisionningLignes(filtres),
-    listLotsActifs(),
-    listClientsActifs(),
-    listValeursStatutBascule(),
-    listModelesActifs(),
-  ]);
+  const [lignes, lots, clients, valeursStatutBascule, modeles, etapesMigration, etapeParClient] =
+    await Promise.all([
+      fetchProvisionningLignes(filtres),
+      listLotsActifs(),
+      listClientsActifs(),
+      listValeursStatutBascule(),
+      listModelesActifs(),
+      listEtapesMigration(),
+      mapEtapeParClient(),
+    ]);
   // Un filtre au niveau ligne (hébergeur, statut, éligible, anomalie) ne peut par nature pas
   // matcher un client vide: on ne propose les clients sans lignes que hors de ces filtres.
   const filtreLigneActif =
@@ -87,6 +94,8 @@ export default async function ProvisionningPage({
         clientsSansLignes={clientsSansLignes}
         valeursStatutBascule={valeursStatutBascule}
         modeles={modeles}
+        etapesMigration={etapesMigration}
+        etapeParClient={etapeParClient}
       />
     </main>
   );

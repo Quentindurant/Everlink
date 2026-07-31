@@ -11,6 +11,16 @@ export async function listEtapesMigration(): Promise<EtapeMigrationLite[]> {
   return etapes;
 }
 
+// Étape courante de chaque client actif, pour afficher le sélecteur sur les bandes de la grille
+// Provisionning sans alourdir chaque ligne.
+export async function mapEtapeParClient(): Promise<Record<string, string | null>> {
+  const clients = await prisma.client.findMany({
+    where: { archiveA: null },
+    select: { id: true, etapeMigrationId: true },
+  });
+  return Object.fromEntries(clients.map((c) => [c.id, c.etapeMigrationId]));
+}
+
 // Change l'étape de migration d'un client.
 export async function setEtapeMigration(clientId: string, etapeMigrationId: string): Promise<void> {
   await prisma.client.updateMany({
