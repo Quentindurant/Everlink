@@ -7,17 +7,24 @@ import { auth } from "@/auth";
 import { runSheetsSync } from "@/lib/sync/runSheetsSync";
 import {
   ajouterEtape,
+  ajouterEtapeMigration,
   ajouterValeur,
   creerCompte,
   creerModele,
   deplacerEtape,
+  deplacerEtapeMigration,
   recalculerControleGlobal,
   renommerEtape,
+  renommerEtapeMigration,
   resetMotDePasse,
   setCompteActif,
+  setCouleurEtapeMigration,
   setEtapeActif,
+  setEtapeMigrationActif,
+  setEtapeMigrationBloquant,
   setModeleEligibilite,
   setValeurActif,
+  supprimerEtapeMigration,
   supprimerValeur,
 } from "@/lib/repositories/parametresRepository";
 
@@ -95,6 +102,44 @@ export async function setEtapeActifAction(id: string, v: boolean): Promise<Resul
 }
 export async function deplacerEtapeAction(id: string, dir: "haut" | "bas"): Promise<Resultat> {
   return garde(() => deplacerEtape(id, dir));
+}
+
+// --- Étapes de migration ---
+export async function ajouterEtapeMigrationAction(libelle: string): Promise<Resultat> {
+  return garde(async () => {
+    if (!libelle.trim()) return { success: false, error: "Libellé vide." };
+    await ajouterEtapeMigration(libelle.trim());
+  });
+}
+export async function renommerEtapeMigrationAction(
+  id: string,
+  libelle: string
+): Promise<Resultat> {
+  return garde(async () => {
+    if (!libelle.trim()) return { success: false, error: "Libellé vide." };
+    await renommerEtapeMigration(id, libelle.trim());
+  });
+}
+export async function setCouleurEtapeMigrationAction(id: string, couleur: string): Promise<Resultat> {
+  return garde(() => setCouleurEtapeMigration(id, couleur));
+}
+export async function setEtapeMigrationBloquantAction(id: string, v: boolean): Promise<Resultat> {
+  return garde(() => setEtapeMigrationBloquant(id, v));
+}
+export async function setEtapeMigrationActifAction(id: string, v: boolean): Promise<Resultat> {
+  return garde(() => setEtapeMigrationActif(id, v));
+}
+export async function deplacerEtapeMigrationAction(
+  id: string,
+  dir: "haut" | "bas"
+): Promise<Resultat> {
+  return garde(() => deplacerEtapeMigration(id, dir));
+}
+export async function supprimerEtapeMigrationAction(id: string): Promise<Resultat> {
+  return garde(async () => {
+    const r = await supprimerEtapeMigration(id);
+    if (!r.success) return r;
+  });
 }
 
 export async function creerCompteAction(

@@ -171,6 +171,82 @@ export async function deplacerEtape(id: string, direction: "haut" | "bas"): Prom
   ]);
 }
 
+// ---------------------------------------------------------------- Étapes de migration
+
+export interface EtapeMigrationLigne {
+  id: string;
+  libelle: string;
+  ordre: number;
+  couleur: string;
+  estBloquant: boolean;
+  actif: boolean;
+  utilisee: boolean;
+}
+
+export async function fetchEtapesMigrationParam(): Promise<EtapeMigrationLigne[]> {
+  const etapes = await prisma.etapeMigration.findMany({
+    orderBy: { ordre: "asc" },
+    include: { _count: { select: { clients: true } } },
+  });
+  return etapes.map((e) => ({
+    id: e.id,
+    libelle: e.libelle,
+    ordre: e.ordre,
+    couleur: e.couleur,
+    estBloquant: e.estBloquant,
+    actif: e.actif,
+    utilisee: e._count.clients > 0,
+  }));
+}
+
+export async function ajouterEtapeMigration(libelle: string): Promise<void> {
+  const max = await prisma.etapeMigration.aggregate({ _max: { ordre: true } });
+  await prisma.etapeMigration.create({ data: { libelle, ordre: (max._max.ordre ?? -1) + 1 } });
+}
+
+export async function renommerEtapeMigration(id: string, libelle: string): Promise<void> {
+  await prisma.etapeMigration.update({ where: { id }, data: { libelle } });
+}
+
+export async function setCouleurEtapeMigration(id: string, couleur: string): Promise<void> {
+  await prisma.etapeMigration.update({ where: { id }, data: { couleur } });
+}
+
+export async function setEtapeMigrationBloquant(id: string, estBloquant: boolean): Promise<void> {
+  await prisma.etapeMigration.update({ where: { id }, data: { estBloquant } });
+}
+
+export async function setEtapeMigrationActif(id: string, actif: boolean): Promise<void> {
+  await prisma.etapeMigration.update({ where: { id }, data: { actif } });
+}
+
+export async function deplacerEtapeMigration(
+  id: string,
+  direction: "haut" | "bas"
+): Promise<void> {
+  const etapes = await prisma.etapeMigration.findMany({ orderBy: { ordre: "asc" } });
+  const index = etapes.findIndex((e) => e.id === id);
+  if (index === -1) return;
+  const cible = direction === "haut" ? index - 1 : index + 1;
+  if (cible < 0 || cible >= etapes.length) return;
+  await prisma.$transaction([
+    prisma.etapeMigration.update({ where: { id: etapes[index].id }, data: { ordre: etapes[cible].ordre } }),
+    prisma.etapeMigration.update({ where: { id: etapes[cible].id }, data: { ordre: etapes[index].ordre } }),
+  ]);
+}
+
+// Une étape utilisée par au moins un client ne peut être supprimée, seulement désactivée.
+export async function supprimerEtapeMigration(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  const nb = await prisma.client.count({ where: { etapeMigrationId: id } });
+  if (nb > 0) {
+    return { success: false, error: "Étape utilisée par des clients : désactivez-la plutôt." };
+  }
+  await prisma.etapeMigration.delete({ where: { id } });
+  return { success: true };
+}
+
 // ---------------------------------------------------------------- Comptes
 
 export interface CompteLigne {

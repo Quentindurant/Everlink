@@ -19,23 +19,31 @@ import type { CategorieListe } from "@prisma/client";
 import type {
   CompteLigne,
   EtapeLigne,
+  EtapeMigrationLigne,
   ModeleLigne,
   ValeurListe,
 } from "@/lib/repositories/parametresRepository";
 import {
   ajouterEtapeAction,
+  ajouterEtapeMigrationAction,
   ajouterValeurAction,
   creerCompteAction,
   creerModeleAction,
   deplacerEtapeAction,
+  deplacerEtapeMigrationAction,
   lancerSyncAction,
   recalculerControleGlobalAction,
   renommerEtapeAction,
+  renommerEtapeMigrationAction,
   resetMotDePasseAction,
   setCompteActifAction,
+  setCouleurEtapeMigrationAction,
   setEtapeActifAction,
+  setEtapeMigrationActifAction,
+  setEtapeMigrationBloquantAction,
   setModeleEligibiliteAction,
   setValeurActifAction,
+  supprimerEtapeMigrationAction,
   supprimerValeurAction,
 } from "./actions";
 
@@ -316,6 +324,136 @@ export function SectionEtapes({ etapes }: { etapes: EtapeLigne[] }) {
           onClick={() =>
             startTransition(async () => {
               const r = await ajouterEtapeAction(nouvelle);
+              if (r.success) {
+                setNouvelle("");
+                setErreur(null);
+              } else setErreur(r.error ?? null);
+            })
+          }
+        >
+          <Plus data-icon="inline-start" />
+          Ajouter
+        </Button>
+        <Erreur texte={erreur} />
+      </div>
+    </Section>
+  );
+}
+
+// ---------------------------------------------------------------- Étapes de migration
+
+export function SectionEtapesMigration({ etapes }: { etapes: EtapeMigrationLigne[] }) {
+  const [nouvelle, setNouvelle] = useState("");
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  return (
+    <Section
+      titre="Étapes de migration"
+      description="Le parcours des clients (prévenance, contact, RDV, bascule…). Couleurs et ordre pilotent l'affichage partout dans l'app."
+    >
+      <div className="overflow-x-auto rounded-2xl border bg-card shadow-xs">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              {["Ordre", "Couleur", "Libellé", "Bloquante", "Active", "Actions"].map((h) => (
+                <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {etapes.map((e, i) => (
+              <TableRow key={e.id}>
+                <TableCell className="tabular-nums text-muted-foreground">{i + 1}</TableCell>
+                <TableCell>
+                  <span className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      defaultValue={e.couleur}
+                      onChange={(ev) =>
+                        startTransition(async () => {
+                          await setCouleurEtapeMigrationAction(e.id, ev.target.value);
+                        })
+                      }
+                      className="size-6 cursor-pointer rounded border"
+                    />
+                    <span
+                      className="rounded-lg px-2 py-0.5 text-[11px] font-semibold text-white"
+                      style={{ background: e.couleur }}
+                    >
+                      aperçu
+                    </span>
+                  </span>
+                </TableCell>
+                <TableCell className="w-full">
+                  <input
+                    defaultValue={e.libelle}
+                    onBlur={(ev) => {
+                      if (ev.target.value !== e.libelle && ev.target.value.trim())
+                        startTransition(async () => {
+                          await renommerEtapeMigrationAction(e.id, ev.target.value);
+                        });
+                    }}
+                    className="w-full rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-sm outline-none hover:border-input focus:border-ring focus:ring-2 focus:ring-ring/40"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Checkbox
+                    checked={e.estBloquant}
+                    onCheckedChange={(v) =>
+                      startTransition(async () => {
+                        await setEtapeMigrationBloquantAction(e.id, Boolean(v));
+                      })
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <Checkbox
+                    checked={e.actif}
+                    onCheckedChange={(v) =>
+                      startTransition(async () => {
+                        await setEtapeMigrationActifAction(e.id, Boolean(v));
+                      })
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon-xs" disabled={i === 0} onClick={() => startTransition(async () => { await deplacerEtapeMigrationAction(e.id, "haut"); })}>
+                      <ArrowUp />
+                    </Button>
+                    <Button variant="ghost" size="icon-xs" disabled={i === etapes.length - 1} onClick={() => startTransition(async () => { await deplacerEtapeMigrationAction(e.id, "bas"); })}>
+                      <ArrowDown />
+                    </Button>
+                    {!e.utilisee && (
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() =>
+                          startTransition(async () => {
+                            const r = await supprimerEtapeMigrationAction(e.id);
+                            if (!r.success) setErreur(r.error ?? null);
+                          })
+                        }
+                      >
+                        <Trash2 />
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="flex items-center gap-2">
+        <Input placeholder="Nouvelle étape" value={nouvelle} onChange={(e) => setNouvelle(e.target.value)} className="w-72" />
+        <Button
+          size="sm"
+          disabled={!nouvelle.trim()}
+          onClick={() =>
+            startTransition(async () => {
+              const r = await ajouterEtapeMigrationAction(nouvelle);
               if (r.success) {
                 setNouvelle("");
                 setErreur(null);

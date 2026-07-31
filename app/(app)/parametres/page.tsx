@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import {
   fetchComptes,
   fetchEtapes,
+  fetchEtapesMigrationParam,
   fetchListesValeurs,
   fetchModeles,
   fetchSyncRuns,
@@ -11,6 +12,7 @@ import {
   SectionComptes,
   SectionControle,
   SectionEtapes,
+  SectionEtapesMigration,
   SectionListes,
   SectionModeles,
   SectionSync,
@@ -23,10 +25,11 @@ export default async function ParametresPage() {
   const session = await auth();
   if (session?.user?.role !== "ADMIN") redirect("/");
 
-  const [modeles, listes, etapes, comptes, syncRuns] = await Promise.all([
+  const [modeles, listes, etapes, etapesMigration, comptes, syncRuns] = await Promise.all([
     fetchModeles(),
     fetchListesValeurs(),
     fetchEtapes(),
+    fetchEtapesMigrationParam(),
     fetchComptes(),
     fetchSyncRuns(),
   ]);
@@ -50,6 +53,7 @@ export default async function ParametresPage() {
         ]}
       />
       <SectionModeles modeles={modeles} />
+      <SectionEtapesMigration etapes={etapesMigration} />
       <SectionListes listes={listes} />
       <SectionEtapes etapes={etapes} />
       <SectionComptes comptes={comptes} />
