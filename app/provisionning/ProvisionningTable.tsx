@@ -514,9 +514,11 @@ function buildColumns(
 
 export function ProvisionningTable({
   lignes,
+  clientsSansLignes = [],
   valeursStatutBascule,
 }: {
   lignes: ProvisionningLigne[];
+  clientsSansLignes?: { id: string; raisonSociale: string }[];
   valeursStatutBascule: string[];
 }) {
   const data = useMemo(() => lignes, [lignes]);
@@ -556,7 +558,7 @@ export function ProvisionningTable({
     else groupes.set(row.original.clientRaisonSociale, [row]);
   }
 
-  if (lignes.length === 0) {
+  if (lignes.length === 0 && clientsSansLignes.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-24 text-center">
         <Inbox className="size-10 text-muted-foreground/50" />
@@ -646,6 +648,26 @@ export function ProvisionningTable({
                 </Fragment>
               );
             })}
+            {/* Clients sans aucune ligne (issus d'un import Monday): bande cliquable pour
+                démarrer la saisie via "Ligne complète". */}
+            {clientsSansLignes.map((client) => (
+              <TableRow
+                key={`vide-${client.id}`}
+                className="border-l-2 border-l-muted-foreground/30 bg-muted/30 hover:bg-muted/40"
+              >
+                <TableCell colSpan={columns.length} className="py-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{client.raisonSociale}</span>
+                      <Badge variant="outline" className="text-muted-foreground">
+                        aucune ligne
+                      </Badge>
+                    </span>
+                    <AjouterLigneMenu clientId={client.id} />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </div>

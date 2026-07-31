@@ -1,4 +1,5 @@
 import {
+  fetchClientsSansLignes,
   fetchProvisionningLignes,
   listClientsActifs,
   listLotsActifs,
@@ -31,8 +32,19 @@ export default async function ProvisionningPage({
     listClientsActifs(),
     listValeursStatutBascule(),
   ]);
+  // Un filtre au niveau ligne (hébergeur, statut, éligible, anomalie) ne peut par nature pas
+  // matcher un client vide: on ne propose les clients sans lignes que hors de ces filtres.
+  const filtreLigneActif =
+    !!params.hebergeur || !!params.statut || params.eligible === "1" || params.anomalie === "1";
+  const clientsSansLignes = filtreLigneActif
+    ? []
+    : await fetchClientsSansLignes([...new Set(lignes.map((l) => l.clientId))], {
+        lotId: params.lot,
+        clientId: params.client,
+        recherche: params.q,
+      });
   const nbNumeros = lignes.filter((l) => l.numeroId).length;
-  const nbClients = new Set(lignes.map((l) => l.clientId)).size;
+  const nbClients = new Set(lignes.map((l) => l.clientId)).size + clientsSansLignes.length;
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
@@ -52,7 +64,11 @@ export default async function ProvisionningPage({
         clients={clients}
         valeursStatutBascule={valeursStatutBascule}
       />
-      <ProvisionningTable lignes={lignes} valeursStatutBascule={valeursStatutBascule} />
+      <ProvisionningTable
+        lignes={lignes}
+        clientsSansLignes={clientsSansLignes}
+        valeursStatutBascule={valeursStatutBascule}
+      />
     </main>
   );
 }

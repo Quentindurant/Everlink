@@ -351,6 +351,30 @@ export async function listClientsActifs(): Promise<{ id: string; raisonSociale: 
   });
 }
 
+// Clients actifs qui n'ont encore aucune ligne dans la grille (typiquement issus d'un import
+// Monday: le client existe, mais ni utilisateur ni numéro ni équipement). Sans ça ils
+// n'apparaissent nulle part où l'on puisse les compléter. On respecte les filtres compatibles
+// avec un client vide (lot, client, recherche sur la raison sociale) et on exclut ceux déjà
+// présents dans la grille.
+export async function fetchClientsSansLignes(
+  clientIdsPresents: string[],
+  filtres: { lotId?: string; clientId?: string; recherche?: string } = {}
+): Promise<{ id: string; raisonSociale: string }[]> {
+  return prisma.client.findMany({
+    where: {
+      archiveA: null,
+      id: { notIn: clientIdsPresents.length > 0 ? clientIdsPresents : ["__none__"] },
+      ...(filtres.clientId ? { id: filtres.clientId } : {}),
+      ...(filtres.lotId ? { lotId: filtres.lotId } : {}),
+      ...(filtres.recherche
+        ? { raisonSociale: { contains: filtres.recherche, mode: "insensitive" } }
+        : {}),
+    },
+    select: { id: true, raisonSociale: true },
+    orderBy: { raisonSociale: "asc" },
+  });
+}
+
 // SPEC §8: la bascule des numéros est une liste de valeurs, pas du texte libre.
 export async function listValeursStatutBascule(): Promise<string[]> {
   const valeurs = await prisma.listeValeur.findMany({

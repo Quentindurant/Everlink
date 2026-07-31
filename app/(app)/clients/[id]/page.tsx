@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, PencilLine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { fetchClientDetail } from "@/lib/repositories/clientsRepository";
 import { FicheClient } from "./FicheClient";
 
@@ -40,6 +41,10 @@ export default async function ClientDetailPage({
             </Badge>
           )}
           <Badge variant="outline">{client.statutBascule}</Badge>
+          <Button size="sm" className="ml-auto" render={<Link href={`/?client=${client.id}`} />}>
+            <PencilLine data-icon="inline-start" />
+            Saisir les utilisateurs et numéros
+          </Button>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {[
