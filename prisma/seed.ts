@@ -119,6 +119,120 @@ async function main() {
     });
   }
 
+  // Modèles de mail (doc Templates_Communication_Migration_v3.5). Crochets convertis en
+  // variables {...}. Éditables ensuite dans Paramètres.
+  const SIGNATURE =
+    "\n\nNous vous remercions pour votre confiance et restons à votre disposition.\nCordialement,\n\nPôle migration — Everlink Services\nmigration.ext@everlink-services.fr | www.everlink-services.fr";
+
+  const modelesMail: Array<{
+    scenario: string;
+    type: "PREVENANCE" | "CONFIRMATION";
+    objet: string;
+    corps: string;
+  }> = [
+    {
+      scenario: "Centrex + FTTH — sur site",
+      type: "PREVENANCE",
+      objet: "[EVERLINK] - Évolution de vos services téléphonie et internet",
+      corps:
+        "Bonjour {civilite_nom},\n\n" +
+        "Dans le cadre de l'amélioration continue de la qualité de service que nous souhaitons vous apporter, Everlink Services fait évoluer l'infrastructure technique qui assure vos services de téléphonie (Centrex) et d'accès internet (fibre).\n\n" +
+        "Cette modernisation a pour objectif de vous offrir une meilleure expérience au quotidien : davantage de stabilité et de performance. Il s'agit d'une opération simple et rapide, qui n'aura pas d'impact sur votre activité.\n\n" +
+        "Ce que cela implique pour vous :\n" +
+        "- Aucun changement de vos numéros de téléphone\n" +
+        "- Aucuns travaux : seul votre routeur sera remplacé. Vos téléphones actuels ne sont pas changés.\n" +
+        "- Une intervention sur votre site sera nécessaire. Celle-ci sera planifiée avec vous en amont afin d'installer un nouveau routeur, de procéder à la bascule de votre accès Internet et de reconfigurer vos téléphones.\n\n" +
+        "Vos prestataires tiers : si certains de vos équipements sont connectés à votre accès Internet et gérés par des prestataires externes (alarme, vidéosurveillance, contrôle d'accès, pare-feu, etc.), nous vous remercions de préparer la liste de ces prestataires ainsi que leurs coordonnées. Ces informations seront recueillies lors de notre prochain appel de planification.\n\n" +
+        "Notre équipe vous contactera très prochainement afin de convenir d'une date d'intervention.\nPour toute question : migration.ext@everlink-services.fr" +
+        SIGNATURE,
+    },
+    {
+      scenario: "Centrex + FTTH — sur site",
+      type: "CONFIRMATION",
+      objet: "[EVERLINK] - Confirmation de votre rendez-vous — Migration de vos services {nom_client}",
+      corps:
+        "Bonjour {civilite_nom},\n\n" +
+        "Comme convenu lors de notre échange, nous vous confirmons la planification de l'intervention nécessaire à la migration de vos services de téléphonie et Internet. Il s'agit d'une opération simple : un seul rendez-vous, réunissant l'intervention de l'opérateur et celle du technicien.\n\n" +
+        "Rendez-vous avec l'opérateur et le technicien — livraison du lien et bascule des équipements (durée 4h)\n" +
+        "Date : {date}  |  Créneau : {creneau}\n" +
+        "Lieu d'intervention : {adresse}\n\n" +
+        "Prérequis à préparer avant l'intervention :\n" +
+        "- Accès libre au local technique / à la baie où sont installés vos équipements actuels\n" +
+        "- Accès libre au local technique où arrive la fibre (point de livraison FTTH)\n" +
+        "- Présence d'une personne habilitée sur site pendant toute la durée du rendez-vous\n\n" +
+        "Ce rendez-vous mobilise nos équipes techniques. Toute demande de report devra nous parvenir au minimum 72h avant la date d'intervention, à migration.ext@everlink-services.fr ou au {numero_gc}.\n\nCordialement,\n\nPôle migration — Everlink Services",
+    },
+    {
+      scenario: "Centrex — sur site (sans FTTH)",
+      type: "PREVENANCE",
+      objet: "[EVERLINK] - Évolution de votre service de téléphonie",
+      corps:
+        "Bonjour {civilite_nom},\n\n" +
+        "Dans le cadre de l'amélioration continue de la qualité de service que nous souhaitons vous apporter, Everlink Services fait évoluer l'infrastructure technique qui assure votre service de téléphonie (Centrex).\n\n" +
+        "Cette modernisation a pour objectif de vous offrir une meilleure expérience au quotidien : davantage de stabilité et de performance.\n\n" +
+        "Ce que cela implique pour vous :\n" +
+        "- Aucun changement de vos numéros de téléphone\n" +
+        "- Aucuns travaux : seul votre routeur sera remplacé. Vos téléphones actuels ne sont pas changés.\n" +
+        "- Une intervention sur votre site sera nécessaire. Celle-ci sera planifiée avec vous en amont afin d'installer un nouveau routeur et de reconfigurer vos téléphones.\n\n" +
+        "Notre équipe vous contactera très prochainement afin de convenir d'une date d'intervention.\nPour toute question : migration.ext@everlink-services.fr" +
+        SIGNATURE,
+    },
+    {
+      scenario: "Centrex — sur site (sans FTTH)",
+      type: "CONFIRMATION",
+      objet: "[EVERLINK] - Confirmation de votre rendez-vous — Migration de votre téléphonie {nom_client}",
+      corps:
+        "Bonjour {civilite_nom},\n\n" +
+        "Comme convenu lors de notre échange, nous vous confirmons la planification de l'intervention nécessaire à la migration de votre service de téléphonie.\n\n" +
+        "Rendez-vous technicien — bascule de votre ligne téléphonique (durée 2h)\n" +
+        "Date : {date}  |  Créneau : {creneau}\n" +
+        "Lieu d'intervention : {adresse}\n\n" +
+        "Prérequis à préparer avant l'intervention :\n" +
+        "- Accès libre à l'emplacement de vos équipements téléphoniques actuels\n" +
+        "- Présence d'une personne habilitée sur site pendant toute la durée du rendez-vous\n\n" +
+        "Ce rendez-vous mobilise nos équipes techniques. Toute demande de report devra nous parvenir au minimum 72h avant la date d'intervention, à migration.ext@everlink-services.fr ou au {numero_gc}.\n\nCordialement,\n\nPôle migration — Everlink Services",
+    },
+    {
+      scenario: "Centrex — à distance",
+      type: "PREVENANCE",
+      objet: "[EVERLINK] - Évolution de votre service de téléphonie",
+      corps:
+        "Bonjour {civilite_nom},\n\n" +
+        "Dans le cadre de l'amélioration continue de la qualité de service que nous souhaitons vous apporter, Everlink Services fait évoluer l'infrastructure technique qui assure votre service de téléphonie (Centrex).\n\n" +
+        "Cette modernisation a pour objectif de vous offrir une meilleure expérience au quotidien : davantage de stabilité et de performance. Pour votre confort, cette migration pourra être réalisée entièrement à distance, sans déplacement sur site.\n\n" +
+        "Ce que cela implique pour vous :\n" +
+        "- Aucun changement de vos numéros de téléphone\n" +
+        "- Aucuns travaux : aucune intervention physique sur vos installations n'est nécessaire.\n" +
+        "- La migration sera effectuée à distance par nos équipes techniques. La présence d'un interlocuteur sur site sera toutefois requise le jour de l'intervention afin d'accompagner la reconfiguration des téléphones.\n\n" +
+        "Notre équipe vous contactera très prochainement afin de convenir d'une date et de confirmer le contact technique présent sur site le jour de l'opération.\nPour toute question : migration.ext@everlink-services.fr" +
+        SIGNATURE,
+    },
+    {
+      scenario: "Centrex — à distance",
+      type: "CONFIRMATION",
+      objet: "[EVERLINK] - Confirmation de votre rendez-vous — Migration à distance de votre téléphonie {nom_client}",
+      corps:
+        "Bonjour {civilite_nom},\n\n" +
+        "Comme convenu lors de notre échange, nous vous confirmons la planification de la migration à distance de votre service de téléphonie.\n\n" +
+        "Rendez-vous technique à distance\n" +
+        "Date : {date}  |  Créneau : {creneau}\n\n" +
+        "Prérequis à préparer avant l'intervention :\n" +
+        "- Présence sur site, durant le créneau indiqué, d'une personne pouvant manipuler les postes téléphoniques (redémarrage, branchement)\n" +
+        "- Accès aux postes téléphoniques et, si nécessaire, à leurs câbles d'alimentation et réseau\n" +
+        "- Disponibilité téléphonique du contact sur site pour être guidé en direct par notre technicien\n" +
+        "- Maintien de votre connexion internet actuelle en état de fonctionnement\n\n" +
+        "Ce rendez-vous mobilise nos équipes techniques. Toute demande de report devra nous parvenir au minimum 72h avant la date d'intervention, à migration.ext@everlink-services.fr ou au {numero_gc}.\n\nCordialement,\n\nPôle migration — Everlink Services",
+    },
+  ];
+  for (const [ordre, m] of modelesMail.entries()) {
+    const existant = await prisma.modeleMail.findFirst({
+      where: { scenario: m.scenario, type: m.type },
+    });
+    if (!existant) {
+      await prisma.modeleMail.create({ data: { ...m, ordre } });
+    }
+  }
+
   console.log("Seed complete.");
 }
 

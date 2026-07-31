@@ -31,6 +31,7 @@ model UtilisateurApp {
   exportBatchs ExportBatch[]
   auditLogs    AuditLog[]
   syncRuns     SheetSyncRun[]
+  mailEnvois   MailEnvoi[]
 }
 
 // ---------------------------------------------------------------- Lots et clients
@@ -98,6 +99,8 @@ model Client {
   dernierContactLe    DateTime?
   // Nomenclature commentaires Monday, ex "EV VTO0907 : XXXXX".
   referenceClient     String?
+  // Créneau horaire du RDV (ex "9h-13h"), complément de dateIntervention pour les mails.
+  creneauIntervention String?
 
   archiveA DateTime?
   creeLe   DateTime @default(now())
@@ -106,11 +109,52 @@ model Client {
   utilisateurs Utilisateur[]
   numeros      Numero[]
   equipements  Equipement[]
+  mailEnvois   MailEnvoi[]
 
   @@index([cleRapprochement])
   @@index([lotId])
   @@index([statutBascule])
   @@index([etapeMigrationId])
+}
+
+// ---------------------------------------------------------------- Communication (mails)
+
+enum TypeMail {
+  PREVENANCE
+  CONFIRMATION
+}
+
+// Modèle de mail éditable (objet + corps avec variables {...}), par scénario et type.
+model ModeleMail {
+  id       String   @id @default(cuid())
+  scenario String
+  type     TypeMail
+  objet    String
+  corps    String
+  actif    Boolean  @default(true)
+  ordre    Int      @default(0)
+  creeLe   DateTime @default(now())
+  majLe    DateTime @updatedAt
+
+  @@index([type])
+}
+
+// Trace d'un mail envoyé à un client.
+model MailEnvoi {
+  id           String   @id @default(cuid())
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId     String
+  type         TypeMail
+  destinataire String
+  objet        String
+  corps        String
+  succes       Boolean  @default(true)
+  erreur       String?
+  auteur       UtilisateurApp? @relation(fields: [auteurId], references: [id])
+  auteurId     String?
+  creeLe       DateTime @default(now())
+
+  @@index([clientId, creeLe])
 }
 
 model Utilisateur {
