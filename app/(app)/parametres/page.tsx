@@ -8,6 +8,7 @@ import {
   fetchModeles,
   fetchSyncRuns,
 } from "@/lib/repositories/parametresRepository";
+import { fetchModelesMailParam } from "@/lib/repositories/mailRepository";
 import {
   SectionComptes,
   SectionControle,
@@ -15,6 +16,7 @@ import {
   SectionEtapesMigration,
   SectionListes,
   SectionModeles,
+  SectionModelesMail,
   SectionSync,
 } from "./ParametresSections";
 import { PageHero } from "@/components/PageHero";
@@ -25,14 +27,16 @@ export default async function ParametresPage() {
   const session = await auth();
   if (session?.user?.role !== "ADMIN") redirect("/");
 
-  const [modeles, listes, etapes, etapesMigration, comptes, syncRuns] = await Promise.all([
-    fetchModeles(),
-    fetchListesValeurs(),
-    fetchEtapes(),
-    fetchEtapesMigrationParam(),
-    fetchComptes(),
-    fetchSyncRuns(),
-  ]);
+  const [modeles, listes, etapes, etapesMigration, modelesMail, comptes, syncRuns] =
+    await Promise.all([
+      fetchModeles(),
+      fetchListesValeurs(),
+      fetchEtapes(),
+      fetchEtapesMigrationParam(),
+      fetchModelesMailParam(),
+      fetchComptes(),
+      fetchSyncRuns(),
+    ]);
 
   const nbAQualifier = modeles.filter((m) => !m.eligibleExport && m.nbEquipements === 0).length;
 
@@ -54,6 +58,7 @@ export default async function ParametresPage() {
       />
       <SectionModeles modeles={modeles} />
       <SectionEtapesMigration etapes={etapesMigration} />
+      <SectionModelesMail modeles={modelesMail} />
       <SectionListes listes={listes} />
       <SectionEtapes etapes={etapes} />
       <SectionComptes comptes={comptes} />

@@ -1,10 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { CategorieListe } from "@prisma/client";
+import type { CategorieListe, TypeMail } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { runSheetsSync } from "@/lib/sync/runSheetsSync";
+import {
+  creerModeleMail,
+  supprimerModeleMail,
+  updateModeleMail,
+} from "@/lib/repositories/mailRepository";
 import {
   ajouterEtape,
   ajouterEtapeMigration,
@@ -186,4 +191,27 @@ export async function lancerSyncAction(): Promise<{ success: boolean; error?: st
     return { success: false, error: Object.values(result.erreurs)[0] ?? "Échec de la sync." };
   }
   return { success: true };
+}
+
+// --- Modèles de mail ---
+export async function updateModeleMailAction(
+  id: string,
+  data: { scenario?: string; objet?: string; corps?: string; actif?: boolean }
+): Promise<Resultat> {
+  return garde(() => updateModeleMail(id, data));
+}
+export async function creerModeleMailAction(
+  scenario: string,
+  type: TypeMail,
+  objet: string,
+  corps: string
+): Promise<Resultat> {
+  return garde(async () => {
+    if (!scenario.trim() || !objet.trim())
+      return { success: false, error: "Scénario et objet obligatoires." };
+    await creerModeleMail(scenario.trim(), type, objet.trim(), corps);
+  });
+}
+export async function supprimerModeleMailAction(id: string): Promise<Resultat> {
+  return garde(() => supprimerModeleMail(id));
 }

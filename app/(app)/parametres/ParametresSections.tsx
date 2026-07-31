@@ -23,6 +23,13 @@ import type {
   ModeleLigne,
   ValeurListe,
 } from "@/lib/repositories/parametresRepository";
+import type { ModeleMailLigne } from "@/lib/repositories/mailRepository";
+import {
+  creerModeleMailAction,
+  supprimerModeleMailAction,
+  updateModeleMailAction,
+} from "./actions";
+import { VARIABLES_DISPONIBLES } from "@/lib/domain/mail/substitution";
 import {
   ajouterEtapeAction,
   ajouterEtapeMigrationAction,
@@ -467,6 +474,139 @@ export function SectionEtapesMigration({ etapes }: { etapes: EtapeMigrationLigne
         <Erreur texte={erreur} />
       </div>
     </Section>
+  );
+}
+
+// ---------------------------------------------------------------- Modèles de mail
+
+const TYPE_MAIL_LABEL: Record<string, string> = {
+  PREVENANCE: "Prévenance",
+  CONFIRMATION: "Confirmation RDV",
+};
+
+export function SectionModelesMail({ modeles }: { modeles: ModeleMailLigne[] }) {
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  return (
+    <Section
+      titre="Modèles de mail"
+      description="Les mails de prévenance et de confirmation, par scénario. Modifiez le texte, les variables sont remplacées à l'envoi."
+    >
+      <div className="rounded-xl border bg-muted/30 p-3 text-xs text-muted-foreground">
+        Variables disponibles :{" "}
+        {VARIABLES_DISPONIBLES.map((v) => (
+          <code key={v} className="mx-0.5 rounded bg-background px-1 py-0.5 font-mono">
+            {`{${v}}`}
+          </code>
+        ))}
+      </div>
+      <div className="flex flex-col gap-3">
+        {modeles.map((m) => (
+          <div key={m.id} className="flex flex-col gap-2 rounded-xl border bg-card p-3 shadow-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">{TYPE_MAIL_LABEL[m.type] ?? m.type}</Badge>
+              <input
+                defaultValue={m.scenario}
+                onBlur={(e) => {
+                  if (e.target.value !== m.scenario && e.target.value.trim())
+                    startTransition(async () => {
+                      await updateModeleMailAction(m.id, { scenario: e.target.value });
+                    });
+                }}
+                className="rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-sm font-medium outline-none hover:border-input focus:border-ring focus:ring-2 focus:ring-ring/40"
+              />
+              <label className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Checkbox
+                  checked={m.actif}
+                  onCheckedChange={(v) =>
+                    startTransition(async () => {
+                      await updateModeleMailAction(m.id, { actif: Boolean(v) });
+                    })
+                  }
+                />
+                Actif
+              </label>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={() =>
+                  startTransition(async () => {
+                    const r = await supprimerModeleMailAction(m.id);
+                    if (!r.success) setErreur(r.error ?? null);
+                  })
+                }
+              >
+                <Trash2 />
+              </Button>
+            </div>
+            <input
+              defaultValue={m.objet}
+              placeholder="Objet"
+              onBlur={(e) => {
+                if (e.target.value !== m.objet)
+                  startTransition(async () => {
+                    await updateModeleMailAction(m.id, { objet: e.target.value });
+                  });
+              }}
+              className="rounded-md border border-input bg-transparent px-2 py-1 text-sm font-medium outline-none focus:border-ring focus:ring-2 focus:ring-ring/40"
+            />
+            <textarea
+              defaultValue={m.corps}
+              rows={8}
+              onBlur={(e) => {
+                if (e.target.value !== m.corps)
+                  startTransition(async () => {
+                    await updateModeleMailAction(m.id, { corps: e.target.value });
+                  });
+              }}
+              className="rounded-md border border-input bg-transparent px-2 py-1.5 font-mono text-[13px] outline-none focus:border-ring focus:ring-2 focus:ring-ring/40"
+            />
+          </div>
+        ))}
+      </div>
+      <FormNouveauModeleMail onErreur={setErreur} />
+      <Erreur texte={erreur} />
+    </Section>
+  );
+}
+
+function FormNouveauModeleMail({ onErreur }: { onErreur: (e: string | null) => void }) {
+  const [scenario, setScenario] = useState("");
+  const [type, setType] = useState<"PREVENANCE" | "CONFIRMATION">("PREVENANCE");
+  const [objet, setObjet] = useState("");
+  const [, startTransition] = useTransition();
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed p-3">
+      <Input placeholder="Scénario" value={scenario} onChange={(e) => setScenario(e.target.value)} className="w-56" />
+      <select
+        value={type}
+        onChange={(e) => setType(e.target.value as "PREVENANCE" | "CONFIRMATION")}
+        className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm"
+      >
+        <option value="PREVENANCE">Prévenance</option>
+        <option value="CONFIRMATION">Confirmation RDV</option>
+      </select>
+      <Input placeholder="Objet" value={objet} onChange={(e) => setObjet(e.target.value)} className="w-72" />
+      <Button
+        size="sm"
+        disabled={!scenario.trim() || !objet.trim()}
+        onClick={() =>
+          startTransition(async () => {
+            const r = await creerModeleMailAction(scenario, type, objet, "Bonjour {civilite_nom},\n\n");
+            if (r.success) {
+              setScenario("");
+              setObjet("");
+              onErreur(null);
+            } else onErreur(r.error ?? null);
+          })
+        }
+      >
+        <Plus data-icon="inline-start" />
+        Ajouter un modèle
+      </Button>
+    </div>
   );
 }
 
