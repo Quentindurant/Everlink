@@ -7,6 +7,7 @@ import {
   repartitionParClient,
 } from "@/lib/exports/exportService";
 import { ExportPreviewTables, ExportScopeBar } from "../exports/ExportPreview";
+import { PageHero } from "@/components/PageHero";
 
 export const dynamic = "force-dynamic";
 
@@ -25,18 +26,21 @@ export default async function ImportMacPage({
   ]);
 
   return (
-    <main className="flex flex-1 flex-col gap-4 p-6">
-      <header>
-        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-          Everlink
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight">Import MAC</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Prévisualisation exacte du fichier généré : une ligne par MAC d'équipement éligible
-          (bornes DECT incluses), dans l'ordre de saisie, dédoublonnée par client. Les MAC sont
-          exportées telles que saisies.
-        </p>
-      </header>
+    <main className="flex flex-1 flex-col gap-4 p-5 pb-15">
+      <PageHero
+        accentColor="var(--ev-amber)"
+        label="Import MAC"
+        title="Parc<br />à déclarer"
+        description="Une ligne par MAC éligible, bornes DECT incluses, dans l'ordre de saisie et dédoublonnée par client."
+        kpis={[
+          { value: rows.length, label: "MAC exportées" },
+          {
+            value: ecarts.length,
+            label: "écartée",
+            color: ecarts.length > 0 ? "var(--ev-red)" : undefined,
+          },
+        ]}
+      />
       <ExportScopeBar
         type="mac"
         lots={lots.map((l) => ({ id: l.id, nom: l.nom }))}

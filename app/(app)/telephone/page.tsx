@@ -2,6 +2,7 @@ import { fetchTelephoneGrille } from "@/lib/repositories/telephoneRepository";
 import { listClientsActifs } from "@/lib/repositories/provisionningRepository";
 import { TelephoneFiltres } from "./TelephoneFiltres";
 import { TelephoneGrille } from "./TelephoneGrille";
+import { PageHero } from "@/components/PageHero";
 
 export const dynamic = "force-dynamic";
 
@@ -15,20 +16,37 @@ export default async function TelephonePage({
     fetchTelephoneGrille({ clientId: params.client, recherche: params.q }),
     listClientsActifs(),
   ]);
+
+  const totalUtilisateurs = grille.utilisateurs.length;
+  const totalFait = totalUtilisateurs > 0 && grille.etapes.length > 0
+    ? Math.round(
+        (grille.utilisateurs.reduce(
+          (acc, u) =>
+            acc +
+            u.suivis.filter((s) => s.statut === "Fait" || s.statut === "Sans objet").length,
+          0
+        ) /
+          (totalUtilisateurs * grille.etapes.length)) *
+          100
+      )
+    : 0;
+
   return (
-    <main className="flex flex-1 flex-col gap-4 p-6">
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-            Everlink
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight">Téléphone</h1>
-        </div>
-        <p className="text-sm text-muted-foreground tabular-nums">
-          {grille.utilisateurs.length} utilisateur{grille.utilisateurs.length > 1 ? "s" : ""} ·{" "}
-          {grille.etapes.length} étape{grille.etapes.length > 1 ? "s" : ""}
-        </p>
-      </header>
+    <main className="flex flex-1 flex-col gap-4 p-5 pb-15">
+      <PageHero
+        accentColor="var(--ev-cyan)"
+        label="Téléphone"
+        title="Poste<br />par poste"
+        description="Chaque utilisateur suit les mêmes étapes. Cliquez pour avancer."
+        kpis={[
+          { value: totalUtilisateurs, label: "utilisateur" },
+          {
+            value: `${totalFait}%`,
+            label: "fait",
+            color: "var(--ev-text-secondary)",
+          },
+        ]}
+      />
       <TelephoneFiltres clients={clients} />
       <TelephoneGrille grille={grille} />
     </main>

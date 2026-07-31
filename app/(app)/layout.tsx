@@ -7,7 +7,7 @@ export default async function AppLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await auth();
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen" style={{ background: "var(--ev-surface)" }}>
       <AppSidebar
         email={session?.user?.email ?? ""}
         role={session?.user?.role ?? "OPERATEUR"}

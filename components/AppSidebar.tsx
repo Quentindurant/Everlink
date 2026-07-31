@@ -2,85 +2,221 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  FileSpreadsheet,
-  FileUp,
-  Hash,
-  Layers,
-  LogOut,
-  Phone,
-  Settings,
-  Table2,
-  Users,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
-const LIENS = [
-  { href: "/", label: "Provisionning", icone: Table2 },
-  { href: "/clients", label: "Clients", icone: Users },
-  { href: "/telephone", label: "Téléphone", icone: Phone },
-  { href: "/lots", label: "Lots", icone: Layers },
-  { href: "/import-sda", label: "Import SDA", icone: Hash },
-  { href: "/import-mac", label: "Import MAC", icone: FileSpreadsheet },
-  { href: "/import-monday", label: "Import Monday", icone: FileUp },
+const NAV_ITEMS = [
+  { href: "/", label: "Provisionning", dot: "#1f6bff" },
+  { href: "/clients", label: "Clients", dot: "#8a5bff" },
+  { href: "/telephone", label: "Téléphone", dot: "#00b8cc" },
+  { href: "/lots", label: "Lots", dot: "#16b57f" },
+  { href: "/import-sda", label: "Import SDA", dot: "#ffb020" },
+  { href: "/import-mac", label: "Import MAC", dot: "#ffb020" },
+  { href: "/import-monday", label: "Import Monday", dot: "#1f6bff" },
 ];
+
+function monogram(email: string): string {
+  const local = email.split("@")[0] ?? "";
+  const parts = local.replace(/[^a-zA-Z]/g, " ").split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "??";
+  return (
+    (parts[0][0] ?? "") + ((parts[1]?.[0] ?? parts[0][1]) ?? "")
+  ).toUpperCase();
+}
 
 export function AppSidebar({
   email,
   role,
   onLogout,
+  badges = {},
 }: {
   email: string;
   role: string;
   onLogout: () => Promise<void>;
+  badges?: Record<string, string | number | undefined>;
 }) {
   const pathname = usePathname();
   const estActif = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
-  const liens = role === "ADMIN"
-    ? [...LIENS, { href: "/parametres", label: "Paramètres", icone: Settings }]
-    : LIENS;
+  const items = role === "ADMIN"
+    ? [...NAV_ITEMS, { href: "/parametres", label: "Paramètres", dot: "#7a8699" }]
+    : NAV_ITEMS;
 
   return (
-    <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col border-r bg-card">
-      <div className="px-4 py-5">
-        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-          Everlink
-        </p>
-        <p className="text-sm font-semibold">Bascule SEWAN → UNYC</p>
+    <aside
+      className="sticky top-0 flex h-screen w-[262px] shrink-0 flex-col"
+      style={{
+        background: "var(--ev-navy)",
+        padding: "20px 14px 16px",
+      }}
+    >
+      {/* ── Logo ── */}
+      <div className="flex items-center gap-2.5 px-1.5">
+        <span
+          className="grid size-[38px] shrink-0 place-items-center rounded-xl font-mono text-[13px] font-bold"
+          style={{
+            background: "var(--ev-blue)",
+            color: "#fff",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          GC
+        </span>
+        <div>
+          <div
+            className="text-[15px] font-[800] tracking-[.06em]"
+            style={{ color: "#fff" }}
+          >
+            EVERLINK
+          </div>
+          <div
+            className="mt-0.5 font-mono text-[9px] tracking-[.14em]"
+            style={{ color: "var(--ev-text-muted)" }}
+          >
+            GC DEVELOPPEMENT
+          </div>
+        </div>
       </div>
-      <nav className="flex flex-1 flex-col gap-0.5 px-2">
-        {liens.map((lien) => {
-          const Icone = lien.icone;
+
+      {/* ── Widget Chantier en cours ── */}
+      <div
+        className="mt-4.5 rounded-2xl border p-3.5"
+        style={{
+          background: "var(--ev-navy-light)",
+          borderColor: "var(--ev-navy-border)",
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <span
+            className="font-mono text-[9px] tracking-[.14em]"
+            style={{ color: "var(--ev-text-tertiary)" }}
+          >
+            CHANTIER EN COURS
+          </span>
+          <span
+            className="ev-pulse size-1.5 rounded-full"
+            style={{ background: "var(--ev-green)" }}
+          />
+        </div>
+        <div className="mt-2 flex items-center gap-1.5 text-sm font-bold text-white">
+          SEWAN{" "}
+          <span className="font-mono" style={{ color: "var(--ev-cyan)" }}>
+            &rarr;
+          </span>{" "}
+          UNYC
+        </div>
+        <div className="mt-3 flex gap-0.5">
+          <span
+            className="h-[7px] flex-1 rounded-sm"
+            style={{ background: "var(--ev-blue)" }}
+          />
+          <span
+            className="h-[7px] flex-1 rounded-sm"
+            style={{ background: "var(--ev-navy-border)" }}
+          />
+        </div>
+        <div
+          className="mt-2 flex justify-between font-mono text-[10px]"
+          style={{ color: "var(--ev-text-tertiary)" }}
+        >
+          <span>0 / 2 basculés</span>
+          <span style={{ color: "#8fa3c2" }}>LOT 1a</span>
+        </div>
+      </div>
+
+      {/* ── Navigation ── */}
+      <nav className="mt-4 flex flex-col gap-0.5">
+        {items.map((item) => {
+          const active = estActif(item.href);
+          const badge = badges[item.href];
+          const isAlert = badge === "!";
           return (
             <Link
-              key={lien.href}
-              href={lien.href}
+              key={item.href}
+              href={item.href}
               className={cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
-                estActif(lien.href)
-                  ? "bg-primary/10 font-medium text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                "group flex items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-sm transition-colors",
+                active ? "font-bold" : "font-medium"
               )}
+              style={{
+                background: active ? "var(--ev-navy-active)" : "transparent",
+                color: active ? "#fff" : "#93a6c2",
+                boxShadow: active ? `inset 3px 0 0 ${item.dot}` : "none",
+              }}
+              onMouseOver={(e) => {
+                if (!active) {
+                  e.currentTarget.style.background = "var(--ev-navy-hover)";
+                  e.currentTarget.style.color = "#fff";
+                }
+              }}
+              onMouseOut={(e) => {
+                if (!active) {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#93a6c2";
+                }
+              }}
             >
-              <Icone className="size-4" />
-              {lien.label}
+              <span
+                className="size-[9px] shrink-0 rounded-sm"
+                style={{
+                  background: item.dot,
+                  opacity: active ? 1 : 0.55,
+                }}
+              />
+              <span className="flex-1 truncate">{item.label}</span>
+              {badge !== undefined && (
+                <span
+                  className="rounded-[7px] px-1.5 py-0.5 font-mono text-[10px] font-bold"
+                  style={{
+                    background: isAlert ? "var(--ev-red)" : "var(--ev-navy-border)",
+                    color: isAlert ? "#fff" : "#8ba0bf",
+                  }}
+                >
+                  {badge}
+                </span>
+              )}
             </Link>
           );
         })}
       </nav>
-      <div className="border-t p-3">
-        <p className="truncate px-1 text-xs text-muted-foreground" title={email}>
-          {email}
-        </p>
-        <form action={onLogout}>
-          <Button variant="ghost" size="sm" type="submit" className="mt-1 w-full justify-start">
-            <LogOut data-icon="inline-start" />
-            Se déconnecter
-          </Button>
-        </form>
+
+      {/* ── User footer ── */}
+      <div
+        className="mt-auto border-t pt-3.5"
+        style={{ borderColor: "#1a2740" }}
+      >
+        <div className="flex items-center gap-2 px-1">
+          <span
+            className="grid size-[26px] shrink-0 place-items-center rounded-[9px] font-mono text-[10px] font-semibold"
+            style={{
+              background: "var(--ev-navy-border)",
+              color: "#9fb4d4",
+            }}
+          >
+            {monogram(email)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div
+              className="truncate text-xs"
+              style={{ color: "#cddaeb" }}
+              title={email}
+            >
+              {email}
+            </div>
+          </div>
+          <form action={onLogout}>
+            <button
+              type="submit"
+              className="font-mono text-xs transition-colors hover:cursor-pointer"
+              style={{ color: "var(--ev-red)" }}
+              onMouseOver={(e) => (e.currentTarget.style.color = "#ff6b60")}
+              onMouseOut={(e) => (e.currentTarget.style.color = "var(--ev-red)")}
+              title="Se déconnecter"
+            >
+              [&rarr;
+            </button>
+          </form>
+        </div>
       </div>
     </aside>
   );

@@ -15,6 +15,7 @@ import {
   SectionModeles,
   SectionSync,
 } from "./ParametresSections";
+import { PageHero } from "@/components/PageHero";
 
 export const dynamic = "force-dynamic";
 
@@ -30,14 +31,24 @@ export default async function ParametresPage() {
     fetchSyncRuns(),
   ]);
 
+  const nbAQualifier = modeles.filter((m) => !m.eligibleExport && m._count?.equipements === 0).length;
+
   return (
-    <main className="flex flex-1 flex-col gap-8 p-6">
-      <header>
-        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-          Everlink
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight">Paramètres</h1>
-      </header>
+    <main className="flex flex-1 flex-col gap-8 p-5 pb-15">
+      <PageHero
+        accentColor="var(--ev-text-secondary)"
+        label="Paramètres"
+        title="Le vocabulaire<br />de l'outil"
+        description="Les couleurs vues partout dans l'app viennent d'ici. Une valeur utilisée se désactive, elle ne se supprime pas."
+        kpis={[
+          { value: modeles.length, label: "modèles" },
+          {
+            value: nbAQualifier,
+            label: "à qualifier",
+            color: nbAQualifier > 0 ? "var(--ev-red)" : undefined,
+          },
+        ]}
+      />
       <SectionModeles modeles={modeles} />
       <SectionListes listes={listes} />
       <SectionEtapes etapes={etapes} />

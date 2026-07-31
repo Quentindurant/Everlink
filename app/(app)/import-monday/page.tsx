@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { fetchImportRuns } from "@/lib/repositories/importMondayRepository";
 import { ImportMondayForm } from "./ImportMondayForm";
+import { PageHero } from "@/components/PageHero";
 
 export const dynamic = "force-dynamic";
 
@@ -17,35 +18,78 @@ export default async function ImportMondayPage() {
   const [session, runs] = await Promise.all([auth(), fetchImportRuns()]);
   const estAdmin = session?.user?.role === "ADMIN";
 
+  // Aggregate KPIs from last run
+  const lastRun = runs[0];
+  const lastRapport = lastRun?.rapport as {
+    crees?: number;
+    misAJour?: number;
+    modelesCrees?: string[];
+  } | undefined;
+  const totalCrees = lastRapport?.crees ?? 0;
+
   return (
-    <main className="flex flex-1 flex-col gap-4 p-6">
-      <header>
-        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-          Everlink
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight">Import Monday</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Upload du xlsx Monday, prévisualisation du rapprochement, validation. Import
-          idempotent : les champs saisis dans l'application ne sont jamais écrasés.
-        </p>
-      </header>
+    <main className="flex flex-1 flex-col gap-4 p-5 pb-15">
+      <PageHero
+        accentColor="var(--ev-blue)"
+        label="Import Monday"
+        title="Le lot arrive<br />de Monday"
+        description="Upload, prévisualisation du rapprochement, validation. Import idempotent : vos saisies ne sont jamais écrasées."
+        kpis={[
+          { value: totalCrees, label: "clients créés", color: "var(--ev-green)" },
+          { value: 0, label: "écrasés", color: "var(--ev-text-secondary)" },
+        ]}
+      />
 
       {estAdmin ? (
-        <ImportMondayForm />
+        <div
+          className="flex flex-wrap items-center gap-4 rounded-2xl border-2 border-dashed p-5.5"
+          style={{
+            background: "var(--ev-card)",
+            borderColor: "#cdd8ea",
+          }}
+        >
+          <span
+            className="grid size-12 shrink-0 place-items-center rounded-2xl font-mono text-sm font-semibold"
+            style={{ background: "#eaf0ff", color: "var(--ev-blue)" }}
+          >
+            xls
+          </span>
+          <div className="min-w-[220px] flex-1">
+            <div className="text-base font-bold">Déposez l&apos;export Monday ici</div>
+            <div className="mt-0.5 text-[13px]" style={{ color: "var(--ev-body-muted)" }}>
+              Aucun fichier sélectionné &middot; .xlsx uniquement &middot; rapprochement par raison sociale
+            </div>
+          </div>
+          <ImportMondayForm />
+        </div>
       ) : (
-        <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+        <div
+          className="rounded-2xl border border-dashed p-6 text-sm"
+          style={{ color: "var(--ev-body-muted)" }}
+        >
           Import réservé aux administrateurs.
         </div>
       )}
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold">Historique des imports</h2>
+        <h2 className="mb-2.5 text-[15px] font-bold tracking-[.02em] uppercase">
+          Historique
+        </h2>
         {runs.length === 0 ? (
-          <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
-            Aucun import Monday pour l'instant.
+          <p
+            className="rounded-2xl border border-dashed p-6 text-sm"
+            style={{ color: "var(--ev-body-muted)" }}
+          >
+            Aucun import Monday pour l&apos;instant.
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
+          <div
+            className="overflow-x-auto rounded-2xl border shadow-sm"
+            style={{
+              background: "var(--ev-card)",
+              borderColor: "var(--ev-card-border)",
+            }}
+          >
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -71,17 +115,39 @@ export default async function ImportMondayPage() {
                       </TableCell>
                       <TableCell className="font-mono text-[13px]">{run.nomFichier}</TableCell>
                       <TableCell className="text-sm">
-                        {rapport.crees ?? 0} créés · {rapport.misAJour ?? 0} mis à jour ·{" "}
-                        {rapport.ignores ?? 0} ignorés
-                        {rapport.modelesCrees && rapport.modelesCrees.length > 0 && (
-                          <> · {rapport.modelesCrees.length} modèle(s)</>
-                        )}
+                        <div className="flex flex-wrap gap-1.5">
+                          {(rapport.crees ?? 0) > 0 && (
+                            <span
+                              className="rounded-lg px-2.5 py-1 text-[11px] font-semibold text-white"
+                              style={{ background: "var(--ev-green)" }}
+                            >
+                              {rapport.crees} créés
+                            </span>
+                          )}
+                          <span className="rounded-lg px-2.5 py-1 text-[11px] font-medium" style={{ background: "var(--ev-surface)", color: "var(--ev-body-muted)" }}>
+                            {rapport.misAJour ?? 0} mis à jour
+                          </span>
+                          <span className="rounded-lg px-2.5 py-1 text-[11px] font-medium" style={{ background: "var(--ev-surface)", color: "var(--ev-body-muted)" }}>
+                            {rapport.ignores ?? 0} ignorés
+                          </span>
+                          {rapport.modelesCrees && rapport.modelesCrees.length > 0 && (
+                            <span
+                              className="rounded-lg px-2.5 py-1 text-[11px] font-semibold text-white"
+                              style={{ background: "var(--ev-purple)" }}
+                            >
+                              {rapport.modelesCrees.length} modèles
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {run.succes ? (
-                          <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                          <span
+                            className="rounded-full px-2.5 py-1 text-[11px] font-bold"
+                            style={{ background: "#eafaf3", color: "#0e7a56" }}
+                          >
                             OK
-                          </Badge>
+                          </span>
                         ) : (
                           <Badge className="border-transparent bg-destructive/15 text-destructive">
                             Erreurs

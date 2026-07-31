@@ -653,7 +653,13 @@ export function ProvisionningTable({
   return (
     <div className="flex flex-col gap-2">
       <BarreActionsMasse selection={selection} onDone={() => setSelection([])} />
-      <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
+      <div
+        className="overflow-x-auto rounded-[18px] border shadow-sm"
+        style={{
+          background: "var(--ev-card)",
+          borderColor: "var(--ev-card-border)",
+        }}
+      >
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-card">
             {table.getHeaderGroups().map((headerGroup) => (

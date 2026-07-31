@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f6f5f1;-webkit-font-smoothing:antialiased}
+a{color:#5b4bd6;text-decoration:none}
+a:hover{color:#3a2cb5}
+input,button,select{font:inherit;color:inherit}
+::placeholder{color:#a8a29a}
+@keyframes evPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+</style>
+</helmet>
+<div style="display:flex; align-items:stretch; min-height:100vh; font-family:'DM Sans',system-ui,sans-serif; color:#1b1d26">
+
+  <aside style="width:278px; flex:none; background:#191b24; display:flex; flex-direction:column; padding:22px 16px 16px; position:sticky; top:0; height:100vh">
+    <div style="padding:0 6px 16px">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.18em; color:#7f7c94">EVERLINK</div>
+      <div style="margin-top:6px; font-family:'Space Grotesk',sans-serif; font-size:17px; font-weight:600; color:#f4f3f0; line-height:1.25">Bascule SEWAN<br /><span style="color:#8f8ba3">→</span> UNYC</div>
+    </div>
+
+    <div style="background:rgba(255,255,255,.055); border:1px solid rgba(255,255,255,.07); border-radius:15px; padding:13px; display:flex; align-items:center; gap:13px">
+      <div style="{{ ringStyle }}">
+        <div style="width:38px; height:38px; border-radius:50%; background:#1d1f29; display:grid; place-items:center; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; color:#e7e5f4">0%</div>
+      </div>
+      <div style="min-width:0">
+        <div style="font-size:13px; font-weight:600; color:#eceaf6; letter-spacing:-.01em">0 / 2 bascules</div>
+        <div style="margin-top:3px; font-family:'JetBrains Mono',monospace; font-size:10px; color:#8b889f">LOT 1a · 39 clients</div>
+        <div style="margin-top:7px; display:flex; align-items:center; gap:6px">
+          <span style="width:6px; height:6px; border-radius:50%; background:#4ade9f; animation:evPulse 1.9s ease-in-out infinite"></span>
+          <span style="font-size:11px; color:#9c99ae">flux actif</span>
+        </div>
+      </div>
+    </div>
+
+    <nav style="margin-top:18px; display:flex; flex-direction:column; gap:3px">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="8">
+        <div style="{{ item.style }}" style-hover="background:rgba(255,255,255,.07); color:#ffffff" onClick="{{ item.go }}">
+          <span style="{{ item.tile }}">{{ item.letter }}</span>
+          <span style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ item.label }}</span>
+          <sc-if value="{{ item.badge }}" hint-placeholder-val="{{ true }}">
+            <span style="{{ item.badgeStyle }}">{{ item.badge }}</span>
+          </sc-if>
+        </div>
+      </sc-for>
+    </nav>
+
+    <div style="margin-top:auto; padding:14px 8px 0; border-top:1px solid rgba(255,255,255,.08)">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7d7a92">admin@everlink.local</div>
+      <div style="margin-top:9px; display:flex; align-items:center; gap:8px; font-size:13px; color:#c9c6d6; cursor:pointer" style-hover="color:#ffffff">
+        <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#ef8080">[→</span> Se déconnecter
+      </div>
+    </div>
+  </aside>
+
+  <main style="flex:1; min-width:0; padding:26px 30px 60px; background:linear-gradient(#f9f8f5,#f5f4f0 320px)">
+
+    <sc-if value="{{ isProv }}" hint-placeholder-val="{{ true }}">
+      <div>
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap">
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; color:#9a948a">EVERLINK / PROVISIONNING</div>
+            <h1 style="margin:7px 0 0; font-family:'Space Grotesk',sans-serif; font-size:34px; font-weight:600; letter-spacing:-.02em">Provisionning</h1>
+            <p style="margin:6px 0 0; font-size:14px; color:#6f6a62; max-width:52ch; text-wrap:pretty">Chaque numéro à porter, de son hébergeur source à sa cible. Les clients sans ligne sont regroupés en bas.</p>
+          </div>
+          <sc-if value="{{ showCockpit }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex; gap:10px; flex-wrap:wrap">
+              <div style="background:#fff; border:1px solid #e7e4dc; border-radius:14px; padding:12px 16px; min-width:118px; box-shadow:0 1px 2px rgba(25,27,36,.04)">
+                <div style="font-size:11px; color:#8b857c; letter-spacing:.02em">Numéros suivis</div>
+                <div style="margin-top:4px; font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:600">2</div>
+              </div>
+              <div style="background:#fff; border:1px solid #e7e4dc; border-radius:14px; padding:12px 16px; min-width:118px; box-shadow:0 1px 2px rgba(25,27,36,.04)">
+                <div style="font-size:11px; color:#8b857c">Bascules faites</div>
+                <div style="margin-top:4px; font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:600; color:#1b1d26">0<span style="font-size:14px; color:#a09a90">/2</span></div>
+              </div>
+              <div style="background:#fff; border:1px solid #f1d9cf; border-radius:14px; padding:12px 16px; min-width:118px; box-shadow:0 1px 2px rgba(25,27,36,.04)">
+                <div style="font-size:11px; color:#b4614a">Anomalies</div>
+                <div style="margin-top:4px; font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:600; color:#c2492f">1</div>
+              </div>
+              <div style="background:#fff; border:1px solid #e7e4dc; border-radius:14px; padding:12px 16px; min-width:118px; box-shadow:0 1px 2px rgba(25,27,36,.04)">
+                <div style="font-size:11px; color:#8b857c">Clients sans ligne</div>
+                <div style="margin-top:4px; font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:600; color:#6f6a62">37</div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="margin-top:22px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#fff; border:1px solid #e7e4dc; border-radius:16px; padding:10px; box-shadow:0 1px 2px rgba(25,27,36,.04)">
+          <div style="flex:1; min-width:280px; display:flex; align-items:center; gap:9px; background:#f7f6f2; border:1px solid #eae7df; border-radius:11px; padding:9px 13px">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#a8a29a">⌕</span>
+            <input placeholder="Rechercher un numéro, une MAC, un utilisateur, une raison sociale…" style="flex:1; border:0; background:transparent; outline:none; font-size:14px" />
+            <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#b3ada4; border:1px solid #e2ded5; border-radius:5px; padding:2px 5px">/</span>
+          </div>
+          <div style="display:flex; gap:7px; flex-wrap:wrap">
+            <div style="display:flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid #e7e4dc; border-radius:10px; font-size:13px; cursor:pointer; background:#fff" style-hover="border-color:#c9c2f2; background:#faf9ff"><span style="color:#8b857c">Lot</span> tous <span style="color:#b3ada4; font-size:10px">▾</span></div>
+            <div style="display:flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid #e7e4dc; border-radius:10px; font-size:13px; cursor:pointer; background:#fff" style-hover="border-color:#c9c2f2; background:#faf9ff"><span style="color:#8b857c">Client</span> tous <span style="color:#b3ada4; font-size:10px">▾</span></div>
+            <div style="display:flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid #e7e4dc; border-radius:10px; font-size:13px; cursor:pointer; background:#fff" style-hover="border-color:#c9c2f2; background:#faf9ff"><span style="color:#8b857c">Hébergeur</span> tous <span style="color:#b3ada4; font-size:10px">▾</span></div>
+            <div style="display:flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid #e7e4dc; border-radius:10px; font-size:13px; cursor:pointer; background:#fff" style-hover="border-color:#c9c2f2; background:#faf9ff"><span style="color:#8b857c">Bascule</span> toutes <span style="color:#b3ada4; font-size:10px">▾</span></div>
+            <div style="{{ chipAnomalies }}" onClick="{{ toggleAnomalies }}">● Anomalies seulement</div>
+            <div style="{{ chipEligibles }}" onClick="{{ toggleEligibles }}">◆ Éligibles export</div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px; background:#fff; border:1px solid #e2ded5; border-radius:18px; overflow:hidden; box-shadow:0 6px 20px -14px rgba(25,27,36,.28)">
+          <div style="display:flex; align-items:center; gap:12px; padding:15px 18px; background:#fbfaf7; border-bottom:1px solid #ece9e1">
+            <span style="width:34px; height:34px; border-radius:11px; background:#6d5ce7; color:#fff; display:grid; place-items:center; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600">A26</span>
+            <div>
+              <div style="font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:600; letter-spacing:-.01em">A26 IGLOO</div>
+              <div style="margin-top:3px; display:flex; align-items:center; gap:6px; font-size:11px; color:#7d776e">
+                <span style="font-family:'JetBrains Mono',monospace">2 numéros</span><span>·</span><span style="font-family:'JetBrains Mono',monospace">1 MAC</span><span>·</span><span style="color:#c2492f">1 contrôle en erreur</span>
+              </div>
+            </div>
+            <div style="margin-left:auto; display:flex; align-items:center; gap:14px">
+              <div style="text-align:right">
+                <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#7d776e">0/2 basculé</div>
+                <div style="margin-top:5px; width:110px; height:6px; border-radius:3px; background:#ece9e1; overflow:hidden"><div style="width:4%; height:100%; background:#6d5ce7"></div></div>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px; padding:8px 13px; border-radius:10px; background:#191b24; color:#fff; font-size:13px; font-weight:500; cursor:pointer" style-hover="background:#2a2d3a">+ Ajouter</div>
+            </div>
+          </div>
+
+          <div style="overflow-x:auto">
+          <div style="min-width:1040px; display:grid; grid-template-columns:190px 96px 104px 150px 1fr 190px; gap:10px; padding:10px 18px; background:#fff; border-bottom:1px solid #f0ede6; font-size:10px; font-family:'JetBrains Mono',monospace; letter-spacing:.08em; color:#a29c93; text-transform:uppercase">
+            <div>Numéro à porter</div><div>Court</div><div>Contrôle</div><div>MAC / modèle</div><div>Trajet de bascule</div><div>Statut</div>
+          </div>
+
+          <sc-for list="{{ lines }}" as="line" hint-placeholder-count="2">
+            <div style="min-width:1040px; display:grid; grid-template-columns:190px 96px 104px 150px 1fr 190px; gap:10px; align-items:center; padding:14px 18px; border-bottom:1px solid #f4f1ea" style-hover="background:#fcfbf8">
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:500; letter-spacing:.01em">{{ line.numero }}</div>
+                <div style="margin-top:3px; font-size:11px; color:#8b857c">{{ line.user }}</div>
+              </div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:14px; color:#4a4640">{{ line.court }}</div>
+              <div><span style="{{ line.ctrlStyle }}">{{ line.ctrl }}</span></div>
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:13px">{{ line.mac }}</div>
+                <div style="margin-top:2px; font-size:11px; color:#a09a90">{{ line.modele }}</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:9px">
+                <span style="font-size:12px; font-weight:600; color:#4a4640; letter-spacing:-.01em">SEWAN</span>
+                <span style="flex:1; min-width:40px; height:2px; border-radius:1px; background:repeating-linear-gradient(90deg,#d8d3c9 0 6px,transparent 6px 11px)"></span>
+                <span style="{{ line.dotStyle }}"></span>
+                <span style="flex:1; min-width:40px; height:2px; border-radius:1px; background:repeating-linear-gradient(90deg,#e4e0d6 0 6px,transparent 6px 11px)"></span>
+                <span style="font-size:12px; font-weight:600; color:#6d5ce7; letter-spacing:-.01em">UNYC</span>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 11px; border:1px solid #e4e0d7; border-radius:10px; background:#fbfaf7; cursor:pointer; font-size:13px" style-hover="border-color:#c9c2f2; background:#faf9ff">
+                <span style="display:flex; align-items:center; gap:7px"><span style="{{ line.stateDot }}"></span>{{ line.state }}</span>
+                <span style="color:#b3ada4; font-size:10px">▾</span>
+              </div>
+            </div>
+          </sc-for>
+          </div>
+        </div>
+
+        <div style="margin-top:26px; display:flex; align-items:baseline; gap:10px">
+          <h2 style="margin:0; font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:600">Clients sans ligne saisie</h2>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#9a948a">37 sur 39 · rien à porter pour l'instant</span>
+        </div>
+        <div style="margin-top:12px; display:grid; grid-template-columns:repeat(auto-fill,minmax(268px,1fr)); gap:8px">
+          <sc-for list="{{ emptyClients }}" as="c" hint-placeholder-count="12">
+            <div style="display:flex; align-items:center; gap:10px; padding:11px 12px; background:#fff; border:1px solid #eae7df; border-radius:13px; cursor:pointer; transition:border-color .15s, transform .15s" style-hover="border-color:#cfc7f5; transform:translateY(-1px)">
+              <span style="{{ c.tile }}">{{ c.mono }}</span>
+              <span style="flex:1; min-width:0; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#3a3733">{{ c.name }}</span>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#6d5ce7; opacity:.65">+</span>
+            </div>
+          </sc-for>
+          <div style="display:flex; align-items:center; justify-content:center; padding:11px 12px; border:1px dashed #dcd7cd; border-radius:13px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#9a948a">+ 18 autres clients</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isClients }}">
+      <div>
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap">
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; color:#9a948a">EVERLINK / CLIENTS</div>
+            <h1 style="margin:7px 0 0; font-family:'Space Grotesk',sans-serif; font-size:34px; font-weight:600; letter-spacing:-.02em">Clients</h1>
+            <p style="margin:6px 0 0; font-size:14px; color:#6f6a62; max-width:54ch; text-wrap:pretty">39 raisons sociales du LOT 1a. L'écart de postes compare ce qui est annoncé à ce qui est réellement saisi.</p>
+          </div>
+          <sc-if value="{{ showCockpit }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex; gap:10px; flex-wrap:wrap">
+              <div style="background:#fff; border:1px solid #e7e4dc; border-radius:14px; padding:12px 16px; min-width:120px">
+                <div style="font-size:11px; color:#8b857c">Clients</div>
+                <div style="margin-top:4px; font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:600">39</div>
+              </div>
+              <div style="background:#fff; border:1px solid #e7e4dc; border-radius:14px; padding:12px 16px; min-width:120px">
+                <div style="font-size:11px; color:#8b857c">Postes annoncés</div>
+                <div style="margin-top:4px; font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:600">228</div>
+              </div>
+              <div style="background:#fff; border:1px solid #f1e3cf; border-radius:14px; padding:12px 16px; min-width:120px">
+                <div style="font-size:11px; color:#96702e">Écart à combler</div>
+                <div style="margin-top:4px; font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:600; color:#b07216">+227</div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="margin-top:22px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#fff; border:1px solid #e7e4dc; border-radius:16px; padding:10px">
+          <div style="flex:1; min-width:280px; display:flex; align-items:center; gap:9px; background:#f7f6f2; border:1px solid #eae7df; border-radius:11px; padding:9px 13px">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#a8a29a">⌕</span>
+            <input placeholder="Rechercher une raison sociale, un groupe, une adresse…" style="flex:1; border:0; background:transparent; outline:none; font-size:14px" />
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid #e7e4dc; border-radius:10px; font-size:13px; cursor:pointer"><span style="color:#8b857c">Lot</span> tous <span style="color:#b3ada4; font-size:10px">▾</span></div>
+        </div>
+
+        <div style="margin-top:18px; background:#fff; border:1px solid #e2ded5; border-radius:18px; overflow:hidden; box-shadow:0 6px 20px -14px rgba(25,27,36,.28)">
+          <div style="overflow-x:auto">
+          <div style="{{ clientsHeadStyle }}">
+            <div>Raison sociale</div><div>Numéros · MAC</div><div>Bascules</div><div>Scénario</div><div>Postes annoncés</div><div>Contact</div>
+            <sc-if value="{{ showAdresse }}" hint-placeholder-val="{{ true }}"><div>Adresse</div></sc-if>
+          </div>
+          <sc-for list="{{ clientRows }}" as="c" hint-placeholder-count="10">
+            <div style="{{ c.rowStyle }}" style-hover="background:#fcfbf8">
+              <div style="display:flex; align-items:center; gap:10px; min-width:0">
+                <span style="{{ c.tile }}">{{ c.mono }}</span>
+                <div style="min-width:0">
+                  <div style="font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ c.name }}</div>
+                  <div style="margin-top:2px; font-family:'JetBrains Mono',monospace; font-size:10px; color:#a09a90">{{ c.lot }} · EV</div>
+                </div>
+              </div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#5b564f">{{ c.numMac }}</div>
+              <div><span style="{{ c.bascStyle }}">{{ c.basc }}</span></div>
+              <div><span style="{{ c.scenStyle }}">{{ c.scen }}</span></div>
+              <div style="display:flex; align-items:center; gap:9px">
+                <span style="font-family:'JetBrains Mono',monospace; font-size:13px; width:22px; text-align:right">{{ c.postes }}</span>
+                <span style="flex:1; min-width:34px; height:5px; border-radius:3px; background:#f0ede6; overflow:hidden"><span style="{{ c.barStyle }}"></span></span>
+                <span style="{{ c.ecartStyle }}">{{ c.ecartLabel }}</span>
+              </div>
+              <div style="font-size:12px; color:#5b564f; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ c.contact }}</div>
+              <sc-if value="{{ showAdresse }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size:11px; color:#9a948a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ c.adr }}</div>
+              </sc-if>
+            </div>
+          </sc-for>
+          </div>
+          <div style="padding:13px 18px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#9a948a; background:#fbfaf7">19 clients affichés · 20 suivants →</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isTel }}">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; color:#9a948a">EVERLINK / TÉLÉPHONE</div>
+        <h1 style="margin:7px 0 0; font-family:'Space Grotesk',sans-serif; font-size:34px; font-weight:600; letter-spacing:-.02em">Téléphone</h1>
+        <p style="margin:6px 0 0; font-size:14px; color:#6f6a62; max-width:56ch; text-wrap:pretty">Avancement poste par poste : chaque utilisateur passe par les mêmes étapes avant la bascule.</p>
+
+        <div style="margin-top:22px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#fff; border:1px solid #e7e4dc; border-radius:16px; padding:10px">
+          <div style="flex:1; min-width:280px; display:flex; align-items:center; gap:9px; background:#f7f6f2; border:1px solid #eae7df; border-radius:11px; padding:9px 13px">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#a8a29a">⌕</span>
+            <input placeholder="Rechercher un utilisateur ou une raison sociale…" style="flex:1; border:0; background:transparent; outline:none; font-size:14px" />
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid #e7e4dc; border-radius:10px; font-size:13px; cursor:pointer"><span style="color:#8b857c">Client</span> tous <span style="color:#b3ada4; font-size:10px">▾</span></div>
+        </div>
+
+        <div style="margin-top:18px; background:#fff; border:1px solid #e2ded5; border-radius:18px; overflow:hidden; box-shadow:0 6px 20px -14px rgba(25,27,36,.28)">
+          <div style="display:flex; align-items:center; gap:12px; padding:15px 18px; background:#fbfaf7; border-bottom:1px solid #ece9e1">
+            <span style="width:34px; height:34px; border-radius:11px; background:#6d5ce7; color:#fff; display:grid; place-items:center; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600">A26</span>
+            <div>
+              <div style="font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:600">A26 IGLOO</div>
+              <div style="margin-top:3px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#7d776e">1 utilisateur · 0 % fait</div>
+            </div>
+            <div style="margin-left:auto; display:flex; align-items:center; gap:14px">
+              <div style="width:130px; height:6px; border-radius:3px; background:#ece9e1; overflow:hidden"><div style="width:2%; height:100%; background:#6d5ce7"></div></div>
+              <div style="display:flex; align-items:center; gap:7px; padding:8px 13px; border:1px solid #e4e0d7; border-radius:10px; font-size:13px; background:#fff; cursor:pointer" style-hover="border-color:#c9c2f2">Toute une étape <span style="color:#b3ada4; font-size:10px">▾</span></div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:16px; padding:15px 18px">
+            <div style="min-width:150px">
+              <div style="font-size:14px; font-weight:500">test</div>
+              <div style="margin-top:3px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#a09a90">0108090603 · poste 408</div>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap">
+              <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+                <div style="{{ s.style }}" onClick="{{ s.go }}">{{ s.label }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px; display:flex; align-items:center; gap:14px; padding:18px; border:1px dashed #dcd7cd; border-radius:18px; background:#fdfcfa">
+          <span style="width:38px; height:38px; border-radius:12px; background:#f0eef9; color:#6d5ce7; display:grid; place-items:center; font-family:'JetBrains Mono',monospace; font-size:14px">↑</span>
+          <div style="flex:1">
+            <div style="font-size:14px; font-weight:600">Les autres clients n'ont pas encore d'utilisateur</div>
+            <div style="margin-top:3px; font-size:13px; color:#7d776e">Importez le fichier Monday ou saisissez les postes depuis la fiche client.</div>
+          </div>
+          <div style="padding:9px 14px; border-radius:10px; background:#191b24; color:#fff; font-size:13px; cursor:pointer" style-hover="background:#2a2d3a">Import Monday</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isLots }}">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; color:#9a948a">EVERLINK / LOTS</div>
+        <h1 style="margin:7px 0 0; font-family:'Space Grotesk',sans-serif; font-size:34px; font-weight:600; letter-spacing:-.02em">Lots</h1>
+        <p style="margin:6px 0 0; font-size:14px; color:#6f6a62; max-width:54ch; text-wrap:pretty">Un lot regroupe les clients qui basculent ensemble et porte la référence utilisée à l'export.</p>
+
+        <div style="margin-top:22px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#fff; border:1px solid #e7e4dc; border-radius:16px; padding:12px">
+          <input placeholder="Nom du lot (ex. LOT 2)" style="width:210px; padding:10px 13px; border:1px solid #eae7df; border-radius:11px; background:#f7f6f2; outline:none; font-size:14px" />
+          <input placeholder="Référence export (ex. EVLOTOS2)" style="width:240px; padding:10px 13px; border:1px solid #eae7df; border-radius:11px; background:#f7f6f2; outline:none; font-size:14px; font-family:'JetBrains Mono',monospace" />
+          <div style="padding:10px 16px; border-radius:11px; background:#6d5ce7; color:#fff; font-size:13px; font-weight:500; cursor:pointer" style-hover="background:#5a49d6">+ Créer le lot</div>
+          <span style="font-size:12px; color:#9a948a">La référence apparaît dans les fichiers Import SDA et Import MAC.</span>
+        </div>
+
+        <div style="margin-top:18px; display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:14px">
+          <div style="background:#fff; border:1px solid #e2ded5; border-radius:18px; padding:18px; box-shadow:0 6px 20px -14px rgba(25,27,36,.28)">
+            <div style="display:flex; align-items:center; gap:10px">
+              <span style="font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:600">LOT 1a</span>
+              <span style="padding:3px 9px; border-radius:99px; background:#e7f6ee; color:#127a56; font-size:11px; font-weight:600">Actif</span>
+              <span style="margin-left:auto; font-family:'JetBrains Mono',monospace; font-size:11px; color:#a09a90">réf. —</span>
+            </div>
+            <div style="margin-top:16px; display:flex; gap:22px">
+              <div><div style="font-size:11px; color:#8b857c">Clients</div><div style="font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:600">39</div></div>
+              <div><div style="font-size:11px; color:#8b857c">Numéros</div><div style="font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:600">2</div></div>
+              <div><div style="font-size:11px; color:#8b857c">Postes</div><div style="font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:600">228</div></div>
+            </div>
+            <div style="margin-top:16px">
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#7d776e"><span>Avancement bascules</span><span style="font-family:'JetBrains Mono',monospace">0 / 2 · 0 %</span></div>
+              <div style="margin-top:6px; height:8px; border-radius:4px; background:#f0ede6; overflow:hidden"><div style="width:2%; height:100%; background:#6d5ce7"></div></div>
+            </div>
+          </div>
+          <div style="display:grid; place-items:center; border:1px dashed #dcd7cd; border-radius:18px; padding:24px; text-align:center; color:#9a948a">
+            <div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:22px; color:#c9c2ae">+</div>
+              <div style="margin-top:6px; font-size:13px">Prochain lot à créer quand le 1a sera basculé</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSda }}">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; color:#9a948a">EVERLINK / IMPORT SDA</div>
+        <h1 style="margin:7px 0 0; font-family:'Space Grotesk',sans-serif; font-size:34px; font-weight:600; letter-spacing:-.02em">Import SDA</h1>
+        <p style="margin:6px 0 0; font-size:14px; color:#6f6a62; max-width:60ch; text-wrap:pretty">Prévisualisation exacte du fichier généré : une ligne par numéro rattaché à un utilisateur équipé d'un modèle éligible, triée par raison sociale.</p>
+
+        <div style="margin-top:22px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#fff; border:1px solid #e7e4dc; border-radius:16px; padding:12px">
+          <div style="display:flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid #e7e4dc; border-radius:10px; font-size:13px; cursor:pointer"><span style="color:#8b857c">Lot</span> tous <span style="color:#b3ada4; font-size:10px">▾</span></div>
+          <div style="display:flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid #e7e4dc; border-radius:10px; font-size:13px; cursor:pointer"><span style="color:#8b857c">Client</span> tous <span style="color:#b3ada4; font-size:10px">▾</span></div>
+          <div style="{{ chipExclus }}" onClick="{{ toggleExclus }}">✓ Exclure les clients déjà basculés</div>
+          <div style="margin-left:auto; display:flex; align-items:center; gap:12px">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#9a948a">Import_SDA_-_EXPORT.xlsx</span>
+            <div style="display:flex; align-items:center; gap:8px; padding:9px 15px; border-radius:11px; background:#c9c4bb; color:#fdfcfa; font-size:13px; font-weight:500; cursor:not-allowed">↓ Télécharger</div>
+          </div>
+        </div>
+
+        <div style="margin-top:18px; display:grid; grid-template-columns:1.6fr 1fr; gap:14px; align-items:start">
+          <div style="background:#fff; border:1px solid #e2ded5; border-radius:18px; overflow:hidden; box-shadow:0 6px 20px -14px rgba(25,27,36,.28)">
+            <div style="display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid #ece9e1">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:600; color:#c2492f">0</span>
+              <div><div style="font-size:13px; font-weight:600">ligne exportable</div><div style="font-size:12px; color:#8b857c">sur 2 numéros dans la portée</div></div>
+            </div>
+            <div style="padding:48px 24px; text-align:center">
+              <div style="width:44px; height:44px; margin:0 auto; border-radius:14px; background:#f6f4ee; display:grid; place-items:center; font-family:'JetBrains Mono',monospace; color:#b3ada4">∅</div>
+              <div style="margin-top:12px; font-size:14px; font-weight:600">Aucune ligne éligible dans cette portée</div>
+              <div style="margin-top:5px; font-size:13px; color:#7d776e; max-width:44ch; margin-left:auto; margin-right:auto; text-wrap:pretty">Corrigez les 2 lignes écartées à droite : un modèle d'équipement éligible et un utilisateur rattaché suffisent.</div>
+            </div>
+          </div>
+
+          <div style="background:#fff; border:1px solid #f1ddd4; border-radius:18px; overflow:hidden">
+            <div style="display:flex; align-items:center; gap:8px; padding:14px 16px; background:#fdf6f3; border-bottom:1px solid #f4e3dc">
+              <span style="width:7px; height:7px; border-radius:50%; background:#c2492f"></span>
+              <span style="font-size:13px; font-weight:600; color:#8f3a25">Lignes écartées (2)</span>
+              <span style="margin-left:auto; font-family:'JetBrains Mono',monospace; font-size:10px; color:#b07a68">à corriger</span>
+            </div>
+            <div style="padding:6px 8px">
+              <sc-for list="{{ sdaRejects }}" as="r" hint-placeholder-count="2">
+                <div style="padding:11px 10px; border-radius:12px" style-hover="background:#fdf8f6">
+                  <div style="display:flex; align-items:center; gap:8px">
+                    <span style="font-size:13px; font-weight:500">{{ r.client }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#7d776e">{{ r.valeur }}</span>
+                  </div>
+                  <div style="margin-top:6px; display:flex; align-items:center; gap:8px">
+                    <span style="padding:3px 8px; border-radius:99px; background:#fbeee9; color:#93412a; font-size:11px">{{ r.motif }}</span>
+                    <span style="font-size:11px; color:#a09a90">{{ r.fix }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isMac }}">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; color:#9a948a">EVERLINK / IMPORT MAC</div>
+        <h1 style="margin:7px 0 0; font-family:'Space Grotesk',sans-serif; font-size:34px; font-weight:600; letter-spacing:-.02em">Import MAC</h1>
+        <p style="margin:6px 0 0; font-size:14px; color:#6f6a62; max-width:62ch; text-wrap:pretty">Une ligne par MAC d'équipement éligible (bornes DECT incluses), dans l'ordre de saisie, dédoublonnée par client. Les MAC sont exportées telles que saisies.</p>
+
+        <div style="margin-top:22px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#fff; border:1px solid #e7e4dc; border-radius:16px; padding:12px">
+          <div style="display:flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid #e7e4dc; border-radius:10px; font-size:13px; cursor:pointer"><span style="color:#8b857c">Lot</span> tous <span style="color:#b3ada4; font-size:10px">▾</span></div>
+          <div style="display:flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid #e7e4dc; border-radius:10px; font-size:13px; cursor:pointer"><span style="color:#8b857c">Client</span> tous <span style="color:#b3ada4; font-size:10px">▾</span></div>
+          <div style="{{ chipExclus }}" onClick="{{ toggleExclus }}">✓ Exclure les clients déjà basculés</div>
+          <div style="margin-left:auto; display:flex; align-items:center; gap:12px">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#9a948a">Import_MAC-_EXPORT.xlsx</span>
+            <div style="display:flex; align-items:center; gap:8px; padding:9px 15px; border-radius:11px; background:#c9c4bb; color:#fdfcfa; font-size:13px; font-weight:500; cursor:not-allowed">↓ Télécharger</div>
+          </div>
+        </div>
+
+        <div style="margin-top:18px; display:grid; grid-template-columns:1.6fr 1fr; gap:14px; align-items:start">
+          <div style="background:#fff; border:1px solid #e2ded5; border-radius:18px; overflow:hidden; box-shadow:0 6px 20px -14px rgba(25,27,36,.28)">
+            <div style="display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid #ece9e1">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:600; color:#c2492f">0</span>
+              <div><div style="font-size:13px; font-weight:600">MAC exportable</div><div style="font-size:12px; color:#8b857c">1 MAC saisie dans la portée</div></div>
+            </div>
+            <div style="padding:48px 24px; text-align:center">
+              <div style="width:44px; height:44px; margin:0 auto; border-radius:14px; background:#f6f4ee; display:grid; place-items:center; font-family:'JetBrains Mono',monospace; color:#b3ada4">∅</div>
+              <div style="margin-top:12px; font-size:14px; font-weight:600">Aucune ligne éligible dans cette portée</div>
+              <div style="margin-top:5px; font-size:13px; color:#7d776e; max-width:42ch; margin-left:auto; margin-right:auto; text-wrap:pretty">La seule MAC saisie porte un modèle inconnu. Déclarez le modèle dans Paramètres pour la rendre exportable.</div>
+            </div>
+          </div>
+
+          <div style="background:#fff; border:1px solid #f1ddd4; border-radius:18px; overflow:hidden">
+            <div style="display:flex; align-items:center; gap:8px; padding:14px 16px; background:#fdf6f3; border-bottom:1px solid #f4e3dc">
+              <span style="width:7px; height:7px; border-radius:50%; background:#c2492f"></span>
+              <span style="font-size:13px; font-weight:600; color:#8f3a25">Lignes écartées (1)</span>
+            </div>
+            <div style="padding:6px 8px">
+              <div style="padding:11px 10px; border-radius:12px" style-hover="background:#fdf8f6">
+                <div style="display:flex; align-items:center; gap:8px">
+                  <span style="font-size:13px; font-weight:500">A26 IGLOO</span>
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#7d776e">33</span>
+                </div>
+                <div style="margin-top:6px; display:flex; align-items:center; gap:8px">
+                  <span style="padding:3px 8px; border-radius:99px; background:#fbeee9; color:#93412a; font-size:11px">modèle inconnu</span>
+                  <a href="#" onClick="{{ goParams }}">Déclarer le modèle</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isMonday }}">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; color:#9a948a">EVERLINK / IMPORT MONDAY</div>
+        <h1 style="margin:7px 0 0; font-family:'Space Grotesk',sans-serif; font-size:34px; font-weight:600; letter-spacing:-.02em">Import Monday</h1>
+        <p style="margin:6px 0 0; font-size:14px; color:#6f6a62; max-width:58ch; text-wrap:pretty">Upload du xlsx Monday, prévisualisation du rapprochement, validation. Import idempotent : les champs saisis dans l'application ne sont jamais écrasés.</p>
+
+        <div style="margin-top:22px; display:flex; align-items:center; gap:16px; background:#fff; border:1px solid #e2ded5; border-radius:18px; padding:20px; box-shadow:0 6px 20px -14px rgba(25,27,36,.28)">
+          <span style="width:46px; height:46px; border-radius:14px; background:#f0eef9; color:#6d5ce7; display:grid; place-items:center; font-family:'JetBrains Mono',monospace; font-size:16px">xls</span>
+          <div style="flex:1">
+            <div style="font-size:15px; font-weight:600; font-family:'Space Grotesk',sans-serif">Déposez l'export Monday ici</div>
+            <div style="margin-top:3px; font-size:13px; color:#7d776e">Aucun fichier sélectionné · .xlsx uniquement</div>
+          </div>
+          <div style="display:flex; gap:8px">
+            <div style="padding:10px 15px; border:1px solid #e4e0d7; border-radius:11px; font-size:13px; background:#fbfaf7; cursor:pointer" style-hover="border-color:#c9c2f2">Parcourir…</div>
+            <div style="padding:10px 15px; border-radius:11px; background:#191b24; color:#fff; font-size:13px; cursor:pointer" style-hover="background:#2a2d3a">Prévisualiser</div>
+          </div>
+        </div>
+
+        <h2 style="margin:26px 0 0; font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:600">Historique des imports</h2>
+        <div style="margin-top:12px; background:#fff; border:1px solid #e2ded5; border-radius:18px; overflow:hidden">
+          <div style="display:flex; align-items:center; gap:16px; padding:16px 18px">
+            <div style="width:5px; height:38px; border-radius:3px; background:#22a06b"></div>
+            <div style="min-width:150px">
+              <div style="font-family:'JetBrains Mono',monospace; font-size:13px">2026-07-30 15:33</div>
+              <div style="margin-top:2px; font-size:11px; color:#9a948a">admin@everlink.local</div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#5b564f; min-width:210px">Migration_GC_1785166222.xlsx</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; flex:1">
+              <span style="padding:3px 9px; border-radius:99px; background:#e7f6ee; color:#127a56; font-size:11px; font-weight:600">39 créés</span>
+              <span style="padding:3px 9px; border-radius:99px; background:#f4f2ec; color:#6f6a62; font-size:11px">0 mis à jour</span>
+              <span style="padding:3px 9px; border-radius:99px; background:#f4f2ec; color:#6f6a62; font-size:11px">0 ignorés</span>
+              <span style="padding:3px 9px; border-radius:99px; background:#f0eef9; color:#4c3fb0; font-size:11px">16 modèles</span>
+            </div>
+            <span style="padding:4px 10px; border-radius:99px; background:#e7f6ee; color:#127a56; font-size:11px; font-weight:600">OK</span>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isParams }}">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; color:#9a948a">EVERLINK / PARAMÈTRES</div>
+        <h1 style="margin:7px 0 0; font-family:'Space Grotesk',sans-serif; font-size:34px; font-weight:600; letter-spacing:-.02em">Paramètres</h1>
+        <p style="margin:6px 0 0; font-size:14px; color:#6f6a62; max-width:56ch; text-wrap:pretty">Le vocabulaire de l'application. Une valeur utilisée par un enregistrement ne peut pas être supprimée, seulement désactivée.</p>
+
+        <div style="margin-top:20px; background:#fff; border:1px solid #e2ded5; border-radius:18px; padding:16px 18px">
+          <div style="display:flex; align-items:center; gap:10px">
+            <h2 style="margin:0; font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:600">Modèles d'équipement</h2>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#9a948a">16 déclarés · 1 inconnu détecté</span>
+            <span style="margin-left:auto; padding:3px 9px; border-radius:99px; background:#fbeee9; color:#93412a; font-size:11px">modèle « 33 » à qualifier</span>
+          </div>
+          <div style="margin-top:12px; display:flex; gap:6px; flex-wrap:wrap">
+            <sc-for list="{{ models }}" as="m" hint-placeholder-count="6">
+              <span style="display:inline-flex; align-items:center; gap:7px; padding:6px 11px; border:1px solid #eae7df; border-radius:99px; font-size:12px; background:#fbfaf7">
+                <span style="width:6px; height:6px; border-radius:50%; background:#22a06b"></span>{{ m }}
+              </span>
+            </sc-for>
+          </div>
+        </div>
+
+        <h2 style="margin:26px 0 0; font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:600">Listes déroulantes</h2>
+        <div style="margin-top:12px; display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:14px">
+          <sc-for list="{{ lists }}" as="l" hint-placeholder-count="6">
+            <div style="background:#fff; border:1px solid #e2ded5; border-radius:18px; padding:16px">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span style="{{ l.dot }}"></span>
+                <span style="font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:600">{{ l.title }}</span>
+                <span style="margin-left:auto; font-family:'JetBrains Mono',monospace; font-size:10px; color:#a09a90">{{ l.count }}</span>
+              </div>
+              <div style="margin-top:12px; display:flex; flex-direction:column; gap:4px">
+                <sc-for list="{{ l.values }}" as="v" hint-placeholder-count="3">
+                  <div style="display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:10px" style-hover="background:#faf9f6">
+                    <span style="font-size:13px">{{ v.name }}</span>
+                    <sc-if value="{{ v.used }}">
+                      <span style="padding:2px 7px; border-radius:99px; background:#f0eef9; color:#4c3fb0; font-size:10px; font-family:'JetBrains Mono',monospace">utilisée</span>
+                    </sc-if>
+                    <span style="margin-left:auto; font-size:11px; color:#9a948a; cursor:pointer" style-hover="color:#3a3733">Désactiver</span>
+                    <sc-if value="{{ v.deletable }}">
+                      <span style="font-size:11px; color:#c8a79c; cursor:pointer" style-hover="color:#c2492f">✕</span>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="margin-top:10px; display:flex; gap:6px">
+                <input placeholder="Nouvelle valeur" style="flex:1; padding:8px 11px; border:1px solid #eae7df; border-radius:10px; background:#f7f6f2; outline:none; font-size:13px" />
+                <div style="width:34px; display:grid; place-items:center; border-radius:10px; background:#191b24; color:#fff; cursor:pointer" style-hover="background:#2a2d3a">+</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showCockpit&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Affichage&quot;},&quot;showAdresse&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Affichage&quot;}}">
+class Component extends DCLogic {
+  state = { screen: 'provisionning', anomalies: false, eligibles: false, exclus: false, step: 'a-faire' };
+
+  nav = [
+    { key: 'provisionning', label: 'Provisionning', letter: 'P', badge: '2' },
+    { key: 'clients', label: 'Clients', letter: 'C', badge: '39' },
+    { key: 'telephone', label: 'Téléphone', letter: 'T', badge: '1' },
+    { key: 'lots', label: 'Lots', letter: 'L', badge: '1' },
+    { key: 'sda', label: 'Import SDA', letter: 'S', badge: '!' },
+    { key: 'mac', label: 'Import MAC', letter: 'M', badge: '!' },
+    { key: 'monday', label: 'Import Monday', letter: 'Mo', badge: '' },
+    { key: 'params', label: 'Paramètres', letter: 'Pa', badge: '' }
+  ];
+
+  clients = [
+    ['A26 IGLOO', 2, 1, '0/2', 'CENTREX only', 1, 0, 'Anne Mahoudeau', '165 RUE DE VAUGIRARD, 75015 PARIS'],
+    ['AFDAEIM / ESAT', 0, 0, '0/0', 'Lien + CENTREX', 20, 20, 'Lila', '26 AVENUE ROGER SALENGRO, 92370'],
+    ['AFPI 78 AFPI MAUREPAS', 0, 0, '0/0', 'Lien + CENTREX', 3, 3, 'Nicolas Marchal', '5 all des BOURBONNAIS, 78310'],
+    ['AGENCE DROLEMENT NECESSAIRE (ADN)', 0, 0, '0/0', 'Lien + CENTREX + 4G/5G', 6, 6, 'Emilie Daniel', '26 RUE ANATOLE FRANCE, 92300'],
+    ['AGIMEL', 0, 0, '0/0', 'Lien + CENTREX', 3, 3, 'Pascal Sinegre', "23 AVENUE DE L EUROPE, 94320"],
+    ['AGOGUET AVOCATS', 0, 0, '0/0', 'CENTREX only', 3, 3, 'Louis Fichen', '43 avenue Marceau, 75116 PARIS'],
+    ['ALL NIPPON AIRWAYS TRADING', 0, 0, '0/0', 'Lien + CENTREX', 7, 7, 'Shigeki Matsui', '67 Rue Blomet, 75015 PARIS'],
+    ['ALLIANZ CABINET R. BEHAGUE ET P. HUGUET', 0, 0, '0/0', 'Lien + CENTREX', 5, 5, 'Huguet Patrick', '47 AVENUE PIERRE CURIE, 92400'],
+    ['ALLIANZ GODEFROY SCOLA (THOIRY)', 0, 0, '0/0', 'Lien + CENTREX', 5, 5, 'Alain Petit', "1 PLACE DE L ECU, 78770"],
+    ['ALLIANZ MONTROUGE GHISLAIN D HENNEZEL', 0, 0, '0/0', 'CENTREX only', 10, 10, "Ghislain D'Hennezel", '42 BIS AVENUE HENRI GINOUX, 92120'],
+    ['AMBULANCES NOUVELLES STEPHENSON - BOULOGNE', 0, 0, '0/0', 'Lien + CENTREX', 4, 4, 'Idir Hadjal', '5 RUE PASTEUR, 92110 CLICHY'],
+    ['AMBULANCES SLS', 0, 0, '0/0', 'Lien + CENTREX', 4, 4, 'Rabiha Zaroui', "51 AVENUE D ARGENTEUIL, 92600"],
+    ['ANGLAIS @ ANTONY (WALL STREET ENGLISH)', 0, 0, '0/0', 'Lien + CENTREX + 4G/5G', 3, 3, 'Salim Anjary', '32 AVENUE DE LA DIVISION LECLERC'],
+    ['ARDI SAS', 0, 0, '0/0', 'Lien + CENTREX + 4G/5G', 10, 10, 'Nicolas Philippe', '74 BOULEVARD HAUSSMANN, 75008'],
+    ['AREHA', 0, 0, '0/0', 'CENTREX only', 8, 8, 'Jessica Sackreuter', '21 RUE DES MOULINS, 78000'],
+    ['ARENGI', 0, 0, '0/0', 'Lien + CENTREX', 24, 24, 'Benoit Bougnoux', '15 RUE LA FAYETTE, 75009 PARIS'],
+    ['ARSECOM', 0, 0, '0/0', 'Lien + CENTREX', 4, 4, 'Tony Da Silva', '9 RUE DES GARDES, 91370'],
+    ['ART DEMEURE', 0, 0, '0/0', 'CENTREX only', 5, 5, 'Frederic Pascal', "7 AVENUE DE L'EUROPE, 94320"],
+    ['ART PHOTO LAB', 0, 0, '0/0', 'Lien + CENTREX', 5, 5, 'Elvira Veillon', '105 CHEMIN DE RONDE, 78290'],
+    ['ASSOCIATION DENTAIRE SOURIRE AVEC SANTE', 0, 0, '0/0', 'Lien + CENTREX + 4G/5G', 4, 4, 'Peixoto Ferreira', '111 AVENUE ANATOLE FRANCE']
+  ];
+
+  tones = [
+    ['#f0eef9', '#4c3fb0'], ['#e7f6ee', '#127a56'], ['#fdf1e7', '#96591b'],
+    ['#eaf1fb', '#2b5aa8'], ['#f9edf3', '#96366a'], ['#f1f4ec', '#4f6b39']
+  ];
+
+  mono(name) {
+    const w = name.replace(/[^A-Za-zÀ-ÿ0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
+    if (!w.length) return '··';
+    const a = w[0][0] || '';
+    const b = (w[1] && w[1][0]) || (w[0][1] || '');
+    return (a + b).toUpperCase();
+  }
+
+  tile(i, size) {
+    const t = this.tones[i % this.tones.length];
+    const s = size || 28;
+    return {
+      width: s + 'px', height: s + 'px', flex: 'none', borderRadius: '9px',
+      background: t[0], color: t[1], display: 'grid', placeItems: 'center',
+      fontFamily: "'JetBrains Mono',monospace", fontSize: '10px', fontWeight: 600, letterSpacing: '.02em'
+    };
+  }
+
+  chip(on, tone) {
+    const c = tone || '#6d5ce7';
+    return {
+      display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '10px',
+      fontSize: '13px', cursor: 'pointer', transition: 'all .15s',
+      border: '1px solid ' + (on ? c : '#e7e4dc'),
+      background: on ? '#f4f2fe' : '#fff',
+      color: on ? '#4133a8' : '#6f6a62',
+      fontWeight: on ? 600 : 400
+    };
+  }
+
+  pill(bg, fg, weight) {
+    return {
+      display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '99px',
+      background: bg, color: fg, fontSize: '11px', fontWeight: weight || 600, whiteSpace: 'nowrap'
+    };
+  }
+
+  go(key) { return () => this.setState({ screen: key }); }
+
+  renderVals() {
+    const s = this.state.screen;
+    const accent = '#6d5ce7';
+    const showAdresse = this.props.showAdresse ?? true;
+    const cols = showAdresse
+      ? '2.1fr 1fr .8fr 1.5fr 1.6fr 1.2fr 1.6fr'
+      : '2.4fr 1fr .8fr 1.6fr 1.8fr 1.4fr';
+
+    const navItems = this.nav.map(n => {
+      const active = n.key === s;
+      const alert = n.badge === '!';
+      return {
+        label: n.label, letter: n.letter, badge: n.badge, go: this.go(n.key),
+        style: {
+          display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 11px', borderRadius: '11px',
+          cursor: 'pointer', fontSize: '14px', transition: 'background .15s, color .15s',
+          background: active ? 'rgba(255,255,255,.1)' : 'transparent',
+          color: active ? '#fff' : '#a5a2b6', fontWeight: active ? 600 : 500
+        },
+        tile: {
+          width: '23px', height: '23px', flex: 'none', borderRadius: '7px', display: 'grid', placeItems: 'center',
+          fontFamily: "'JetBrains Mono',monospace", fontSize: '10px', fontWeight: 600,
+          background: active ? accent : 'rgba(255,255,255,.07)', color: active ? '#fff' : '#8a8799'
+        },
+        badgeStyle: {
+          fontFamily: "'JetBrains Mono',monospace", fontSize: '10px', padding: '1px 6px', borderRadius: '99px',
+          background: alert ? 'rgba(226,110,80,.18)' : 'rgba(255,255,255,.07)',
+          color: alert ? '#f0a08b' : '#8a8799'
+        }
+      };
+    });
+
+    const clientRows = this.clients.map((c, i) => {
+      const ecart = c[6];
+      const scenTone = c[4] === 'CENTREX only' ? ['#f0eef9', '#4c3fb0']
+        : c[4] === 'Lien + CENTREX' ? ['#eaf1fb', '#2b5aa8'] : ['#fdf1e7', '#96591b'];
+      return {
+        name: c[0], lot: 'LOT 1a', numMac: c[1] + ' num · ' + c[2] + ' MAC', basc: c[3],
+        scen: c[4], postes: c[5], contact: c[7], adr: c[8],
+        mono: this.mono(c[0]), tile: this.tile(i),
+        rowStyle: {
+          minWidth: showAdresse ? '1180px' : '1000px',
+          display: 'grid', gridTemplateColumns: cols, gap: '12px', alignItems: 'center',
+          padding: '11px 18px', borderBottom: '1px solid #f4f1ea', transition: 'background .12s'
+        },
+        bascStyle: this.pill(c[3] === '0/2' ? '#f0eef9' : '#f4f2ec', c[3] === '0/2' ? '#4c3fb0' : '#6f6a62', 500),
+        scenStyle: this.pill(scenTone[0], scenTone[1], 500),
+        barStyle: {
+          display: 'block', height: '100%', borderRadius: '3px',
+          width: Math.max(4, Math.round((c[5] / 24) * 100)) + '%',
+          background: ecart > 0 ? '#e8b57a' : '#22a06b'
+        },
+        ecartLabel: ecart > 0 ? '+' + ecart : '0',
+        ecartStyle: {
+          fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', fontWeight: 600, width: '34px',
+          color: ecart > 0 ? '#a3691a' : '#127a56'
+        }
+      };
+    });
+
+    const lists = [
+      ['Hébergeurs', '#6d5ce7', [['SEWAN', true, false], ['UNYC', true, false]]],
+      ['Statuts de bascule', '#22a06b', [['À faire', true, false], ['En cours', false, true], ['Fait', false, true], ['Bloqué', false, true]]],
+      ["Statuts d'étape", '#2b5aa8', [['À faire', false, true], ['En cours', false, true], ['Fait', false, true], ['Sans objet', false, true]]],
+      ['Scénarios', '#c98a2b', [['CENTREX only', true, false], ['Lien + CENTREX', true, false], ['Lien + CENTREX + 4G/5G', true, false]]],
+      ["Types d'intervention", '#96366a', [['Sur site', true, false], ['A distance', true, false]]],
+      ['Statuts Monday', '#4f6b39', [['New', true, false], ['En cours', false, true], ['Terminé', false, true]]],
+      ['Technologies de lien', '#2b8a8a', [['FTTH', true, false], ['FTTO', false, true], ['Copper', false, true], ['FTTH + 4G/5G', true, false], ['NC', true, false]]]
+    ].map(l => ({
+      title: l[0], count: l[2].length + ' valeurs',
+      dot: { width: '8px', height: '8px', borderRadius: '3px', background: l[1], flex: 'none' },
+      values: l[2].map(v => ({ name: v[0], used: v[1], deletable: v[2] }))
+    }));
+
+    const stepList = [['a-faire', 'À faire'], ['en-cours', 'En cours'], ['fait', 'Fait'], ['sans-objet', 'Sans objet']];
+
+    return {
+      isProv: s === 'provisionning', isClients: s === 'clients', isTel: s === 'telephone',
+      isLots: s === 'lots', isSda: s === 'sda', isMac: s === 'mac', isMonday: s === 'monday', isParams: s === 'params',
+      navItems, clientRows, lists,
+      showCockpit: this.props.showCockpit ?? true,
+      showAdresse,
+      goParams: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ screen: 'params' }); },
+      ringStyle: {
+        width: '52px', height: '52px', flex: 'none', borderRadius: '50%', display: 'grid', placeItems: 'center',
+        background: 'conic-gradient(' + accent + ' 0turn .02turn, rgba(255,255,255,.13) .02turn 1turn)'
+      },
+      chipAnomalies: this.chip(this.state.anomalies),
+      chipEligibles: this.chip(this.state.eligibles),
+      chipExclus: this.chip(this.state.exclus),
+      toggleAnomalies: () => this.setState(p => ({ anomalies: !p.anomalies })),
+      toggleEligibles: () => this.setState(p => ({ eligibles: !p.eligibles })),
+      toggleExclus: () => this.setState(p => ({ exclus: !p.exclus })),
+      steps: stepList.map(st => {
+        const on = this.state.step === st[0];
+        return {
+          label: st[1], go: () => this.setState({ step: st[0] }),
+          style: {
+            padding: '7px 13px', borderRadius: '99px', fontSize: '13px', cursor: 'pointer', transition: 'all .15s',
+            border: '1px solid ' + (on ? accent : '#e7e4dc'),
+            background: on ? '#f4f2fe' : '#fff', color: on ? '#4133a8' : '#6f6a62', fontWeight: on ? 600 : 400
+          }
+        };
+      }),
+      lines: [
+        {
+          numero: '01 08 09 06 03', court: '408', ctrl: 'OK', mac: '33', modele: 'modèle inconnu',
+          user: 'test · utilisateur rattaché', state: 'À faire',
+          ctrlStyle: this.pill('#e7f6ee', '#127a56'),
+          dotStyle: { width: '9px', height: '9px', borderRadius: '50%', background: '#6d5ce7', boxShadow: '0 0 0 4px rgba(109,92,231,.14)', flex: 'none' },
+          stateDot: { width: '7px', height: '7px', borderRadius: '50%', background: '#c9c4bb', flex: 'none' }
+        },
+        {
+          numero: '— non renseigné', court: '—', ctrl: 'ERREUR', mac: '—', modele: 'aucun équipement',
+          user: 'numéro en stock', state: 'À faire',
+          ctrlStyle: this.pill('#fbeee9', '#93412a'),
+          dotStyle: { width: '9px', height: '9px', borderRadius: '50%', background: '#c2492f', boxShadow: '0 0 0 4px rgba(194,73,47,.13)', flex: 'none' },
+          stateDot: { width: '7px', height: '7px', borderRadius: '50%', background: '#c9c4bb', flex: 'none' }
+        }
+      ],
+      sdaRejects: [
+        { client: 'A26 IGLOO', valeur: '0108090603', motif: 'modèle non éligible', fix: 'MAC 33 · modèle à déclarer' },
+        { client: 'A26 IGLOO', valeur: '—', motif: "pas d'utilisateur", fix: 'numéro encore en stock' }
+      ],
+      models: ['Yealink T31P', 'Yealink T43U', 'Yealink T54W', 'Yealink W73P', 'Yealink W90B Satellite', 'Yealink W90DM', 'Fanvil X3S', 'Fanvil X5U'],
+      emptyClients: this.clients.slice(1).map((c, i) => ({
+        name: c[0], mono: this.mono(c[0]), tile: this.tile(i + 1, 26)
+      })),
+      clientsHeadStyle: {
+        minWidth: showAdresse ? '1180px' : '1000px',
+        display: 'grid', gridTemplateColumns: cols, gap: '12px', padding: '11px 18px',
+        borderBottom: '1px solid #f0ede6', fontSize: '10px', fontFamily: "'JetBrains Mono',monospace",
+        letterSpacing: '.08em', color: '#a29c93', textTransform: 'uppercase', background: '#fbfaf7'
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -9,6 +9,7 @@ import {
 } from "@/lib/repositories/provisionningRepository";
 import { ProvisionningTable } from "@/app/provisionning/ProvisionningTable";
 import { ProvisionningFiltresBar } from "@/app/provisionning/ProvisionningFiltres";
+import { PageHero } from "@/components/PageHero";
 
 export const dynamic = "force-dynamic";
 
@@ -46,21 +47,28 @@ export default async function ProvisionningPage({
         recherche: params.q,
       });
   const nbNumeros = lignes.filter((l) => l.numeroId).length;
-  const nbClients = new Set(lignes.map((l) => l.clientId)).size + clientsSansLignes.length;
+  const nbBascules = lignes.filter(
+    (l) => l.statutBascule === "Fait"
+  ).length;
+  const nbAnomalies = lignes.filter(
+    (l) => l.controleStatut === "ERREUR"
+  ).length;
+  const nbClientsSansLignes = clientsSansLignes.length;
+
   return (
-    <main className="flex flex-1 flex-col gap-4 p-6">
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-            Everlink
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight">Provisionning</h1>
-        </div>
-        <p className="text-sm text-muted-foreground tabular-nums">
-          {nbNumeros} numéro{nbNumeros > 1 ? "s" : ""} · {nbClients} client
-          {nbClients > 1 ? "s" : ""}
-        </p>
-      </header>
+    <main className="flex flex-1 flex-col gap-4 p-5 pb-15">
+      <PageHero
+        accentColor="var(--ev-blue)"
+        label="Provisioning"
+        title="Les numéros<br />en mouvement"
+        description="Un numéro, un trajet : saisie, contrôle, export, bascule. Tout ce qui bloque est rouge."
+        kpis={[
+          { value: nbNumeros, label: "numéros suivis" },
+          { value: nbBascules, label: "basculés" },
+          { value: nbAnomalies, label: "anomalie", color: "var(--ev-red)" },
+          { value: nbClientsSansLignes, label: "clients sans ligne", color: "var(--ev-text-secondary)" },
+        ]}
+      />
       <ProvisionningFiltresBar
         lots={lots}
         clients={clients}
