@@ -13,6 +13,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ClientDetail } from "@/lib/repositories/clientsRepository";
+import type { ModeleMailLite } from "@/lib/repositories/mailRepository";
+import { OngletMails, type EnvoiLigne } from "./OngletMails";
 
 const NIVEAU_CLASSES: Record<string, string> = {
   OK: "border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
@@ -25,6 +27,7 @@ const ONGLETS = [
   "Équipements",
   "Utilisateurs",
   "Suivi téléphonie",
+  "Mails",
   "Monday",
   "Historique",
 ] as const;
@@ -47,7 +50,17 @@ function EnteteTableau({ colonnes }: { colonnes: string[] }) {
   );
 }
 
-export function FicheClient({ detail }: { detail: ClientDetail }) {
+export function FicheClient({
+  detail,
+  modelesMail,
+  envois,
+  numeroGc,
+}: {
+  detail: ClientDetail;
+  modelesMail: ModeleMailLite[];
+  envois: EnvoiLigne[];
+  numeroGc: string;
+}) {
   const [onglet, setOnglet] = useState<Onglet>("Numéros");
   const { client, etapes, auditLogs } = detail;
 
@@ -202,6 +215,26 @@ export function FicheClient({ detail }: { detail: ClientDetail }) {
             .
           </p>
         </div>
+      )}
+
+      {onglet === "Mails" && (
+        <OngletMails
+          clientInfo={{
+            id: client.id,
+            scenario: client.scenario,
+            raisonSociale: client.raisonSociale,
+            filiale: client.filiale,
+            adresse: client.adresse,
+            contactNom: client.contactNom,
+            contactPrenom: client.contactPrenom,
+            contactEmail: client.contactEmail,
+            dateIso: client.dateIntervention ? client.dateIntervention.toISOString().slice(0, 10) : null,
+            creneau: client.creneauIntervention,
+          }}
+          modeles={modelesMail}
+          envois={envois}
+          numeroGc={numeroGc}
+        />
       )}
 
       {onglet === "Monday" && (

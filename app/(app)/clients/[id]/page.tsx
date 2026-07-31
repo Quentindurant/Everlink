@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { fetchClientDetail } from "@/lib/repositories/clientsRepository";
 import { listEtapesMigration } from "@/lib/repositories/migrationRepository";
+import { fetchEnvois, listModelesMail } from "@/lib/repositories/mailRepository";
 import { FicheClient } from "./FicheClient";
 import { FicheMigrationHeader } from "./FicheMigrationHeader";
 
@@ -16,12 +17,25 @@ export default async function ClientDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [detail, etapesMigration] = await Promise.all([
+  const [detail, etapesMigration, modelesMail, envoisRaw] = await Promise.all([
     fetchClientDetail(id),
     listEtapesMigration(),
+    listModelesMail(),
+    fetchEnvois(id),
   ]);
   if (!detail) notFound();
   const { client } = detail;
+
+  const envois = envoisRaw.map((e) => ({
+    id: e.id,
+    type: e.type,
+    destinataire: e.destinataire,
+    objet: e.objet,
+    succes: e.succes,
+    erreur: e.erreur,
+    creeLe: e.creeLe.toISOString().slice(0, 16).replace("T", " "),
+    auteurEmail: e.auteur?.email ?? null,
+  }));
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-6">
@@ -72,7 +86,12 @@ export default async function ClientDetailPage({
         }
         referenceClient={client.referenceClient}
       />
-      <FicheClient detail={detail} />
+      <FicheClient
+        detail={detail}
+        modelesMail={modelesMail}
+        envois={envois}
+        numeroGc={process.env.NUMERO_GC ?? ""}
+      />
     </main>
   );
 }
