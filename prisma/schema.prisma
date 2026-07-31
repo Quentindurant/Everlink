@@ -89,6 +89,16 @@ model Client {
   dateBascule     DateTime?
   commentaire     String?
 
+  // Parcours de migration (niveau client). Remplace statutBascule comme source de vérité
+  // côté client; statutBascule est conservé mais n'est plus lu par l'application.
+  etapeMigration      EtapeMigration? @relation(fields: [etapeMigrationId], references: [id])
+  etapeMigrationId    String?
+  // Suivi des tentatives de contact (règle CR: 3 jours ouvrés puis Bloqué).
+  nbTentativesContact Int       @default(0)
+  dernierContactLe    DateTime?
+  // Nomenclature commentaires Monday, ex "EV VTO0907 : XXXXX".
+  referenceClient     String?
+
   archiveA DateTime?
   creeLe   DateTime @default(now())
   majLe    DateTime @updatedAt
@@ -100,6 +110,7 @@ model Client {
   @@index([cleRapprochement])
   @@index([lotId])
   @@index([statutBascule])
+  @@index([etapeMigrationId])
 }
 
 model Utilisateur {
@@ -235,6 +246,27 @@ model Equipement {
   @@index([clientId])
   @@index([utilisateurId])
   @@index([macNormalise])
+}
+
+// ---------------------------------------------------------------- Parcours de migration
+
+// Étape du parcours de migration au niveau client (prévenance, contact, RDV, bascule...).
+// Configurable dans Paramètres, comme les EtapeModele du suivi téléphonie.
+model EtapeMigration {
+  id          String   @id @default(cuid())
+  libelle     String   @unique
+  ordre       Int
+  // Couleur hex du badge et du stepper.
+  couleur     String   @default("#667085")
+  // Étape bloquante (Bloqué): signalée en rouge, hors flux nominal.
+  estBloquant Boolean  @default(false)
+  actif       Boolean  @default(true)
+  creeLe      DateTime @default(now())
+  majLe       DateTime @updatedAt
+
+  clients Client[]
+
+  @@index([ordre])
 }
 
 // ---------------------------------------------------------------- Suivi téléphonie

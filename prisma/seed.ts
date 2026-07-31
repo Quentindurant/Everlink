@@ -100,6 +100,25 @@ async function main() {
     });
   }
 
+  // Étapes du parcours de migration client. Éditables depuis Paramètres.
+  const etapesMigration: Array<{ libelle: string; couleur: string; estBloquant: boolean }> = [
+    { libelle: "À qualifier", couleur: "#98a2b3", estBloquant: false },
+    { libelle: "Prévenance envoyée", couleur: "#1f6bff", estBloquant: false },
+    { libelle: "Contact en cours", couleur: "#00b8cc", estBloquant: false },
+    { libelle: "Bloqué", couleur: "#f04438", estBloquant: true },
+    { libelle: "RDV planifié", couleur: "#8a5bff", estBloquant: false },
+    { libelle: "Lien livré", couleur: "#ffb020", estBloquant: false },
+    { libelle: "Bascule faite", couleur: "#16b57f", estBloquant: false },
+    { libelle: "Post-migration J+7", couleur: "#0e7a56", estBloquant: false },
+  ];
+  for (const [ordre, e] of etapesMigration.entries()) {
+    await prisma.etapeMigration.upsert({
+      where: { libelle: e.libelle },
+      update: {},
+      create: { libelle: e.libelle, ordre, couleur: e.couleur, estBloquant: e.estBloquant },
+    });
+  }
+
   console.log("Seed complete.");
 }
 
