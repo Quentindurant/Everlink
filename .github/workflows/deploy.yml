@@ -1,0 +1,44 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+# Un seul déploiement à la fois: si deux push arrivent coup sur coup, on annule
+# le déploiement en cours pour ne pas builder deux fois en parallèle sur le VPS.
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # -e: toute commande qui échoue stoppe le déploiement (pas de restart
+          # sur un build cassé). -o pipefail: idem à travers un pipe.
+          script: |
+            set -eo pipefail
+            cd /var/www/html/everlink.quentindurant.com
+
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Pas de package-lock.json versionné (le lockfile du repo est bun.lock),
+            # donc npm install et non npm ci. Pour un build 100% reproductible, installer
+            # bun sur le VPS et remplacer par: bun install --frozen-lockfile && bun run build
+            npm install
+            npx prisma generate
+            npx prisma migrate deploy
+            NODE_OPTIONS="--max-old-space-size=4096" npm run build
+
+            # reload = zéro coupure si l'app tourne déjà; sinon on la démarre.
+            pm2 reload everlink || pm2 start npm --name everlink -- start
+            pm2 save
