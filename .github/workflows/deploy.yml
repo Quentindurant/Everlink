@@ -36,7 +36,9 @@ jobs:
             # bun sur le VPS et remplacer par: bun install --frozen-lockfile && bun run build
             npm install
             npx prisma generate
-            npx prisma migrate deploy
+            # Pas de `prisma migrate deploy` ici: la base Prisma Postgres ne se
+            # migre pas depuis le VPS (le CLI rejette la chaîne postgres://...sk_).
+            # Les migrations passent par le pipeline Prisma / la prod prisma.build.
             NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
             # reload = zéro coupure si l'app tourne déjà; sinon on la démarre.
