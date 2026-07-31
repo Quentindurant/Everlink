@@ -4,7 +4,9 @@ import { ArrowLeft, PencilLine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { fetchClientDetail } from "@/lib/repositories/clientsRepository";
+import { listEtapesMigration } from "@/lib/repositories/migrationRepository";
 import { FicheClient } from "./FicheClient";
+import { FicheMigrationHeader } from "./FicheMigrationHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +16,10 @@ export default async function ClientDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const detail = await fetchClientDetail(id);
+  const [detail, etapesMigration] = await Promise.all([
+    fetchClientDetail(id),
+    listEtapesMigration(),
+  ]);
   if (!detail) notFound();
   const { client } = detail;
 
@@ -58,6 +63,16 @@ export default async function ClientDetailPage({
             .join(" · ") || "Aucune information Monday."}
         </p>
       </header>
+      <FicheMigrationHeader
+        clientId={client.id}
+        etapes={etapesMigration}
+        etapeCouranteId={client.etapeMigrationId}
+        nbTentativesContact={client.nbTentativesContact}
+        dernierContactLe={
+          client.dernierContactLe ? client.dernierContactLe.toISOString().slice(0, 10) : null
+        }
+        referenceClient={client.referenceClient}
+      />
       <FicheClient detail={detail} />
     </main>
   );
