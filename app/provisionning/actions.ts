@@ -114,6 +114,40 @@ export async function updateEquipementMacAction(
   }
 }
 
+// Rattache (ou détache) un modèle à un équipement. C'est ce modèle qui décide de l'éligibilité
+// export: sans lui, l'équipement est écarté du SDA et du MAC.
+export async function updateEquipementModeleAction(
+  equipementId: string,
+  modeleId: string
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session) {
+    return { success: false, error: "Non authentifié." };
+  }
+
+  try {
+    if (modeleId) {
+      const modele = await prisma.modeleEquipement.findUnique({ where: { id: modeleId } });
+      if (!modele) {
+        return { success: false, error: "Modèle introuvable." };
+      }
+    }
+    const result = await prisma.equipement.updateMany({
+      where: { id: equipementId, archiveA: null, client: { archiveA: null } },
+      // Un modèle reconnu prime sur le libellé brut d'import: on l'efface pour ne pas afficher
+      // deux sources concurrentes.
+      data: { modeleId: modeleId || null, ...(modeleId ? { modeleLibelleBrut: null } : {}) },
+    });
+    if (result.count === 0) {
+      return { success: false, error: INTROUVABLE };
+    }
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
+  }
+}
+
 export async function updateUtilisateurNomAction(
   utilisateurId: string,
   nom: string

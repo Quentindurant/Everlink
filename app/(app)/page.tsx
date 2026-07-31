@@ -3,6 +3,7 @@ import {
   fetchProvisionningLignes,
   listClientsActifs,
   listLotsActifs,
+  listModelesActifs,
   listValeursStatutBascule,
   type ProvisionningFiltres,
 } from "@/lib/repositories/provisionningRepository";
@@ -26,11 +27,12 @@ export default async function ProvisionningPage({
     avecAnomalieSeulement: params.anomalie === "1",
     recherche: params.q,
   };
-  const [lignes, lots, clients, valeursStatutBascule] = await Promise.all([
+  const [lignes, lots, clients, valeursStatutBascule, modeles] = await Promise.all([
     fetchProvisionningLignes(filtres),
     listLotsActifs(),
     listClientsActifs(),
     listValeursStatutBascule(),
+    listModelesActifs(),
   ]);
   // Un filtre au niveau ligne (hébergeur, statut, éligible, anomalie) ne peut par nature pas
   // matcher un client vide: on ne propose les clients sans lignes que hors de ces filtres.
@@ -68,6 +70,7 @@ export default async function ProvisionningPage({
         lignes={lignes}
         clientsSansLignes={clientsSansLignes}
         valeursStatutBascule={valeursStatutBascule}
+        modeles={modeles}
       />
     </main>
   );

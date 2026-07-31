@@ -54,6 +54,7 @@ import {
   forcerControleAction,
   ajouterLigneAction,
   updateEquipementMacAction,
+  updateEquipementModeleAction,
   updateUtilisateurNomAction,
   actionMasseAction,
 } from "./actions";
@@ -153,6 +154,65 @@ function StatutBasculeCell({
           </option>
         ))}
       </select>
+      {erreur && <span className="text-xs text-destructive">{erreur}</span>}
+    </div>
+  );
+}
+
+function EquipementModeleCell({
+  equipementId,
+  valeurInitiale,
+  eligible,
+  modeles,
+}: {
+  equipementId: string;
+  valeurInitiale: string;
+  eligible: boolean;
+  modeles: { id: string; libelle: string; eligibleExport: boolean }[];
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  return (
+    <div className="flex items-center gap-1">
+      <select
+        value={valeurInitiale}
+        disabled={isPending}
+        onChange={(e) => {
+          const valeur = e.target.value;
+          startTransition(async () => {
+            const result = await updateEquipementModeleAction(equipementId, valeur);
+            if (!result.success) {
+              setErreur(result.error ?? "Échec de la sauvegarde.");
+              setTimeout(() => setErreur(null), 3000);
+            }
+          });
+        }}
+        className={cn(
+          "w-full rounded-md border border-transparent bg-transparent px-1 py-0.5 text-sm transition-colors outline-none hover:border-input focus:border-ring focus:ring-2 focus:ring-ring/40 disabled:opacity-50",
+          valeurInitiale === "" && "text-destructive"
+        )}
+      >
+        <option value="">— aucun modèle —</option>
+        {modeles.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.libelle}
+            {m.eligibleExport ? "" : " (non exporté)"}
+          </option>
+        ))}
+      </select>
+      {valeurInitiale !== "" && !eligible && (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <span className="shrink-0 text-xs text-amber-600" aria-label="non exporté">
+                ⚠
+              </span>
+            }
+          />
+          <TooltipContent>Modèle non éligible : exclu du SDA et du MAC.</TooltipContent>
+        </Tooltip>
+      )}
       {erreur && <span className="text-xs text-destructive">{erreur}</span>}
     </div>
   );
@@ -385,7 +445,8 @@ function BarreActionsMasse({
 function buildColumns(
   selection: string[],
   basculerSelection: (numeroId: string) => void,
-  valeursStatutBascule: string[]
+  valeursStatutBascule: string[],
+  modeles: { id: string; libelle: string; eligibleExport: boolean }[]
 ): ColumnDef<ProvisionningLigne>[] {
   return [
   {
@@ -442,7 +503,22 @@ function buildColumns(
     id: "controle",
     cell: ({ row }) => <ControleCell ligne={row.original} />,
   },
-  { header: "Equipement", accessorKey: "equipementLibelle" },
+  {
+    header: "Equipement",
+    id: "equipementLibelle",
+    cell: ({ row }) =>
+      row.original.equipementId ? (
+        <EquipementModeleCell
+          key={`modele:${row.id}:${row.original.equipementModeleId ?? ""}`}
+          equipementId={row.original.equipementId}
+          valeurInitiale={row.original.equipementModeleId ?? ""}
+          eligible={row.original.equipementEligible}
+          modeles={modeles}
+        />
+      ) : (
+        row.original.equipementLibelle ?? ""
+      ),
+  },
   {
     header: "Adresse MAC équipement",
     id: "equipementMacBrut",
@@ -516,10 +592,12 @@ export function ProvisionningTable({
   lignes,
   clientsSansLignes = [],
   valeursStatutBascule,
+  modeles,
 }: {
   lignes: ProvisionningLigne[];
   clientsSansLignes?: { id: string; raisonSociale: string }[];
   valeursStatutBascule: string[];
+  modeles: { id: string; libelle: string; eligibleExport: boolean }[];
 }) {
   const data = useMemo(() => lignes, [lignes]);
   const [selection, setSelection] = useState<string[]>([]);
@@ -534,8 +612,8 @@ export function ProvisionningTable({
     setSelection((prev) => prev.filter((id) => lignes.some((l) => l.numeroId === id)));
   }, [lignes]);
   const columns = useMemo(
-    () => buildColumns(selection, basculerSelection, valeursStatutBascule),
-    [selection, valeursStatutBascule]
+    () => buildColumns(selection, basculerSelection, valeursStatutBascule, modeles),
+    [selection, valeursStatutBascule, modeles]
   );
   const table = useReactTable({
     data,

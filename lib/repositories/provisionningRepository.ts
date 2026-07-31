@@ -26,6 +26,7 @@ export interface ProvisionningLigne {
   controleDetail: string | null;
   controleForce: boolean;
   equipementId: string | null;
+  equipementModeleId: string | null;
   equipementLibelle: string | null;
   equipementMacBrut: string | null;
   equipementEligible: boolean;
@@ -183,6 +184,7 @@ export async function fetchProvisionningLignes(
           ...base,
           numeroId: n.id,
           equipementId: null,
+          equipementModeleId: null,
           equipementLibelle: null,
           equipementMacBrut: null,
           equipementEligible: false,
@@ -197,6 +199,7 @@ export async function fetchProvisionningLignes(
       ...base,
       numeroId: index === 0 ? n.id : null,
       equipementId: e.id,
+      equipementModeleId: e.modeleId,
       equipementLibelle: e.modele?.libelle ?? e.modeleLibelleBrut ?? null,
       equipementMacBrut: e.macBrut,
       equipementEligible: e.modele?.eligibleExport ?? false,
@@ -265,6 +268,7 @@ export async function fetchProvisionningLignes(
       controleDetail: null,
       controleForce: false,
       equipementId: e.id,
+      equipementModeleId: e.modeleId,
       equipementLibelle: e.modele?.libelle ?? e.modeleLibelleBrut ?? null,
       equipementMacBrut: e.macBrut,
       equipementEligible: e.modele?.eligibleExport ?? false,
@@ -372,6 +376,18 @@ export async function fetchClientsSansLignes(
     },
     select: { id: true, raisonSociale: true },
     orderBy: { raisonSociale: "asc" },
+  });
+}
+
+// Modèles proposables dans la grille pour rattacher un équipement. L'éligibilité export
+// dépend du modèle choisi: un équipement sans modèle n'est jamais exporté.
+export async function listModelesActifs(): Promise<
+  { id: string; libelle: string; eligibleExport: boolean }[]
+> {
+  return prisma.modeleEquipement.findMany({
+    where: { actif: true },
+    select: { id: true, libelle: true, eligibleExport: true },
+    orderBy: [{ marque: "asc" }, { libelle: "asc" }],
   });
 }
 
