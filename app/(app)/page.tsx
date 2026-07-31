@@ -51,7 +51,7 @@ export default async function ProvisionningPage({
     (l) => l.statutBascule === "Fait"
   ).length;
   const nbAnomalies = lignes.filter(
-    (l) => l.controleStatut === "ERREUR"
+    (l) => l.controleNiveau === "ERREUR"
   ).length;
   const nbClientsSansLignes = clientsSansLignes.length;
 

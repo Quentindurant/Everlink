@@ -23,7 +23,9 @@ export default async function TelephonePage({
         (grille.utilisateurs.reduce(
           (acc, u) =>
             acc +
-            u.suivis.filter((s) => s.statut === "Fait" || s.statut === "Sans objet").length,
+            Object.values(u.statuts).filter(
+              (st) => st === "Fait" || st === "Sans objet"
+            ).length,
           0
         ) /
           (totalUtilisateurs * grille.etapes.length)) *

@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LotsPage() {
   const lots = await fetchLots();
-  const nbActifs = lots.filter((l) => l.actif).length;
+  const nbActifs = lots.filter((l) => !l.clos).length;
   return (
     <main className="flex flex-1 flex-col gap-4 p-5 pb-15">
       <PageHero

@@ -31,7 +31,7 @@ export default async function ParametresPage() {
     fetchSyncRuns(),
   ]);
 
-  const nbAQualifier = modeles.filter((m) => !m.eligibleExport && m._count?.equipements === 0).length;
+  const nbAQualifier = modeles.filter((m) => !m.eligibleExport && m.nbEquipements === 0).length;
 
   return (
     <main className="flex flex-1 flex-col gap-8 p-5 pb-15">
