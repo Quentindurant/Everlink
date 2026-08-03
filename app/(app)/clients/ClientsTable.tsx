@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useTransition } from "react";
 import { Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -101,9 +102,40 @@ export function ClientsFiltres({
           ))}
         </SelectContent>
       </Select>
+      <Select
+        items={[
+          { value: TOUS, label: "Lien : tous" },
+          { value: "NON_COMMANDE", label: "Non commandé" },
+          { value: "COMMANDE", label: "Commandé" },
+          { value: "LIVRE", label: "Livré" },
+        ]}
+        defaultValue={searchParams.get("lien") ?? TOUS}
+        onValueChange={(v) => setParam("lien", v === TOUS || v === null ? "" : (v as string))}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={TOUS}>Lien : tous</SelectItem>
+          <SelectItem value="NON_COMMANDE">Non commandé</SelectItem>
+          <SelectItem value="COMMANDE">Commandé</SelectItem>
+          <SelectItem value="LIVRE">Livré</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 }
+
+const LIEN_CLASSES: Record<string, string> = {
+  NON_COMMANDE: "bg-muted text-muted-foreground",
+  COMMANDE: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
+  LIVRE: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+};
+const LIEN_LABEL: Record<string, string> = {
+  NON_COMMANDE: "Non commandé",
+  COMMANDE: "Commandé",
+  LIVRE: "Livré",
+};
 
 export function ClientsTable({
   clients,
@@ -128,6 +160,7 @@ export function ClientsTable({
             {[
               "Raison sociale",
               "Étape",
+              "Lien",
               "Lot",
               "Numéros",
               "MAC saisis",
@@ -167,6 +200,20 @@ export function ClientsTable({
                   etapeCouranteId={c.etape?.id ?? null}
                   etapes={etapes}
                 />
+              </TableCell>
+              <TableCell>
+                {c.avecLien ? (
+                  <span
+                    className={cn(
+                      "rounded-lg px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap",
+                      LIEN_CLASSES[c.statutLien]
+                    )}
+                  >
+                    {LIEN_LABEL[c.statutLien]}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                )}
               </TableCell>
               <TableCell className="whitespace-nowrap">{c.lotNom ?? "—"}</TableCell>
               <TableCell className="tabular-nums">{c.nbNumeros}</TableCell>

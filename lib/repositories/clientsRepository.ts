@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { statutLien, type StatutLien } from "@/lib/domain/lien/statutLien";
 
 export interface ClientListeLigne {
   id: string;
@@ -21,12 +22,16 @@ export interface ClientListeLigne {
   ecartPostes: number | null;
   // Étape du parcours de migration (null si non renseignée).
   etape: { id: string; libelle: string; couleur: string } | null;
+  // Statut de la commande de lien opérateur, et si le scénario comporte un lien.
+  statutLien: StatutLien;
+  avecLien: boolean;
 }
 
 export interface ClientsListeFiltres {
   lotId?: string;
   recherche?: string;
   etapeMigrationId?: string;
+  statutLien?: StatutLien;
 }
 
 export async function fetchClientsListe(
@@ -37,6 +42,13 @@ export async function fetchClientsListe(
       archiveA: null,
       ...(filtres.lotId ? { lotId: filtres.lotId } : {}),
       ...(filtres.etapeMigrationId ? { etapeMigrationId: filtres.etapeMigrationId } : {}),
+      ...(filtres.statutLien === "LIVRE"
+        ? { lienLivre: true }
+        : filtres.statutLien === "COMMANDE"
+          ? { lienCommande: true, lienLivre: false }
+          : filtres.statutLien === "NON_COMMANDE"
+            ? { lienCommande: false, lienLivre: false }
+            : {}),
       ...(filtres.recherche
         ? {
             OR: [
@@ -78,6 +90,8 @@ export async function fetchClientsListe(
     etape: c.etapeMigration
       ? { id: c.etapeMigration.id, libelle: c.etapeMigration.libelle, couleur: c.etapeMigration.couleur }
       : null,
+    statutLien: statutLien({ lienCommande: c.lienCommande, lienLivre: c.lienLivre }),
+    avecLien: (c.scenario ?? "").toLowerCase().includes("lien"),
   }));
 }
 

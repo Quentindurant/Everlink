@@ -13,7 +13,12 @@ export default async function ClientsPage({
 }) {
   const params = await searchParams;
   const [clients, lots, etapesMigration] = await Promise.all([
-    fetchClientsListe({ lotId: params.lot, recherche: params.q, etapeMigrationId: params.etape }),
+    fetchClientsListe({
+      lotId: params.lot,
+      recherche: params.q,
+      etapeMigrationId: params.etape,
+      statutLien: params.lien as "NON_COMMANDE" | "COMMANDE" | "LIVRE" | undefined,
+    }),
     fetchLots(),
     listEtapesMigration(),
   ]);
