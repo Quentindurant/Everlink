@@ -8,6 +8,7 @@ import { listEtapesMigration } from "@/lib/repositories/migrationRepository";
 import { fetchEnvois, listModelesMail } from "@/lib/repositories/mailRepository";
 import { FicheClient } from "./FicheClient";
 import { FicheMigrationHeader } from "./FicheMigrationHeader";
+import { CarteLien } from "./CarteLien";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,20 @@ export default async function ClientDetailPage({
           client.dernierContactLe ? client.dernierContactLe.toISOString().slice(0, 10) : null
         }
         referenceClient={client.referenceClient}
+      />
+      <CarteLien
+        clientId={client.id}
+        scenario={client.scenario}
+        lien={{
+          lienCommande: client.lienCommande,
+          lienCommandeLe: client.lienCommandeLe ? client.lienCommandeLe.toISOString().slice(0, 10) : null,
+          lienCommandePar: client.lienCommandePar,
+          lienOperateur: client.lienOperateur,
+          lienReference: client.lienReference,
+          lienLivraisonPrevue: client.lienLivraisonPrevue ? client.lienLivraisonPrevue.toISOString().slice(0, 10) : null,
+          lienLivre: client.lienLivre,
+          lienLivreLe: client.lienLivreLe ? client.lienLivreLe.toISOString().slice(0, 10) : null,
+        }}
       />
       <FicheClient
         detail={detail}
