@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { fetchClientDetail } from "@/lib/repositories/clientsRepository";
 import { listEtapesMigration } from "@/lib/repositories/migrationRepository";
 import { fetchEnvois, listModelesMail } from "@/lib/repositories/mailRepository";
+import { fetchTechniciensDisponibles } from "@/lib/repositories/technicienRepository";
 import { FicheClient } from "./FicheClient";
 import { FicheMigrationHeader } from "./FicheMigrationHeader";
 import { CarteLien } from "./CarteLien";
+import { AffectationTechnicien } from "./AffectationTechnicien";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,13 @@ export default async function ClientDetailPage({
   ]);
   if (!detail) notFound();
   const { client } = detail;
+
+  // Techniciens disponibles à la date d'intervention (ou tous les actifs si pas de date).
+  const techniciensDisponibles = await fetchTechniciensDisponibles(
+    client.dateIntervention ?? new Date(),
+    client.departement ?? undefined,
+    client.technicienId
+  );
 
   const envois = envoisRaw.map((e) => ({
     id: e.id,
@@ -100,6 +109,13 @@ export default async function ClientDetailPage({
           lienLivre: client.lienLivre,
           lienLivreLe: client.lienLivreLe ? client.lienLivreLe.toISOString().slice(0, 10) : null,
         }}
+      />
+      <AffectationTechnicien
+        clientId={client.id}
+        technicienId={client.technicienId}
+        disponibles={techniciensDisponibles.map((t) => ({ id: t.id, nom: t.nom }))}
+        dateIso={client.dateIntervention ? client.dateIntervention.toISOString().slice(0, 10) : null}
+        departement={client.departement}
       />
       <FicheClient
         detail={detail}
