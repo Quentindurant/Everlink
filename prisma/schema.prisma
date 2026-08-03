@@ -102,6 +102,16 @@ model Client {
   // Créneau horaire du RDV (ex "9h-13h"), complément de dateIntervention pour les mails.
   creneauIntervention String?
 
+  // Suivi de la commande du lien opérateur par l'ADV (scénarios avec lien).
+  lienCommande        Boolean   @default(false)
+  lienCommandeLe      DateTime?
+  lienCommandePar     String?
+  lienOperateur       String?
+  lienReference       String?
+  lienLivraisonPrevue DateTime?
+  lienLivre           Boolean   @default(false)
+  lienLivreLe         DateTime?
+
   archiveA DateTime?
   creeLe   DateTime @default(now())
   majLe    DateTime @updatedAt
