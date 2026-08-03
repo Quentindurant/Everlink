@@ -233,6 +233,24 @@ async function main() {
     }
   }
 
+  // Prestataires de techniciens (réseaux). Le référentiel technicien lui-même se remplit dans
+  // l'app (les données Zoho étaient trop bruitées pour un import fiable).
+  const prestataires = [
+    "DIRECT",
+    "KRYCIA",
+    "DELTINFO",
+    "ADWEB",
+    "SPOTER",
+    "OCCITECH",
+    "SOSINFO",
+    "PSITEK",
+    "5 COM",
+    "AUTRE",
+  ];
+  for (const nom of prestataires) {
+    await prisma.prestataire.upsert({ where: { nom }, update: {}, create: { nom } });
+  }
+
   console.log("Seed complete.");
 }
 

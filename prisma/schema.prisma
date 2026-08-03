@@ -102,6 +102,10 @@ model Client {
   // Créneau horaire du RDV (ex "9h-13h"), complément de dateIntervention pour les mails.
   creneauIntervention String?
 
+  // Technicien affecté à l'intervention (parmi les disponibles à la dateIntervention).
+  technicien   Technicien? @relation(fields: [technicienId], references: [id])
+  technicienId String?
+
   // Suivi de la commande du lien opérateur par l'ADV (scénarios avec lien).
   lienCommande        Boolean   @default(false)
   lienCommandeLe      DateTime?
@@ -125,6 +129,36 @@ model Client {
   @@index([lotId])
   @@index([statutBascule])
   @@index([etapeMigrationId])
+  @@index([technicienId])
+}
+
+// ---------------------------------------------------------------- Techniciens
+
+// Prestataire/réseau de techniciens (DIRECT, KRYCIA, DELTINFO...).
+model Prestataire {
+  id     String   @id @default(cuid())
+  nom    String   @unique
+  actif  Boolean  @default(true)
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  techniciens Technicien[]
+}
+
+model Technicien {
+  id            String       @id @default(cuid())
+  nom           String
+  prestataire   Prestataire? @relation(fields: [prestataireId], references: [id])
+  prestataireId String?
+  // Départements couverts (codes INSEE, ex "78", "95"). Vide = intervient partout.
+  departements  String[]
+  actif         Boolean      @default(true)
+  creeLe        DateTime     @default(now())
+  majLe         DateTime     @updatedAt
+
+  clients Client[]
+
+  @@index([prestataireId])
 }
 
 // ---------------------------------------------------------------- Communication (mails)
