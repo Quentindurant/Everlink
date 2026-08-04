@@ -10,8 +10,8 @@ const NAV_ITEMS = [
   { href: "/telephone", label: "Téléphone", dot: "#00b8cc" },
   { href: "/techniciens", label: "ADV", dot: "#16b57f" },
   { href: "/lots", label: "Lots", dot: "#16b57f" },
-  { href: "/import-sda", label: "Import SDA", dot: "#ffb020" },
-  { href: "/import-mac", label: "Import MAC", dot: "#ffb020" },
+  { href: "/import-sda", label: "Export SDA", dot: "#ffb020" },
+  { href: "/import-mac", label: "Export MAC", dot: "#ffb020" },
   { href: "/import-monday", label: "Import Monday", dot: "#1f6bff" },
 ];
 

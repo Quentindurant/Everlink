@@ -1,10 +1,10 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { CheckCircle2, FileUp, Upload } from "lucide-react";
+import { CheckCircle2, MonitorSmartphone, Upload } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -13,16 +13,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { SewanUserRow } from "@/lib/domain/import/sewanUsers";
-import type { ImportSewanResultat } from "@/lib/repositories/importSewanRepository";
-import { previsualiserSewanAction, validerSewanAction } from "./sewanActions";
+import type { DevicePreviewRow, ImportDevicesResultat } from "@/lib/repositories/importDevicesRepository";
+import { previsualiserDevicesAction, validerDevicesAction } from "./devicesActions";
 
-export function ImportSewanUsers({ clientId }: { clientId: string }) {
+export function ImportSewanDevices({ clientId }: { clientId: string }) {
   const [ouvert, setOuvert] = useState(false);
-  const [rows, setRows] = useState<SewanUserRow[] | null>(null);
+  const [rows, setRows] = useState<DevicePreviewRow[] | null>(null);
   const [ignores, setIgnores] = useState(0);
-  const [doko, setDoko] = useState<Set<number>>(new Set());
-  const [applique, setApplique] = useState<ImportSewanResultat | null>(null);
+  const [applique, setApplique] = useState<ImportDevicesResultat | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -31,54 +29,47 @@ export function ImportSewanUsers({ clientId }: { clientId: string }) {
     setErreur(null);
     setApplique(null);
     startTransition(async () => {
-      const r = await previsualiserSewanAction(formData);
+      const r = await previsualiserDevicesAction(clientId, formData);
       if (r.success) {
         setRows(r.rows);
         setIgnores(r.ignores);
-        setDoko(new Set());
       } else {
         setErreur(r.error);
         setRows(null);
       }
-    });
-  };
-
-  const toggleDoko = (i: number) => {
-    setDoko((prev) => {
-      const n = new Set(prev);
-      if (n.has(i)) n.delete(i);
-      else n.add(i);
-      return n;
     });
   };
 
   const valider = () => {
     if (!rows) return;
     startTransition(async () => {
-      const r = await validerSewanAction(clientId, rows, [...doko]);
+      const r = await validerDevicesAction(
+        clientId,
+        rows.map(({ dejaPresent: _d, ...row }) => row)
+      );
       if (r.success) {
         setApplique(r.resultat);
         setRows(null);
         if (inputRef.current) inputRef.current.value = "";
-      } else {
-        setErreur(r.error);
-      }
+      } else setErreur(r.error);
     });
   };
 
   if (!ouvert) {
     return (
       <Button variant="outline" size="sm" onClick={() => setOuvert(true)}>
-        <FileUp data-icon="inline-start" />
-        Importer des utilisateurs (CSV Sewan)
+        <MonitorSmartphone data-icon="inline-start" />
+        Importer les équipements (CSV Sewan)
       </Button>
     );
   }
 
+  const nouveaux = rows?.filter((r) => !r.dejaPresent).length ?? 0;
+
   return (
     <div className="flex w-full flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold">Import utilisateurs — export Sewan (.csv)</span>
+        <span className="text-sm font-semibold">Import équipements — export Sewan (.csv)</span>
         <Button variant="ghost" size="xs" onClick={() => setOuvert(false)}>Fermer</Button>
       </div>
 
@@ -101,14 +92,13 @@ export function ImportSewanUsers({ clientId }: { clientId: string }) {
       {applique && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
           <CheckCircle2 className="size-4 text-emerald-600" />
-          <span className="font-medium">Import terminé :</span>
-          <Badge variant="outline">{applique.utilisateurs} utilisateurs</Badge>
-          <Badge variant="outline">{applique.numeros} numéros</Badge>
-          <Badge variant="outline">{applique.equipements} équipements</Badge>
-          {applique.doublons > 0 && <Badge variant="outline">{applique.doublons} doublons ignorés</Badge>}
+          <Badge variant="outline">{applique.crees} équipements créés (sans utilisateur)</Badge>
+          {applique.dejaPresents > 0 && (
+            <Badge variant="outline">{applique.dejaPresents} déjà présents, ignorés</Badge>
+          )}
           {applique.modelesCrees.length > 0 && (
             <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400">
-              {applique.modelesCrees.length} modèle(s) créé(s) : {applique.modelesCrees.join(", ")}
+              modèles créés (éligibles export) : {applique.modelesCrees.join(", ")}
             </Badge>
           )}
         </div>
@@ -117,33 +107,38 @@ export function ImportSewanUsers({ clientId }: { clientId: string }) {
       {rows && (
         <>
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <Badge className="tabular-nums">{rows.length} utilisateurs</Badge>
-            {ignores > 0 && (
-              <span className="text-muted-foreground">{ignores} ligne(s) sans numéro ignorée(s)</span>
-            )}
+            <Badge className="tabular-nums">{nouveaux} nouveaux</Badge>
+            <Badge variant="outline" className="tabular-nums">{rows.length - nouveaux} déjà présents</Badge>
+            {ignores > 0 && <span className="text-muted-foreground">{ignores} sans identifiant, ignorés</span>}
             <span className="text-muted-foreground">
-              · Cochez <strong>DOKO</strong> pour ajouter un softphone à un utilisateur.
+              · Les nouveaux sont créés sans utilisateur ni numéro, éligibles aux exports.
             </span>
           </div>
           <div className="max-h-96 overflow-auto rounded-xl border">
             <Table>
               <TableHeader className="sticky top-0 z-10 bg-card">
                 <TableRow className="hover:bg-transparent">
-                  {["Utilisateur", "Numéro", "Poste", "Équipement", "MAC", "DOKO"].map((h) => (
+                  {["Modèle", "MAC / IPUI", "Utilisateur Sewan", "État"].map((h) => (
                     <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.map((r, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium whitespace-nowrap">{r.nom}</TableCell>
-                    <TableCell className="font-mono text-[13px]">{r.numeroBrut}</TableCell>
-                    <TableCell className="font-mono text-[13px]">{r.numeroInterne || "—"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{r.equipementModele ?? "—"}</TableCell>
-                    <TableCell className="font-mono text-[13px]">{r.equipementMac ?? "—"}</TableCell>
+                  <TableRow key={i} className={cn(r.dejaPresent && "opacity-50")}>
+                    <TableCell className="whitespace-nowrap">{r.modele}</TableCell>
+                    <TableCell className="font-mono text-[13px]">{r.mac}</TableCell>
+                    <TableCell className="max-w-60 truncate text-xs text-muted-foreground">
+                      {r.utilisateurSewan ?? "—"}
+                    </TableCell>
                     <TableCell>
-                      <Checkbox checked={doko.has(i)} onCheckedChange={() => toggleDoko(i)} />
+                      {r.dejaPresent ? (
+                        <Badge variant="outline">déjà présent</Badge>
+                      ) : (
+                        <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                          nouveau
+                        </Badge>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -151,8 +146,8 @@ export function ImportSewanUsers({ clientId }: { clientId: string }) {
             </Table>
           </div>
           <div>
-            <Button onClick={valider} disabled={isPending}>
-              {isPending ? "Import…" : `Importer ${rows.length} utilisateurs`}
+            <Button onClick={valider} disabled={isPending || nouveaux === 0}>
+              {isPending ? "Import…" : `Importer ${nouveaux} nouveaux équipements`}
             </Button>
           </div>
         </>
