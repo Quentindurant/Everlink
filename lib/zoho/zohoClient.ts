@@ -10,6 +10,17 @@
 const ACCOUNTS = "https://accounts.zoho.eu";
 const SHEET_API = "https://sheet.zoho.eu/api/v2";
 
+const MOIS = [
+  "JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN",
+  "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE",
+];
+
+// Nom de l'onglet du mois courant, ex "AOUT 2026". Sert de défaut quand ZOHO_WORKSHEET n'est
+// pas fixé, pour suivre le découpage mensuel du classeur sans reconfigurer chaque mois.
+export function ongletDuMois(d = new Date()): string {
+  return `${MOIS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 export function zohoConfig() {
   const {
     ZOHO_CLIENT_ID,
@@ -23,13 +34,13 @@ export function zohoConfig() {
     clientSecret: ZOHO_CLIENT_SECRET,
     refreshToken: ZOHO_REFRESH_TOKEN,
     resourceId: ZOHO_SHEET_RESOURCE_ID,
-    worksheet: ZOHO_WORKSHEET,
+    // Onglet: valeur explicite si fournie, sinon l'onglet du mois courant (classeur mensuel).
+    worksheet: ZOHO_WORKSHEET || ongletDuMois(),
     configure:
       !!ZOHO_CLIENT_ID &&
       !!ZOHO_CLIENT_SECRET &&
       !!ZOHO_REFRESH_TOKEN &&
-      !!ZOHO_SHEET_RESOURCE_ID &&
-      !!ZOHO_WORKSHEET,
+      !!ZOHO_SHEET_RESOURCE_ID,
   };
 }
 
