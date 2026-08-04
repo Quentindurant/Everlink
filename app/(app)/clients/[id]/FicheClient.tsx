@@ -55,13 +55,17 @@ export function FicheClient({
   modelesMail,
   envois,
   numeroGc,
+  ongletInitial,
 }: {
   detail: ClientDetail;
   modelesMail: ModeleMailLite[];
   envois: EnvoiLigne[];
   numeroGc: string;
+  ongletInitial?: string;
 }) {
-  const [onglet, setOnglet] = useState<Onglet>("Numéros");
+  const [onglet, setOnglet] = useState<Onglet>(
+    ONGLETS.includes(ongletInitial as Onglet) ? (ongletInitial as Onglet) : "Numéros"
+  );
   const { client, etapes, auditLogs } = detail;
 
   const nbCellulesSuivi = client.utilisateurs.length * etapes.length;

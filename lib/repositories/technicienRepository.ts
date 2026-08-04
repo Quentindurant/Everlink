@@ -16,6 +16,72 @@ export interface TechnicienLigne {
   actif: boolean;
 }
 
+export interface DossierAdv {
+  clientId: string;
+  raisonSociale: string;
+  departement: string | null;
+  etapeMigrationId: string | null;
+  nbTentativesContact: number;
+  dernierContactLe: string | null;
+  dateIso: string | null;
+  creneau: string | null;
+  technicienId: string | null;
+  avecLien: boolean;
+  lienCommande: boolean;
+  lienLivre: boolean;
+  // Derniers mails envoyés avec succès, par type.
+  mailPrevenanceLe: string | null;
+  mailConfirmationLe: string | null;
+  zohoPousseLe: string | null;
+}
+
+// Tous les dossiers actifs avec leur état actionnable, pour le poste de travail ADV.
+export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
+  const clients = await prisma.client.findMany({
+    where: { archiveA: null },
+    select: {
+      id: true,
+      raisonSociale: true,
+      departement: true,
+      scenario: true,
+      etapeMigrationId: true,
+      nbTentativesContact: true,
+      dernierContactLe: true,
+      dateIntervention: true,
+      creneauIntervention: true,
+      technicienId: true,
+      lienCommande: true,
+      lienLivre: true,
+      zohoLignePousseeLe: true,
+      mailEnvois: {
+        where: { succes: true },
+        orderBy: { creeLe: "desc" },
+        select: { type: true, creeLe: true },
+      },
+    },
+    orderBy: { raisonSociale: "asc" },
+  });
+
+  const d = (x: Date | null | undefined) => (x ? x.toISOString().slice(0, 10) : null);
+  return clients.map((c) => ({
+    clientId: c.id,
+    raisonSociale: c.raisonSociale,
+    departement: c.departement,
+    etapeMigrationId: c.etapeMigrationId,
+    nbTentativesContact: c.nbTentativesContact,
+    dernierContactLe: d(c.dernierContactLe),
+    dateIso: d(c.dateIntervention),
+    creneau: c.creneauIntervention,
+    technicienId: c.technicienId,
+    avecLien: (c.scenario ?? "").toLowerCase().includes("lien"),
+    lienCommande: c.lienCommande,
+    lienLivre: c.lienLivre,
+    mailPrevenanceLe: d(c.mailEnvois.find((m) => m.type === "PREVENANCE")?.creeLe ?? null),
+    mailConfirmationLe: d(c.mailEnvois.find((m) => m.type === "CONFIRMATION")?.creeLe ?? null),
+    zohoPousseLe: d(c.zohoLignePousseeLe),
+  }));
+}
+
 export interface AdvOverview {
   affectes: { clientId: string; raisonSociale: string; technicienNom: string; dateIso: string | null; etape: string | null }[];
   parEtape: { libelle: string; couleur: string; count: number }[];

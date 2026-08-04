@@ -1,9 +1,11 @@
 import {
   fetchAdvOverview,
+  fetchDossiersAdv,
   fetchTechniciens,
   fetchTechniciensDisponibles,
   listPrestataires,
 } from "@/lib/repositories/technicienRepository";
+import { listEtapesMigration } from "@/lib/repositories/migrationRepository";
 import { PageHero } from "@/components/PageHero";
 import { AdvTabs } from "./AdvTabs";
 
@@ -18,8 +20,10 @@ export default async function ADVPage({
   const dateStr = params.date ?? new Date().toISOString().slice(0, 10);
   const departement = params.dep ?? "";
 
-  const [overview, techniciens, prestataires, disponibles] = await Promise.all([
+  const [overview, dossiers, etapes, techniciens, prestataires, disponibles] = await Promise.all([
     fetchAdvOverview(),
+    fetchDossiersAdv(),
+    listEtapesMigration(),
     fetchTechniciens(),
     listPrestataires(),
     fetchTechniciensDisponibles(new Date(dateStr), departement || undefined),
@@ -39,6 +43,8 @@ export default async function ADVPage({
       />
       <AdvTabs
         overview={overview}
+        dossiers={dossiers}
+        etapes={etapes}
         techniciens={techniciens}
         prestataires={prestataires}
         disponibles={disponibles}

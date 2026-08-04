@@ -14,13 +14,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { AdvOverview, TechnicienLigne } from "@/lib/repositories/technicienRepository";
+import type { AdvOverview, DossierAdv, TechnicienLigne } from "@/lib/repositories/technicienRepository";
 import type { TechnicienLite } from "@/lib/domain/technicien/disponibilite";
+import type { EtapeMigrationLite } from "@/lib/domain/migration/etapes";
 import { DispoFiltre, TechniciensManager } from "./TechniciensManager";
 import { ImportTechniciens } from "./ImportTechniciens";
 import { ZohoLiveView } from "./ZohoLiveView";
+import { GestionDossiers } from "./GestionDossiers";
 
-const ONGLETS = ["Pilotage", "Suivi Zoho", "Techniciens"] as const;
+const ONGLETS = ["Dossiers", "Pilotage", "Suivi Zoho", "Techniciens"] as const;
 type Onglet = (typeof ONGLETS)[number];
 
 // URL d'édition du classeur Zoho — ouverte dans une fenêtre dédiée (les ADV sont déjà
@@ -37,6 +39,8 @@ function ouvrirFenetreZoho() {
 
 export function AdvTabs({
   overview,
+  dossiers,
+  etapes,
   techniciens,
   prestataires,
   disponibles,
@@ -44,13 +48,15 @@ export function AdvTabs({
   departement,
 }: {
   overview: AdvOverview;
+  dossiers: DossierAdv[];
+  etapes: EtapeMigrationLite[];
   techniciens: TechnicienLigne[];
   prestataires: { id: string; nom: string }[];
   disponibles: TechnicienLite[];
   dateStr: string;
   departement: string;
 }) {
-  const [onglet, setOnglet] = useState<Onglet>("Pilotage");
+  const [onglet, setOnglet] = useState<Onglet>("Dossiers");
 
   return (
     <div className="flex flex-col gap-4">
@@ -79,6 +85,10 @@ export function AdvTabs({
           Ouvrir le tableau Zoho
         </Button>
       </div>
+
+      {onglet === "Dossiers" && (
+        <GestionDossiers dossiers={dossiers} etapes={etapes} techniciens={techniciens} />
+      )}
 
       {onglet === "Pilotage" && (
         <div className="flex flex-col gap-5">

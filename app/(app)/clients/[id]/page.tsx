@@ -18,10 +18,13 @@ export const dynamic = "force-dynamic";
 
 export default async function ClientDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const { id } = await params;
+  const { onglet } = await searchParams;
   const [detail, etapesMigration, modelesMail, envoisRaw] = await Promise.all([
     fetchClientDetail(id),
     listEtapesMigration(),
@@ -131,6 +134,7 @@ export default async function ClientDetailPage({
         modelesMail={modelesMail}
         envois={envois}
         numeroGc={process.env.NUMERO_GC ?? ""}
+        ongletInitial={onglet}
       />
     </main>
   );
