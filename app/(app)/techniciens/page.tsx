@@ -6,6 +6,7 @@ import {
 } from "@/lib/repositories/technicienRepository";
 import { PageHero } from "@/components/PageHero";
 import { DispoFiltre, TechniciensManager } from "./TechniciensManager";
+import { ImportTechniciens } from "./ImportTechniciens";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,7 @@ export default async function TechniciensPage({
         )}
       </section>
 
+      <ImportTechniciens />
       <TechniciensManager techniciens={techniciens} prestataires={prestataires} />
     </main>
   );
