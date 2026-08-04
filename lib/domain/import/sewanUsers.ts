@@ -2,12 +2,17 @@
 // L'encodage latin-1 est géré en amont (à la lecture du fichier) : ce parseur reçoit du texte
 // déjà décodé. Chaque ligne = un utilisateur avec son numéro, son poste et son équipement.
 
+export interface EquipementSewan {
+  modele: string; // "Yealink T54W"
+  mac: string | null; // "44:DB:D2:5B:C1:56"
+}
+
 export interface SewanUserRow {
   nom: string; // "NOM Prénom"
   numeroBrut: string; // "+33134083932"
   numeroInterne: string; // "432"
-  equipementModele: string | null; // "Yealink T54W"
-  equipementMac: string | null; // "44:DB:D2:5B:C1:56"
+  // Un utilisateur peut avoir plusieurs postes ("Model1 (MAC1), Model2 (MAC2)").
+  equipements: EquipementSewan[];
   email: string | null;
 }
 
@@ -35,12 +40,20 @@ function extraireInterne(brut: string): string {
 
 // "Yealink T54W (44:DB:D2:5B:C1:56)" → { modele: "Yealink T54W", mac: "44:DB:D2:5B:C1:56" }
 // "DOKO" → { modele: "DOKO", mac: null }
-function extraireEquipement(brut: string): { modele: string | null; mac: string | null } {
+// Un utilisateur avec deux postes a une cellule "Model1 (MAC1), Model2 (MAC2)" (ou sans MAC).
+// On sépare sur la virgule (les MAC utilisent ":" et ne contiennent pas de virgule) puis on
+// extrait modèle + MAC de chaque poste.
+function extraireEquipements(brut: string): EquipementSewan[] {
   const t = brut.trim();
-  if (!t) return { modele: null, mac: null };
-  const m = t.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
-  if (m) return { modele: m[1].trim(), mac: m[2].trim() };
-  return { modele: t, mac: null };
+  if (!t) return [];
+  return t
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => {
+      const m = part.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+      return m ? { modele: m[1].trim(), mac: m[2].trim() } : { modele: part, mac: null };
+    });
 }
 
 export function parseSewanUsers(csv: string): { rows: SewanUserRow[]; ignores: number } {
@@ -58,13 +71,11 @@ export function parseSewanUsers(csv: string): { rows: SewanUserRow[]; ignores: n
       ignores++;
       continue;
     }
-    const equip = extraireEquipement(c[4] ?? "");
     rows.push({
       nom: nom || "(sans nom)",
       numeroBrut,
       numeroInterne: extraireInterne(c[3] ?? ""),
-      equipementModele: equip.modele,
-      equipementMac: equip.mac,
+      equipements: extraireEquipements(c[4] ?? ""),
       email: (c[8] || c[6] || "").trim() || null,
     });
   }

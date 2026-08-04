@@ -17,10 +17,21 @@ describe("parseSewanUsers", () => {
       nom: "ALBOU Alain",
       numeroBrut: "0134083932",
       numeroInterne: "432",
-      equipementModele: "Yealink T54W",
-      equipementMac: "44:DB:D2:5B:C1:56",
+      equipements: [{ modele: "Yealink T54W", mac: "44:DB:D2:5B:C1:56" }],
       email: "alain.albou@x.com",
     });
+  });
+
+  test("utilisateur avec deux postes → deux équipements distincts", () => {
+    const csv = [
+      HEADER,
+      '"AFPI";"78";"\'+33134080000 (Pack)";"\'450";"Yealink T54W (80:5E:0C:D1:A6:4A), Yealink T54W";"Pack";"a@x";"*";"";"\'";"\'";"";',
+    ].join("\n");
+    const { rows } = parseSewanUsers(csv);
+    expect(rows[0].equipements).toEqual([
+      { modele: "Yealink T54W", mac: "80:5E:0C:D1:A6:4A" },
+      { modele: "Yealink T54W", mac: null },
+    ]);
   });
 
   test("ignore les lignes sans numéro (infra / user sans ligne)", () => {
@@ -40,8 +51,7 @@ describe("parseSewanUsers", () => {
       '"X";"Y";"\'+33100000000 (Pack)";"\'400";"DOKO";"Pack";"x@x";"*";"x@x";"\'";"\'";"";',
     ].join("\n");
     const { rows } = parseSewanUsers(csv);
-    expect(rows[0].equipementModele).toBe("DOKO");
-    expect(rows[0].equipementMac).toBeNull();
+    expect(rows[0].equipements).toEqual([{ modele: "DOKO", mac: null }]);
   });
 
   test("Polycom avec MAC", () => {
@@ -51,7 +61,8 @@ describe("parseSewanUsers", () => {
     ].join("\n");
     const { rows } = parseSewanUsers(csv);
     expect(rows[0].nom).toBe("CONFERENCE BAS");
-    expect(rows[0].equipementModele).toBe("Polycom RealPresence Trio 8300");
-    expect(rows[0].equipementMac).toBe("64:16:7F:4E:6B:37");
+    expect(rows[0].equipements).toEqual([
+      { modele: "Polycom RealPresence Trio 8300", mac: "64:16:7F:4E:6B:37" },
+    ]);
   });
 });

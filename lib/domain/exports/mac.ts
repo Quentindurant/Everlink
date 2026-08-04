@@ -1,3 +1,5 @@
+import { formaterMac } from "@/lib/domain/normalisation";
+
 export const MAC_HEADERS = ["Client (raison sociale)", "Adresse MAC équipement"];
 
 export interface MacSourceRow {
@@ -17,7 +19,7 @@ export function buildMacRows(rows: MacSourceRow[]): string[][] {
     const key = `${r.clientRaisonSociale} ${r.macNormalise}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    result.push([r.clientRaisonSociale, r.macBrut]);
+    result.push([r.clientRaisonSociale, formaterMac(r.macBrut)]);
   }
 
   return result;
@@ -33,7 +35,7 @@ export function buildMacPreviewRows(rows: MacSourceRow[]): string[][] {
     const key = `${r.clientRaisonSociale} ${r.macNormalise}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    result.push([r.clientRaisonSociale, r.macBrut, r.modeleLibelle ?? ""]);
+    result.push([r.clientRaisonSociale, formaterMac(r.macBrut), r.modeleLibelle ?? ""]);
   }
 
   return result;

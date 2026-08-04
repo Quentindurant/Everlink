@@ -30,6 +30,17 @@ describe("buildMacRows", () => {
   test("headers match SPEC.md §6.3", () => {
     expect(MAC_HEADERS).toEqual(["Client (raison sociale)", "Adresse MAC équipement"]);
   });
+
+  test("formate en xx:xx:xx:xx:xx:xx les MAC sans séparateur, laisse les IPUI DECT", () => {
+    const rows = buildMacRows([
+      { clientRaisonSociale: "A", macBrut: "805E0CC739AC", macNormalise: "805E0CC739AC" },
+      { clientRaisonSociale: "A", macBrut: "0291EE3460", macNormalise: "0291EE3460" },
+    ]);
+    expect(rows).toEqual([
+      ["A", "80:5E:0C:C7:39:AC"],
+      ["A", "0291EE3460"],
+    ]);
+  });
 });
 
 import { buildMacPreviewRows } from "./mac";

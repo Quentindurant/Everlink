@@ -140,8 +140,12 @@ export function ImportSewanUsers({ clientId }: { clientId: string }) {
                     <TableCell className="font-medium whitespace-nowrap">{r.nom}</TableCell>
                     <TableCell className="font-mono text-[13px]">{r.numeroBrut}</TableCell>
                     <TableCell className="font-mono text-[13px]">{r.numeroInterne || "—"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{r.equipementModele ?? "—"}</TableCell>
-                    <TableCell className="font-mono text-[13px]">{r.equipementMac ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {r.equipements.length > 0 ? r.equipements.map((e) => e.modele).join(", ") : "—"}
+                    </TableCell>
+                    <TableCell className="font-mono text-[13px]">
+                      {r.equipements.filter((e) => e.mac).map((e) => e.mac).join(", ") || "—"}
+                    </TableCell>
                     <TableCell>
                       <Checkbox checked={doko.has(i)} onCheckedChange={() => toggleDoko(i)} />
                     </TableCell>

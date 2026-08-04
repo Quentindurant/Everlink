@@ -102,16 +102,16 @@ export async function importUtilisateursSewan(
     });
     res.numeros++;
 
-    // Équipement principal issu du CSV.
-    if (row.equipementModele) {
-      const modeleId = await resoudreModele(row.equipementModele, cacheModele, res.modelesCrees);
+    // Un ou plusieurs postes issus du CSV (un utilisateur peut avoir deux téléphones).
+    for (const equip of row.equipements) {
+      const modeleId = await resoudreModele(equip.modele, cacheModele, res.modelesCrees);
       await prisma.equipement.create({
         data: {
           clientId,
           utilisateurId: utilisateur.id,
           modeleId,
-          macBrut: row.equipementMac ?? "",
-          macNormalise: normaliserMac(row.equipementMac ?? ""),
+          macBrut: equip.mac ?? "",
+          macNormalise: normaliserMac(equip.mac ?? ""),
         },
       });
       res.equipements++;
