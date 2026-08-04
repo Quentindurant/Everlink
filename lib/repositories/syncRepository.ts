@@ -226,12 +226,15 @@ export async function fetchMacData(scope: ExportScope = {}): Promise<MacSourceRo
       archiveA: null,
       exclureExport: false,
       client: clientWhere,
-      modele: { eligibleExport: true },
-      // Même garde que fetchSdaData: un utilisateur archivé ne doit pas faire sortir sa MAC.
-      // Le cas orphelin (équipement sans utilisateur) reste un export légitime.
+      // Tout équipement porteur d'une MAC part à l'export (la répartition téléphonie/réseau se
+      // fait ensuite sur le modèle). On écarte seulement les MAC vides (softphone DOKO, poste
+      // sans MAC connue).
+      macBrut: { not: "" },
+      // Un utilisateur archivé ne doit pas faire sortir sa MAC. Le cas orphelin (équipement
+      // sans utilisateur: borne DECT, réseau) reste un export légitime.
       OR: [{ utilisateurId: null }, { utilisateur: { archiveA: null } }],
     },
-    include: { client: true, modele: { select: { libelle: true } } },
+    include: { client: true, modele: { select: { libelle: true, marque: true } } },
     // buildMacRows (Task 6) deliberately preserves input order rather than sorting, so this
     // repository is the sole decider of MAC order. client.creeLe ties across a bulk import
     // (same transaction timestamp) and Equipement.ordre defaults to 0 for every row, so both
@@ -249,6 +252,7 @@ export async function fetchMacData(scope: ExportScope = {}): Promise<MacSourceRo
     macBrut: e.macBrut,
     macNormalise: e.macNormalise,
     modeleLibelle: e.modele?.libelle ?? null,
+    marque: e.modele?.marque ?? null,
   }));
 }
 
@@ -293,14 +297,12 @@ export async function fetchMacEcarts(scope: ExportScope = {}): Promise<ExportEca
   for (const e of equipements) {
     const base = { raisonSociale: e.client.raisonSociale, valeur: e.macBrut };
     const cle = `${e.client.raisonSociale} ${e.macNormalise}`;
-    if (e.exclureExport) {
+    if (!e.macBrut) {
+      ecarts.push({ ...base, motif: "pas de MAC (softphone / poste sans MAC)" });
+    } else if (e.exclureExport) {
       ecarts.push({ ...base, motif: "exclusion manuelle" });
     } else if (e.utilisateur?.archiveA) {
       ecarts.push({ ...base, motif: "utilisateur archivé" });
-    } else if (!e.modele) {
-      ecarts.push({ ...base, motif: "modèle inconnu" });
-    } else if (!e.modele.eligibleExport) {
-      ecarts.push({ ...base, motif: "modèle non éligible" });
     } else if (vues.has(cle)) {
       ecarts.push({ ...base, motif: "doublon (MAC déjà exportée pour ce client)" });
     } else {

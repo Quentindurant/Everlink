@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { buildSdaRows, SDA_HEADERS } from "@/lib/domain/exports/sda";
 import { buildMacPreviewRows, buildMacRows, MAC_HEADERS } from "@/lib/domain/exports/mac";
+import { estEquipementReseau } from "@/lib/domain/exports/categorieMac";
 import {
   fetchMacData,
   fetchMacEcarts,
@@ -30,21 +31,36 @@ export async function nomFichierExport(type: "sda" | "mac", scope: ExportScope):
   return type === "sda" ? `Import_SDA_-_${reference}.xlsx` : `Import_MAC-_${reference}.xlsx`;
 }
 
+const PREVIEW_MAC_HEADERS = [...MAC_HEADERS, "Équipement"];
+
 export async function buildExport(type: "sda" | "mac", scope: ExportScope) {
   if (type === "sda") {
     const [data, ecarts] = await Promise.all([fetchSdaData(scope), fetchSdaEcarts(scope)]);
     const rows = buildSdaRows(data);
-    return { entetes: SDA_HEADERS, rows, ecarts, previewEntetes: SDA_HEADERS, previewRows: rows };
+    return {
+      entetes: SDA_HEADERS,
+      rows,
+      reseauRows: [] as string[][],
+      ecarts,
+      previewEntetes: SDA_HEADERS,
+      previewRows: rows,
+      previewReseauRows: [] as string[][],
+    };
   }
   const [data, ecarts] = await Promise.all([fetchMacData(scope), fetchMacEcarts(scope)]);
-  // La préview écran porte le modèle en 3e colonne; le fichier xlsx reste à 2 colonnes
-  // (template UNYC strict).
+  // Répartition: téléphones/pieuvres/DECT dans l'onglet principal, réseau (switch, routeur,
+  // OneAccess, 4G) dans un 2e onglet. La préview écran porte le modèle en 3e colonne.
+  const reseau = (r: (typeof data)[number]) => estEquipementReseau(r.marque ?? null, r.modeleLibelle ?? null);
+  const tel = data.filter((r) => !reseau(r));
+  const res = data.filter(reseau);
   return {
     entetes: MAC_HEADERS,
-    rows: buildMacRows(data),
+    rows: buildMacRows(tel),
+    reseauRows: buildMacRows(res),
     ecarts,
-    previewEntetes: [...MAC_HEADERS, "Équipement"],
-    previewRows: buildMacPreviewRows(data),
+    previewEntetes: PREVIEW_MAC_HEADERS,
+    previewRows: buildMacPreviewRows(tel),
+    previewReseauRows: buildMacPreviewRows(res),
   };
 }
 

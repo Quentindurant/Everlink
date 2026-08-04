@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { writeMacXlsx, writeSdaXlsx } from "@/lib/domain/exports/xlsxWriter";
+import { writeMacXlsxDeuxOnglets, writeSdaXlsx } from "@/lib/domain/exports/xlsxWriter";
 import {
   buildExport,
   nomFichierExport,
@@ -21,14 +21,15 @@ export async function handleExportDownload(
 
   const url = new URL(request.url);
   const scope = parseScope(url.searchParams);
-  const [{ entetes, rows }, nomFichier] = await Promise.all([
+  const [{ entetes, rows, reseauRows }, nomFichier] = await Promise.all([
     buildExport(type, scope),
     nomFichierExport(type, scope),
   ]);
 
-  const toutesLignes = [entetes, ...rows];
   const buffer =
-    type === "sda" ? await writeSdaXlsx(toutesLignes) : await writeMacXlsx(toutesLignes);
+    type === "sda"
+      ? await writeSdaXlsx([entetes, ...rows])
+      : await writeMacXlsxDeuxOnglets([entetes, ...rows], [entetes, ...reseauRows]);
 
   // Trace d'audit rejouable (SPEC §3.4): portée, volume et contenu exact du fichier remis.
   await prisma.exportBatch.create({

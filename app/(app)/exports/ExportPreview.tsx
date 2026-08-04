@@ -117,11 +117,16 @@ export function ExportPreviewTables({
   rows,
   repartition,
   ecarts,
+  reseauEntetes,
+  reseauRows,
 }: {
   entetes: string[];
   rows: string[][];
   repartition: { raisonSociale: string; nb: number }[];
   ecarts: ExportEcart[];
+  // Onglet Réseau de l'export MAC (switch, routeur, OneAccess, 4G). Absent pour le SDA.
+  reseauEntetes?: string[];
+  reseauRows?: string[][];
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -219,6 +224,40 @@ export function ExportPreviewTables({
           )}
         </div>
       </div>
+
+      {reseauRows && reseauRows.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold tracking-tight">Onglet Réseau</h3>
+            <Badge variant="outline" className="tabular-nums">{reseauRows.length} lignes</Badge>
+            <span className="text-xs text-muted-foreground">switch, routeur, OneAccess, 4G — 2e onglet du fichier</span>
+          </div>
+          <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-card">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="h-9 w-10 text-xs font-semibold text-muted-foreground">#</TableHead>
+                  {(reseauEntetes ?? entetes).map((h) => (
+                    <TableHead key={h} className="h-9 text-xs font-semibold text-muted-foreground">{h}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reseauRows.map((row, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="text-xs text-muted-foreground tabular-nums">{i + 1}</TableCell>
+                    {row.map((cellule, j) => (
+                      <TableCell key={j} className={cn("whitespace-nowrap", j === 1 && "font-mono text-[13px]")}>
+                        {cellule}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

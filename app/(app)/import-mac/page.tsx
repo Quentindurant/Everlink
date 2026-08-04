@@ -18,13 +18,17 @@ export default async function ImportMacPage({
 }) {
   const params = await searchParams;
   const scope = parseScope(params);
-  const [{ rows, ecarts, previewEntetes, previewRows }, nomFichier, lots, clients] =
-    await Promise.all([
-      buildExport("mac", scope),
-      nomFichierExport("mac", scope),
-      fetchLots(),
-      listClientsActifs(),
-    ]);
+  const [
+    { rows, reseauRows, ecarts, previewEntetes, previewRows, previewReseauRows },
+    nomFichier,
+    lots,
+    clients,
+  ] = await Promise.all([
+    buildExport("mac", scope),
+    nomFichierExport("mac", scope),
+    fetchLots(),
+    listClientsActifs(),
+  ]);
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-5 pb-15">
@@ -32,9 +36,10 @@ export default async function ImportMacPage({
         accentColor="var(--ev-amber)"
         label="Import MAC"
         title="Parc<br />à déclarer"
-        description="Une ligne par MAC éligible, bornes DECT incluses, dans l'ordre de saisie et dédoublonnée par client."
+        description="Téléphones, pieuvres et DECT dans l'onglet principal; switch, routeurs, OneAccess et 4G dans l'onglet Réseau. MAC formatées, dédoublonnées par client."
         kpis={[
-          { value: rows.length, label: rows.length > 1 ? "MAC exportées" : "MAC exportée" },
+          { value: rows.length, label: "MAC téléphonie" },
+          { value: reseauRows.length, label: "MAC réseau", color: "var(--ev-cyan)" },
           {
             value: ecarts.length,
             label: "écartée",
@@ -53,6 +58,8 @@ export default async function ImportMacPage({
         rows={previewRows}
         repartition={repartitionParClient(rows)}
         ecarts={ecarts}
+        reseauEntetes={previewEntetes}
+        reseauRows={previewReseauRows}
       />
     </main>
   );

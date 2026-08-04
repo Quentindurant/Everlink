@@ -6,9 +6,11 @@ export interface MacSourceRow {
   clientRaisonSociale: string;
   macBrut: string;
   macNormalise: string;
-  // Libellé du modèle, pour la prévisualisation à l'écran uniquement (le fichier xlsx reste
-  // strictement à 2 colonnes, conforme au template UNYC).
+  // Libellé et marque du modèle. Le libellé alimente la 3e colonne de prévisualisation; la
+  // marque + le libellé servent à répartir l'équipement entre l'onglet Téléphonie et l'onglet
+  // Réseau (voir estEquipementReseau).
   modeleLibelle?: string | null;
+  marque?: string | null;
 }
 
 export function buildMacRows(rows: MacSourceRow[]): string[][] {
