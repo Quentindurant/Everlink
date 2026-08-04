@@ -18,12 +18,13 @@ export default async function ImportMacPage({
 }) {
   const params = await searchParams;
   const scope = parseScope(params);
-  const [{ entetes, rows, ecarts }, nomFichier, lots, clients] = await Promise.all([
-    buildExport("mac", scope),
-    nomFichierExport("mac", scope),
-    fetchLots(),
-    listClientsActifs(),
-  ]);
+  const [{ rows, ecarts, previewEntetes, previewRows }, nomFichier, lots, clients] =
+    await Promise.all([
+      buildExport("mac", scope),
+      nomFichierExport("mac", scope),
+      fetchLots(),
+      listClientsActifs(),
+    ]);
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-5 pb-15">
@@ -48,8 +49,8 @@ export default async function ImportMacPage({
         nomFichier={nomFichier}
       />
       <ExportPreviewTables
-        entetes={entetes}
-        rows={rows}
+        entetes={previewEntetes}
+        rows={previewRows}
         repartition={repartitionParClient(rows)}
         ecarts={ecarts}
       />

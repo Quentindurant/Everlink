@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { Download } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -164,10 +165,17 @@ export function ExportPreviewTables({
                     <TableCell className="text-xs text-muted-foreground tabular-nums">
                       {i + 1}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">{row[0]}</TableCell>
-                    <TableCell className="font-mono text-[13px] whitespace-nowrap">
-                      {row[1]}
-                    </TableCell>
+                    {row.map((cellule, j) => (
+                      <TableCell
+                        key={j}
+                        className={cn(
+                          "whitespace-nowrap",
+                          j === 1 && "font-mono text-[13px]"
+                        )}
+                      >
+                        {cellule}
+                      </TableCell>
+                    ))}
                   </TableRow>
                 ))
               )}

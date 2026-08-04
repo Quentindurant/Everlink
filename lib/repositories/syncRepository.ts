@@ -246,7 +246,7 @@ export async function fetchMacData(scope: ExportScope = {}): Promise<MacSourceRo
       // Le cas orphelin (équipement sans utilisateur) reste un export légitime.
       OR: [{ utilisateurId: null }, { utilisateur: { archiveA: null } }],
     },
-    include: { client: true },
+    include: { client: true, modele: { select: { libelle: true } } },
     // buildMacRows (Task 6) deliberately preserves input order rather than sorting, so this
     // repository is the sole decider of MAC order. client.creeLe ties across a bulk import
     // (same transaction timestamp) and Equipement.ordre defaults to 0 for every row, so both
@@ -263,6 +263,7 @@ export async function fetchMacData(scope: ExportScope = {}): Promise<MacSourceRo
     clientRaisonSociale: e.client.raisonSociale,
     macBrut: e.macBrut,
     macNormalise: e.macNormalise,
+    modeleLibelle: e.modele?.libelle ?? null,
   }));
 }
 

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { buildSdaRows, SDA_HEADERS } from "@/lib/domain/exports/sda";
-import { buildMacRows, MAC_HEADERS } from "@/lib/domain/exports/mac";
+import { buildMacPreviewRows, buildMacRows, MAC_HEADERS } from "@/lib/domain/exports/mac";
 import {
   fetchMacData,
   fetchMacEcarts,
@@ -33,10 +33,19 @@ export async function nomFichierExport(type: "sda" | "mac", scope: ExportScope):
 export async function buildExport(type: "sda" | "mac", scope: ExportScope) {
   if (type === "sda") {
     const [data, ecarts] = await Promise.all([fetchSdaData(scope), fetchSdaEcarts(scope)]);
-    return { entetes: SDA_HEADERS, rows: buildSdaRows(data), ecarts };
+    const rows = buildSdaRows(data);
+    return { entetes: SDA_HEADERS, rows, ecarts, previewEntetes: SDA_HEADERS, previewRows: rows };
   }
   const [data, ecarts] = await Promise.all([fetchMacData(scope), fetchMacEcarts(scope)]);
-  return { entetes: MAC_HEADERS, rows: buildMacRows(data), ecarts };
+  // La préview écran porte le modèle en 3e colonne; le fichier xlsx reste à 2 colonnes
+  // (template UNYC strict).
+  return {
+    entetes: MAC_HEADERS,
+    rows: buildMacRows(data),
+    ecarts,
+    previewEntetes: [...MAC_HEADERS, "Équipement"],
+    previewRows: buildMacPreviewRows(data),
+  };
 }
 
 export function repartitionParClient(rows: string[][]): { raisonSociale: string; nb: number }[] {
