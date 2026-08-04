@@ -248,6 +248,10 @@ model Numero {
   // Un numéro peut porter plusieurs numéros courts, saisis "401/ 423/ 4123".
   numerosCourts   String[]
 
+  // Code RIO (portabilité), fourni par l'export Sewan v4. Enrichi a posteriori sur les numéros
+  // déjà importés en v3.
+  rio String?
+
   controleNiveau NiveauControle @default(OK)
   controleDetail String?
   controleForce  Boolean        @default(false)

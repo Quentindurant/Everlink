@@ -13,6 +13,7 @@ import { CarteLien } from "./CarteLien";
 import { AffectationTechnicien } from "./AffectationTechnicien";
 import { ImportSewanUsers } from "./ImportSewanUsers";
 import { ImportSewanDevices } from "./ImportSewanDevices";
+import { ImportSewanNumeros } from "./ImportSewanNumeros";
 import { BoutonZoho } from "./BoutonZoho";
 
 export const dynamic = "force-dynamic";
@@ -126,6 +127,7 @@ export default async function ClientDetailPage({
       <div className="flex flex-wrap items-start gap-3">
         <ImportSewanUsers clientId={client.id} />
         <ImportSewanDevices clientId={client.id} />
+        <ImportSewanNumeros clientId={client.id} />
       </div>
       <BoutonZoho
         clientId={client.id}
