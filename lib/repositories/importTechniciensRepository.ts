@@ -20,10 +20,16 @@ export async function parseTechniciensWorkbook(buffer: Buffer): Promise<Technici
     wb.getWorksheet("TECHNICIENS VALIDES") ?? wb.getWorksheet("TECHNICIENS 26") ?? wb.worksheets[0];
   if (!ws) return [];
 
+  // exceljs renvoie parfois autre chose qu'une string pour .text (formule, rich text, nombre).
+  const txt = (c: number, row: ExcelJS.Row): string => {
+    const v = row.getCell(c).text;
+    return typeof v === "string" ? v : v == null ? "" : String(v);
+  };
+
   // Localise la ligne d'en-têtes.
   let headerRow = 1;
   for (let r = 1; r <= Math.min(5, ws.rowCount); r++) {
-    if (ws.getRow(r).getCell(1).text.trim().toLowerCase().startsWith("identité")) {
+    if (txt(1, ws.getRow(r)).trim().toLowerCase().startsWith("identité")) {
       headerRow = r;
       break;
     }
@@ -32,14 +38,14 @@ export async function parseTechniciensWorkbook(buffer: Buffer): Promise<Technici
   const rows: TechnicienImportRow[] = [];
   for (let r = headerRow + 1; r <= ws.rowCount; r++) {
     const row = ws.getRow(r);
-    const nom = row.getCell(1).text.replace(/\s+/g, " ").trim();
+    const nom = txt(1, row).replace(/\s+/g, " ").trim();
     if (!nom || nom === "/") continue;
     rows.push({
       nom,
-      departements: extraireDepartements(row.getCell(2).text),
-      prestataireNom: row.getCell(3).text.trim() || null,
-      telephone: row.getCell(4).text.trim() || null,
-      email: row.getCell(5).text.trim() || null,
+      departements: extraireDepartements(txt(2, row)),
+      prestataireNom: txt(3, row).trim() || null,
+      telephone: txt(4, row).trim() || null,
+      email: txt(5, row).trim() || null,
     });
   }
   return rows;
