@@ -1,0 +1,25 @@
+Modèle;Identifiant;"N° de série";"Nb Ports";Label;Propriétaire;Utilisateur;"Date de début de location";"Date de fin d'engagement"
+"Yealink T57W";805E0C5D0B2E;;1;;afdaeim.esat;standa@esat.associationfami.sewan.eu;;
+"Yealink W90DM";805E0C16A806;;250;;afdaeim.esat;;;
+"Yealink W90B Satellite";805E0C16A1EF;;1;;afdaeim.esat;;;
+"Yealink W90B Satellite";805E0C16A1E9;;1;;afdaeim.esat;;;
+"Yealink W59R";"0291EE3460 - YEALINK";0291EE3460;1;;afdaeim.esat;;;
+"Yealink W59R";"0291EE3BBA - YEALINK";0291EE3BBA;1;;afdaeim.esat;adjoint@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC739AC;;1;;afdaeim.esat;at1@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC96CF9;;1;;afdaeim.esat;at7@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC96CD0;;1;;afdaeim.esat;at5@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC973B0;;1;;afdaeim.esat;directe@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC96CD6;;1;;afdaeim.esat;at6@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC739E8;;1;;afdaeim.esat;chef-de@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC97974;;1;;afdaeim.esat;psychol@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC73951;;1;;afdaeim.esat;adjoint@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC9738C;;1;;afdaeim.esat;assista@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC9798B;;1;;afdaeim.esat;salle-d@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC9798F;;1;;afdaeim.esat;secreta@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC96CFD;;1;;afdaeim.esat;comptab@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC97399;;1;;afdaeim.esat;at3@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC741DF;;1;;afdaeim.esat;educatr@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC7474C;;1;;afdaeim.esat;at4@esat.associationfami.sewan.eu;;
+"Yealink T53";805E0CC74146;;1;;afdaeim.esat;at2@esat.associationfami.sewan.eu;;
+Mikrotik_HAPac2;"HCT08A6PAR7 - MIKROTIK";HCT08A6PAR7;1;;afdaeim.esat;;;
+Mikrotik_HAPac2;"HCT08FYCCEG - MIKROTIK";HCT08FYCCEG;1;;afdaeim.esat;;;
