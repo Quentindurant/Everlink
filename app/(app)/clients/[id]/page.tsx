@@ -11,6 +11,7 @@ import { FicheClient } from "./FicheClient";
 import { FicheMigrationHeader } from "./FicheMigrationHeader";
 import { CarteLien } from "./CarteLien";
 import { AffectationTechnicien } from "./AffectationTechnicien";
+import { ImportSewanUsers } from "./ImportSewanUsers";
 
 export const dynamic = "force-dynamic";
 
@@ -117,6 +118,7 @@ export default async function ClientDetailPage({
         dateIso={client.dateIntervention ? client.dateIntervention.toISOString().slice(0, 10) : null}
         departement={client.departement}
       />
+      <ImportSewanUsers clientId={client.id} />
       <FicheClient
         detail={detail}
         modelesMail={modelesMail}
