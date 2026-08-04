@@ -10,7 +10,7 @@ import {
   type ColumnDef,
   type Row,
 } from "@tanstack/react-table";
-import { CheckCheck, FileX2, Inbox, Plus, Server, Trash2, Undo2 } from "lucide-react";
+import { CheckCheck, ChevronDown, FileX2, Inbox, Plus, Server, Trash2, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -673,6 +673,16 @@ export function ProvisionningTable({
 }) {
   const data = useMemo(() => lignes, [lignes]);
   const [selection, setSelection] = useState<string[]>([]);
+  // Clients repliés (par raison sociale). Replier masque les lignes du client, la bande reste.
+  const [replies, setReplies] = useState<Set<string>>(new Set());
+  const basculerRepli = (raisonSociale: string) => {
+    setReplies((prev) => {
+      const n = new Set(prev);
+      if (n.has(raisonSociale)) n.delete(raisonSociale);
+      else n.add(raisonSociale);
+      return n;
+    });
+  };
   const basculerSelection = (numeroId: string) => {
     setSelection((prev) =>
       prev.includes(numeroId) ? prev.filter((id) => id !== numeroId) : [...prev, numeroId]
@@ -763,6 +773,18 @@ export function ProvisionningTable({
                     <TableCell colSpan={columns.length} className="py-1.5">
                       <div className="flex items-center justify-between gap-2">
                         <span className="flex items-center gap-2">
+                          <button
+                            onClick={() => basculerRepli(raisonSociale)}
+                            className="grid size-5 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                            aria-label={replies.has(raisonSociale) ? "Déplier" : "Replier"}
+                          >
+                            <ChevronDown
+                              className={cn(
+                                "size-4 transition-transform",
+                                replies.has(raisonSociale) && "-rotate-90"
+                              )}
+                            />
+                          </button>
                           <span className="text-sm font-semibold">{raisonSociale}</span>
                           <Badge variant="outline" className="tabular-nums">
                             {nbNumeros} numéro{nbNumeros > 1 ? "s" : ""}
@@ -794,7 +816,8 @@ export function ProvisionningTable({
                       </div>
                     </TableCell>
                   </TableRow>
-                  {rowsDuClient.map((row) => (
+                  {!replies.has(raisonSociale) &&
+                    rowsDuClient.map((row) => (
                     <TableRow
                       key={row.id}
                       className={cn(
