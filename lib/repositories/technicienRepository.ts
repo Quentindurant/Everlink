@@ -16,6 +16,59 @@ export interface TechnicienLigne {
   actif: boolean;
 }
 
+export interface AdvOverview {
+  affectes: { clientId: string; raisonSociale: string; technicienNom: string; dateIso: string | null; etape: string | null }[];
+  parEtape: { libelle: string; couleur: string; count: number }[];
+  liens: { nonCommande: number; commande: number; livre: number };
+}
+
+// Vue d'ensemble pour la page ADV: qui est affecté, avancement des étapes (portabilité),
+// état des commandes de lien. Agrégats calculés sur les clients actifs.
+export async function fetchAdvOverview(): Promise<AdvOverview> {
+  const [affectes, etapes, clients] = await Promise.all([
+    prisma.client.findMany({
+      where: { archiveA: null, technicienId: { not: null } },
+      select: {
+        id: true,
+        raisonSociale: true,
+        dateIntervention: true,
+        technicien: { select: { nom: true } },
+        etapeMigration: { select: { libelle: true } },
+      },
+      orderBy: [{ dateIntervention: "asc" }, { raisonSociale: "asc" }],
+    }),
+    prisma.etapeMigration.findMany({
+      where: { actif: true },
+      orderBy: { ordre: "asc" },
+      select: { libelle: true, couleur: true, _count: { select: { clients: true } } },
+    }),
+    prisma.client.findMany({
+      where: { archiveA: null },
+      select: { lienCommande: true, lienLivre: true, scenario: true },
+    }),
+  ]);
+
+  const liens = { nonCommande: 0, commande: 0, livre: 0 };
+  for (const c of clients) {
+    if (!(c.scenario ?? "").toLowerCase().includes("lien")) continue;
+    if (c.lienLivre) liens.livre++;
+    else if (c.lienCommande) liens.commande++;
+    else liens.nonCommande++;
+  }
+
+  return {
+    affectes: affectes.map((a) => ({
+      clientId: a.id,
+      raisonSociale: a.raisonSociale,
+      technicienNom: a.technicien?.nom ?? "—",
+      dateIso: a.dateIntervention ? a.dateIntervention.toISOString().slice(0, 10) : null,
+      etape: a.etapeMigration?.libelle ?? null,
+    })),
+    parEtape: etapes.map((e) => ({ libelle: e.libelle, couleur: e.couleur, count: e._count.clients })),
+    liens,
+  };
+}
+
 export async function listPrestataires(): Promise<{ id: string; nom: string }[]> {
   return prisma.prestataire.findMany({
     where: { actif: true },

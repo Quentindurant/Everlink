@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Provisionning", dot: "#1f6bff" },
   { href: "/clients", label: "Clients", dot: "#8a5bff" },
   { href: "/telephone", label: "Téléphone", dot: "#00b8cc" },
-  { href: "/techniciens", label: "Techniciens", dot: "#16b57f" },
+  { href: "/techniciens", label: "ADV", dot: "#16b57f" },
   { href: "/lots", label: "Lots", dot: "#16b57f" },
   { href: "/import-sda", label: "Import SDA", dot: "#ffb020" },
   { href: "/import-mac", label: "Import MAC", dot: "#ffb020" },

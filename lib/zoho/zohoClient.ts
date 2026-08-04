@@ -103,6 +103,63 @@ export async function lireAffectationsSheet(): Promise<{ nomTech: string; date: 
   }
 }
 
+export interface LigneZoho {
+  client: string;
+  dpt: string;
+  date: string;
+  heure: string;
+  tech: string;
+  nomTech: string;
+  installation: string;
+  commentaires: string;
+}
+
+let cacheLignes: { at: number; onglet: string; data: LigneZoho[] } | null = null;
+const CACHE_LIGNES_MS = 15_000;
+
+// Lit les lignes de l'onglet du mois pour la vue live (read-only). Colonnes utiles seulement.
+export async function lireLignesSheet(): Promise<{ onglet: string; lignes: LigneZoho[] }> {
+  const c = zohoConfig();
+  const onglet = c.worksheet as string;
+  if (!c.configure) return { onglet, lignes: [] };
+  if (cacheLignes && cacheLignes.onglet === onglet && Date.now() - cacheLignes.at < CACHE_LIGNES_MS) {
+    return { onglet, lignes: cacheLignes.data };
+  }
+  try {
+    const token = await accessToken();
+    const body = new URLSearchParams({
+      method: "worksheet.records.fetch",
+      worksheet_name: onglet,
+      header_row: "1",
+      count: "2000",
+    });
+    const res = await fetch(`${SHEET_API}/${c.resourceId}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Zoho-oauthtoken ${token}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body,
+    });
+    const data = (await res.json()) as { records?: Record<string, unknown>[] };
+    const S = (v: unknown) => (v == null ? "" : String(v));
+    const lignes: LigneZoho[] = (data.records ?? []).map((r) => ({
+      client: S(r["CLIENT"]),
+      dpt: S(r["DPT"]),
+      date: S(r["DATE"]),
+      heure: S(r["HEURE "] ?? r["HEURE"]),
+      tech: S(r["TECH"]),
+      nomTech: S(r["NOM TECH"]),
+      installation: S(r["INSTALLATION"]),
+      commentaires: S(r["PORTA ET COMMENTAIRES IMPORTANT "] ?? r["PORTA ET COMMENTAIRES IMPORTANT"]),
+    }));
+    cacheLignes = { at: Date.now(), onglet, data: lignes };
+    return { onglet, lignes };
+  } catch {
+    return { onglet, lignes: [] };
+  }
+}
+
 // Ajoute une ligne au tableau (l'onglet est traité comme une table dont la 1re ligne porte les
 // noms de colonnes). `record` est indexé par nom de colonne.
 export async function ajouterLigneSheet(

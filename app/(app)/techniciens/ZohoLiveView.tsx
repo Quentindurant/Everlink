@@ -1,0 +1,118 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import type { LigneZoho } from "@/lib/zoho/zohoClient";
+import { rafraichirZohoAction } from "./zohoViewActions";
+
+// Couleurs des statuts d'installation (approx. de la feuille).
+function classeStatut(s: string): string {
+  const t = s.trim().toUpperCase();
+  if (t === "INSTALLATION") return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
+  if (t === "A PLANIFIER") return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+  if (t.startsWith("ATT")) return "bg-amber-500/15 text-amber-700 dark:text-amber-400";
+  if (t === "STAND BY") return "bg-blue-500/15 text-blue-700 dark:text-blue-400";
+  if (t === "STAGING") return "bg-purple-500/15 text-purple-700 dark:text-purple-400";
+  if (t === "NEW") return "bg-pink-500/15 text-pink-700 dark:text-pink-400";
+  if (t === "ANNULEE") return "bg-destructive/15 text-destructive";
+  return "bg-muted text-muted-foreground";
+}
+
+const RAFRAICHIR_MS = 30_000;
+
+export function ZohoLiveView() {
+  const [lignes, setLignes] = useState<LigneZoho[]>([]);
+  const [onglet, setOnglet] = useState("");
+  const [configure, setConfigure] = useState(true);
+  const [majIlYa, setMajIlYa] = useState(0);
+  const [chargement, setChargement] = useState(false);
+  const dernierMaj = useRef(Date.now());
+
+  const charger = useCallback(async () => {
+    setChargement(true);
+    const r = await rafraichirZohoAction();
+    setLignes(r.lignes);
+    setOnglet(r.onglet);
+    setConfigure(r.configure);
+    dernierMaj.current = Date.now();
+    setMajIlYa(0);
+    setChargement(false);
+  }, []);
+
+  useEffect(() => {
+    charger();
+    const refresh = setInterval(charger, RAFRAICHIR_MS);
+    const tick = setInterval(() => setMajIlYa(Math.round((Date.now() - dernierMaj.current) / 1000)), 1000);
+    return () => {
+      clearInterval(refresh);
+      clearInterval(tick);
+    };
+  }, [charger]);
+
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-lg font-semibold tracking-tight">
+          Tableau de suivi Zoho{onglet ? ` — ${onglet}` : ""}
+        </h2>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {configure ? `${lignes.length} lignes · maj il y a ${majIlYa}s` : "Zoho non configuré"}
+        </span>
+        <Button variant="ghost" size="xs" onClick={charger} disabled={chargement} className="ml-auto">
+          <RefreshCw data-icon="inline-start" className={chargement ? "animate-spin" : ""} />
+          Rafraîchir
+        </Button>
+      </div>
+
+      {!configure ? (
+        <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+          Renseignez les variables ZOHO_* pour afficher le tableau de suivi en direct.
+        </div>
+      ) : (
+        <div className="max-h-[70vh] overflow-auto rounded-xl border bg-card shadow-xs">
+          <Table>
+            <TableHeader className="sticky top-0 z-10 bg-card">
+              <TableRow className="hover:bg-transparent">
+                {["Client", "DPT", "Date", "Heure", "Tech", "Nom tech", "Installation", "Commentaires"].map((h) => (
+                  <TableHead key={h} className="h-9 text-xs font-semibold whitespace-nowrap text-muted-foreground">
+                    {h}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {lignes.map((l, i) => (
+                <TableRow key={i}>
+                  <TableCell className="font-medium whitespace-nowrap">{l.client || "—"}</TableCell>
+                  <TableCell className="tabular-nums">{l.dpt}</TableCell>
+                  <TableCell className="whitespace-nowrap tabular-nums">{l.date}</TableCell>
+                  <TableCell className="whitespace-nowrap">{l.heure}</TableCell>
+                  <TableCell className="whitespace-nowrap">{l.tech}</TableCell>
+                  <TableCell className="whitespace-nowrap">{l.nomTech}</TableCell>
+                  <TableCell>
+                    {l.installation && (
+                      <span className={cn("rounded-lg px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap", classeStatut(l.installation))}>
+                        {l.installation}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="max-w-80 truncate" title={l.commentaires}>{l.commentaires}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </section>
+  );
+}
