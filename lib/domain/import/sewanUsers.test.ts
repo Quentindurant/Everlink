@@ -15,7 +15,7 @@ describe("parseSewanUsers", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toEqual({
       nom: "ALBOU Alain",
-      numeroBrut: "+33134083932",
+      numeroBrut: "0134083932",
       numeroInterne: "432",
       equipementModele: "Yealink T54W",
       equipementMac: "44:DB:D2:5B:C1:56",

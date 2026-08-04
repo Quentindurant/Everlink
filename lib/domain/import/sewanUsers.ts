@@ -17,9 +17,15 @@ function champs(ligne: string): string[] {
   return ligne.split(";").map((c) => c.replace(/^"|"$/g, "").trim());
 }
 
-// "'+33134083932 (Pack téléphonie hébergée)" → "+33134083932"
+// "'+33134083932 (Pack téléphonie hébergée)" → "0134083932"
+// On garde le numéro en chiffres (format national), pas en +33.
 function extraireNumero(brut: string): string {
-  return brut.replace(/^'/, "").split("(")[0].trim();
+  const n = brut.replace(/^'/, "").split("(")[0].trim();
+  // +33X ou 0033X → 0X ; on retire aussi espaces et séparateurs.
+  return n
+    .replace(/^\+33\s*/, "0")
+    .replace(/^0033\s*/, "0")
+    .replace(/[^\d]/g, "");
 }
 
 // "'432" → "432"

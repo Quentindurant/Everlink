@@ -11,7 +11,6 @@ import { ajouterLigneSheet } from "@/lib/zoho/zohoClient";
 function construireRecord(c: {
   raisonSociale: string;
   departement: string | null;
-  hebergeurSource: string;
   dateIntervention: Date | null;
   creneauIntervention: string | null;
   commentaire: string | null;
@@ -24,7 +23,8 @@ function construireRecord(c: {
   return {
     CLIENT: c.raisonSociale,
     DPT: c.departement ?? "",
-    PARTE: c.hebergeurSource,
+    // Les dossiers gérés par GC pour Everlink portent le partenaire "EVERLINK".
+    PARTE: "EVERLINK",
     DATE: c.dateIntervention ? c.dateIntervention.toLocaleDateString("fr-FR") : "",
     "HEURE ": c.creneauIntervention ?? "",
     "PORTA ET COMMENTAIRES IMPORTANT ": [c.referenceClient, c.commentaire].filter(Boolean).join(" — "),
@@ -52,7 +52,6 @@ export async function pousserVersZohoAction(
   const record = construireRecord({
     raisonSociale: client.raisonSociale,
     departement: client.departement,
-    hebergeurSource: client.hebergeurSource,
     dateIntervention: client.dateIntervention,
     creneauIntervention: client.creneauIntervention,
     commentaire: client.commentaire,
