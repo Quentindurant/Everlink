@@ -36,7 +36,6 @@ export function TechniciensManager({
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold tracking-tight">Référentiel</h2>
 
       <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3 shadow-xs">
         <Input placeholder="Nom du technicien" value={nom} onChange={(e) => setNom(e.target.value)} className="w-52" />
