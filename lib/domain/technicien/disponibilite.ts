@@ -31,7 +31,10 @@ export function techniciensDisponibles(
   techniciens: TechnicienLite[],
   affectations: Affectation[],
   date: Date,
-  departement?: string
+  departement?: string,
+  // Noms de techniciens occupés ce jour-là selon une source externe (Zoho Sheet), déjà
+  // normalisés via normaliserNomTech.
+  nomsOccupes?: Set<string>
 ): TechnicienLite[] {
   const occupes = new Set(
     affectations
@@ -40,7 +43,41 @@ export function techniciensDisponibles(
   );
   return techniciens.filter((t) => {
     if (occupes.has(t.id)) return false;
+    if (nomsOccupes && nomsOccupes.has(normaliserNomTech(t.nom))) return false;
     if (departement && !couvre(t, departement)) return false;
     return true;
   });
+}
+
+// Nom de technicien normalisé pour rapprocher l'app et le Zoho Sheet (casse, accents, espaces).
+export function normaliserNomTech(nom: string): string {
+  return nom
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
+export interface AffectationZoho {
+  nomTech: string;
+  // Date telle qu'écrite dans le Sheet: "DD/MM" ou "DD/MM/YYYY".
+  date: string;
+}
+
+// Ensemble des noms de techniciens (normalisés) occupés à la date cible d'après le Zoho Sheet.
+// On compare au jour/mois près (l'onglet est mensuel, l'année est implicite).
+export function nomsTechOccupes(affectations: AffectationZoho[], cible: Date): Set<string> {
+  const jour = cible.getDate();
+  const mois = cible.getMonth() + 1;
+  const out = new Set<string>();
+  for (const a of affectations) {
+    if (!a.nomTech.trim()) continue;
+    const m = a.date.match(/^(\d{1,2})\/(\d{1,2})/);
+    if (!m) continue;
+    if (parseInt(m[1], 10) === jour && parseInt(m[2], 10) === mois) {
+      out.add(normaliserNomTech(a.nomTech));
+    }
+  }
+  return out;
 }

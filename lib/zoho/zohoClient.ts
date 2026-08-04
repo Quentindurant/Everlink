@@ -60,6 +60,49 @@ async function accessToken(): Promise<string> {
   return data.access_token;
 }
 
+// Cache mémoire des affectations lues (le process pm2 est unique). Évite un appel Zoho à chaque
+// affichage de disponibilité.
+let cacheAffectations: { at: number; onglet: string; data: { nomTech: string; date: string }[] } | null = null;
+const CACHE_MS = 120_000;
+
+// Lit les affectations (NOM TECH + DATE) de l'onglet du mois pour calculer la disponibilité.
+// Renvoie [] si Zoho n'est pas configuré ou en cas d'erreur (la dispo retombe alors sur les
+// seules affectations de l'app).
+export async function lireAffectationsSheet(): Promise<{ nomTech: string; date: string }[]> {
+  const c = zohoConfig();
+  if (!c.configure) return [];
+  const onglet = c.worksheet as string;
+  if (cacheAffectations && cacheAffectations.onglet === onglet && Date.now() - cacheAffectations.at < CACHE_MS) {
+    return cacheAffectations.data;
+  }
+  try {
+    const token = await accessToken();
+    const body = new URLSearchParams({
+      method: "worksheet.records.fetch",
+      worksheet_name: onglet,
+      header_row: "1",
+      count: "2000",
+    });
+    const res = await fetch(`${SHEET_API}/${c.resourceId}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Zoho-oauthtoken ${token}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body,
+    });
+    const data = (await res.json()) as { records?: Record<string, unknown>[] };
+    const out = (data.records ?? []).map((r) => ({
+      nomTech: String(r["NOM TECH"] ?? ""),
+      date: String(r["DATE"] ?? ""),
+    }));
+    cacheAffectations = { at: Date.now(), onglet, data: out };
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 // Ajoute une ligne au tableau (l'onglet est traité comme une table dont la 1re ligne porte les
 // noms de colonnes). `record` est indexé par nom de colonne.
 export async function ajouterLigneSheet(

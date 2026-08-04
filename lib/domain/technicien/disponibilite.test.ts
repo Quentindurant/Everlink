@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { techniciensDisponibles, memeJour, type TechnicienLite } from "./disponibilite";
+import {
+  techniciensDisponibles,
+  memeJour,
+  normaliserNomTech,
+  nomsTechOccupes,
+  type TechnicienLite,
+} from "./disponibilite";
 
 const TECHS: TechnicienLite[] = [
   { id: "a", nom: "Bruce", departements: [] },
@@ -44,5 +50,32 @@ describe("techniciensDisponibles", () => {
     const affectations = [{ technicienId: "a", date: null }];
     const dispo = techniciensDisponibles(TECHS, affectations, date);
     expect(dispo.map((t) => t.id)).toContain("a");
+  });
+
+  test("exclut les noms occupés dans le Zoho Sheet ce jour-là", () => {
+    const occupes = new Set(["BRUCE"]); // normalisé
+    const dispo = techniciensDisponibles(TECHS, [], date, undefined, occupes);
+    expect(dispo.map((t) => t.id).sort()).toEqual(["b", "c"]);
+  });
+});
+
+describe("normaliserNomTech", () => {
+  test("casse, accents, espaces", () => {
+    expect(normaliserNomTech("  Jérémy  Chavillon ")).toBe("JEREMY CHAVILLON");
+    expect(normaliserNomTech("Bruce ")).toBe("BRUCE");
+  });
+});
+
+describe("nomsTechOccupes", () => {
+  test("matche au jour/mois près (DD/MM et DD/MM/YYYY)", () => {
+    const cible = new Date("2026-08-12T00:00:00");
+    const aff = [
+      { nomTech: "Bruce ", date: "12/08" },
+      { nomTech: "Fathi", date: "12/08/2026" },
+      { nomTech: "Karim", date: "13/08" },
+      { nomTech: "", date: "12/08" },
+    ];
+    const s = nomsTechOccupes(aff, cible);
+    expect([...s].sort()).toEqual(["BRUCE", "FATHI"]);
   });
 });
