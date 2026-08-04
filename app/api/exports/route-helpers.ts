@@ -21,15 +21,18 @@ export async function handleExportDownload(
 
   const url = new URL(request.url);
   const scope = parseScope(url.searchParams);
-  const [{ entetes, rows, reseauRows }, nomFichier] = await Promise.all([
-    buildExport(type, scope),
-    nomFichierExport(type, scope),
-  ]);
+  const [{ entetes, rows, previewEntetes, previewRows, previewReseauRows }, nomFichier] =
+    await Promise.all([buildExport(type, scope), nomFichierExport(type, scope)]);
 
+  // Le fichier MAC porte la colonne Équipement (modèle) sur ses deux onglets; le SDA reste au
+  // format strict à 2 colonnes.
   const buffer =
     type === "sda"
       ? await writeSdaXlsx([entetes, ...rows])
-      : await writeMacXlsxDeuxOnglets([entetes, ...rows], [entetes, ...reseauRows]);
+      : await writeMacXlsxDeuxOnglets(
+          [previewEntetes, ...previewRows],
+          [previewEntetes, ...previewReseauRows]
+        );
 
   // Trace d'audit rejouable (SPEC §3.4): portée, volume et contenu exact du fichier remis.
   await prisma.exportBatch.create({

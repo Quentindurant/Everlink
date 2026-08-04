@@ -52,6 +52,7 @@ export async function writeMacXlsxDeuxOnglets(
     const ws = wb.addWorksheet(nom);
     ws.getColumn(1).width = 48;
     ws.getColumn(2).width = 22.71;
+    ws.getColumn(3).width = 28;
     for (const row of rows) ws.addRow(row);
   };
 
