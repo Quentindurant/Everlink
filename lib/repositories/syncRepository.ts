@@ -197,6 +197,9 @@ export async function fetchTelephoneData(): Promise<{
   return { utilisateurs: rows, etapeLibelles };
 }
 
+// L'export SDA est la liste des numéros à porter: tout numéro actif et non exclu en fait partie,
+// qu'il porte un équipement/MAC ou non. Un numéro SVI ou groupe d'appels (sans utilisateur ni
+// MAC) doit être porté au même titre qu'un poste. Le lien à la MAC ne concerne que l'export MAC.
 export async function fetchSdaData(scope: ExportScope = {}): Promise<SdaSourceRow[]> {
   const clientWhere = await clientScopeWhere(scope);
   const numeros = await prisma.numero.findMany({
@@ -204,34 +207,16 @@ export async function fetchSdaData(scope: ExportScope = {}): Promise<SdaSourceRo
       archiveA: null,
       exclureExport: false,
       client: clientWhere,
-      utilisateurId: { not: null },
     },
     include: { client: true },
     orderBy: [{ client: { raisonSociale: "asc" } }, { ordre: "asc" }, { id: "asc" }],
   });
 
-  const eligibleEquipements = await prisma.equipement.findMany({
-    where: {
-      archiveA: null,
-      exclureExport: false,
-      client: clientWhere,
-      utilisateurId: { in: numeros.map((n) => n.utilisateurId).filter((id): id is string => id !== null) },
-      // Numero.clientId and Utilisateur.clientId aren't schema-enforced to match, and an
-      // archived Utilisateur shouldn't make its numéro export-eligible.
-      utilisateur: { archiveA: null },
-      modele: { eligibleExport: true },
-    },
-    select: { utilisateurId: true },
-  });
-  const eligibleUtilisateurIds = new Set(eligibleEquipements.map((e) => e.utilisateurId));
-
-  return numeros
-    .filter((n) => n.utilisateurId && eligibleUtilisateurIds.has(n.utilisateurId))
-    .map((n) => ({
-      clientRaisonSociale: n.client.raisonSociale,
-      numeroBrut: n.numeroBrut,
-      ordre: n.ordre,
-    }));
+  return numeros.map((n) => ({
+    clientRaisonSociale: n.client.raisonSociale,
+    numeroBrut: n.numeroBrut,
+    ordre: n.ordre,
+  }));
 }
 
 export async function fetchMacData(scope: ExportScope = {}): Promise<MacSourceRow[]> {
@@ -267,40 +252,22 @@ export async function fetchMacData(scope: ExportScope = {}): Promise<MacSourceRo
   }));
 }
 
-// Lignes écartées de l'export SDA avec motif (SPEC §3.4). Parcourt tous les numéros actifs
-// du scope et explique pourquoi chacun ne sort pas.
+// Lignes écartées de l'export SDA avec motif. Depuis que le SDA sort tous les numéros à porter,
+// le seul motif d'écart est l'exclusion manuelle (l'absence de MAC/utilisateur n'écarte plus:
+// les numéros SVI/groupe d'appels partent bien en portabilité).
 export async function fetchSdaEcarts(scope: ExportScope = {}): Promise<ExportEcart[]> {
   const clientWhere = await clientScopeWhere(scope);
   const numeros = await prisma.numero.findMany({
-    where: { archiveA: null, client: clientWhere },
-    include: {
-      client: { select: { raisonSociale: true } },
-      utilisateur: {
-        include: {
-          equipements: {
-            where: { archiveA: null, exclureExport: false },
-            include: { modele: { select: { eligibleExport: true } } },
-          },
-        },
-      },
-    },
+    where: { archiveA: null, exclureExport: true, client: clientWhere },
+    include: { client: { select: { raisonSociale: true } } },
     orderBy: [{ client: { raisonSociale: "asc" } }, { ordre: "asc" }, { id: "asc" }],
   });
 
-  const ecarts: ExportEcart[] = [];
-  for (const n of numeros) {
-    const base = { raisonSociale: n.client.raisonSociale, valeur: n.numeroBrut };
-    if (n.exclureExport) {
-      ecarts.push({ ...base, motif: "exclusion manuelle" });
-    } else if (!n.utilisateurId || !n.utilisateur || n.utilisateur.archiveA) {
-      ecarts.push({ ...base, motif: "pas d'utilisateur (numéro en stock)" });
-    } else if (n.utilisateur.equipements.length === 0) {
-      ecarts.push({ ...base, motif: "pas de MAC pour l'utilisateur" });
-    } else if (!n.utilisateur.equipements.some((e) => e.modele?.eligibleExport)) {
-      ecarts.push({ ...base, motif: "modèle non éligible" });
-    }
-  }
-  return ecarts;
+  return numeros.map((n) => ({
+    raisonSociale: n.client.raisonSociale,
+    valeur: n.numeroBrut,
+    motif: "exclusion manuelle",
+  }));
 }
 
 // Lignes écartées de l'export MAC avec motif (SPEC §3.4).
