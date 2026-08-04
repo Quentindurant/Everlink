@@ -20,13 +20,14 @@ function construireRecord(c: {
   prestataireNom: string | null;
   technicienNom: string | null;
 }): Record<string, string> {
+  // Noms de colonnes EXACTS de la feuille (certains ont un espace en fin, vérifié via l'API).
   return {
     CLIENT: c.raisonSociale,
     DPT: c.departement ?? "",
     PARTE: c.hebergeurSource,
     DATE: c.dateIntervention ? c.dateIntervention.toLocaleDateString("fr-FR") : "",
-    HEURE: c.creneauIntervention ?? "",
-    "PORTA ET COMMENTAIRES IMPORTANT": [c.referenceClient, c.commentaire].filter(Boolean).join(" — "),
+    "HEURE ": c.creneauIntervention ?? "",
+    "PORTA ET COMMENTAIRES IMPORTANT ": [c.referenceClient, c.commentaire].filter(Boolean).join(" — "),
     TECH: c.prestataireNom ?? "",
     "NOM TECH": c.technicienNom ?? "",
     INSTALLATION: c.etapeLibelle ?? "",
