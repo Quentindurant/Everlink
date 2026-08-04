@@ -12,6 +12,7 @@ import { FicheMigrationHeader } from "./FicheMigrationHeader";
 import { CarteLien } from "./CarteLien";
 import { AffectationTechnicien } from "./AffectationTechnicien";
 import { ImportSewanUsers } from "./ImportSewanUsers";
+import { BoutonZoho } from "./BoutonZoho";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +120,12 @@ export default async function ClientDetailPage({
         departement={client.departement}
       />
       <ImportSewanUsers clientId={client.id} />
+      <BoutonZoho
+        clientId={client.id}
+        dejaPousseLe={
+          client.zohoLignePousseeLe ? client.zohoLignePousseeLe.toLocaleDateString("fr-FR") : null
+        }
+      />
       <FicheClient
         detail={detail}
         modelesMail={modelesMail}
