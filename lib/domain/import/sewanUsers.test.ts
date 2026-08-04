@@ -1,0 +1,57 @@
+import { describe, expect, test } from "bun:test";
+import { parseSewanUsers } from "./sewanUsers";
+
+const HEADER =
+  '"Nom";"Prénom";"Numéro(s)";"Numéro(s) Interne(s)";"Equipement(s)";"Service(s)";"Identifiant/Email";"Password";"Contact mail";"Mobile";"Mobile abrégés";"Numéro Affiché (NDS)";';
+
+describe("parseSewanUsers", () => {
+  test("parse une ligne standard", () => {
+    const csv = [
+      HEADER,
+      '"ALBOU";"Alain";"\'+33134083932 (Pack téléphonie hébergée)";"\'432";"Yealink T54W (44:DB:D2:5B:C1:56)";"Pack téléphonie hébergée";"aalbou@x.eu";"********";"alain.albou@x.com";"\'";"\'";"\'+33134083932";',
+    ].join("\n");
+    const { rows, ignores } = parseSewanUsers(csv);
+    expect(ignores).toBe(0);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual({
+      nom: "ALBOU Alain",
+      numeroBrut: "+33134083932",
+      numeroInterne: "432",
+      equipementModele: "Yealink T54W",
+      equipementMac: "44:DB:D2:5B:C1:56",
+      email: "alain.albou@x.com",
+    });
+  });
+
+  test("ignore les lignes sans numéro (infra / user sans ligne)", () => {
+    const csv = [
+      HEADER,
+      '"4G";"Routeur";"";"";"";"";"r4g@x";"********";"None";"\'";"\'";"";',
+      '"BARROUL";"Bruno";"";"";"";"Administration";"bruno@x.com";"********";"bruno@x.com";"\'";"\'";"";',
+    ].join("\n");
+    const { rows, ignores } = parseSewanUsers(csv);
+    expect(rows).toHaveLength(0);
+    expect(ignores).toBe(2);
+  });
+
+  test("équipement sans MAC reconnaissable → modèle sans mac", () => {
+    const csv = [
+      HEADER,
+      '"X";"Y";"\'+33100000000 (Pack)";"\'400";"DOKO";"Pack";"x@x";"*";"x@x";"\'";"\'";"";',
+    ].join("\n");
+    const { rows } = parseSewanUsers(csv);
+    expect(rows[0].equipementModele).toBe("DOKO");
+    expect(rows[0].equipementMac).toBeNull();
+  });
+
+  test("Polycom avec MAC", () => {
+    const csv = [
+      HEADER,
+      '"CONFERENCE";"BAS";"\'+33134087231 (Pack)";"\'431";"Polycom RealPresence Trio 8300 (64:16:7F:4E:6B:37)";"Pack";"c@x";"*";"";"\'";"\'";"";',
+    ].join("\n");
+    const { rows } = parseSewanUsers(csv);
+    expect(rows[0].nom).toBe("CONFERENCE BAS");
+    expect(rows[0].equipementModele).toBe("Polycom RealPresence Trio 8300");
+    expect(rows[0].equipementMac).toBe("64:16:7F:4E:6B:37");
+  });
+});
