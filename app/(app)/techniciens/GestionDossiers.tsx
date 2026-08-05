@@ -23,11 +23,67 @@ import { setCreneauInterventionAction } from "@/app/(app)/clients/[id]/mailActio
 import { marquerLienCommandeAction, marquerLienLivreAction } from "@/app/(app)/clients/[id]/lienActions";
 import { pousserVersZohoAction } from "@/app/(app)/clients/[id]/zohoActions";
 import { couleurStatutSuivi, STATUTS_SUIVI } from "@/lib/domain/zoho/suiviSheet";
+import { SuiviColisBadge } from "@/components/SuiviColisBadge";
 import {
   affecterTechnicienAction,
+  setColisSuiviAction,
   setRouteurClientReutiliseAction,
   updateSuiviAdvAction,
 } from "./actions";
+
+// Colis client : le badge d'état + un champ scannable pour saisir/coller le N° de suivi.
+function ColisCell({
+  d,
+  onDone,
+}: {
+  d: DossierAdv;
+  onDone: (fn: () => Promise<unknown>) => void;
+}) {
+  const [saisie, setSaisie] = useState(false);
+  const [num, setNum] = useState(d.colisNumeroSuivi ?? "");
+  if (!saisie && d.colisNumeroSuivi) {
+    return (
+      <button onClick={() => setSaisie(true)} title="Modifier le numéro de suivi" className="text-left">
+        <SuiviColisBadge
+          statut={d.colisSuiviStatut}
+          libelle={d.colisSuiviLibelle}
+          numeroSuivi={d.colisNumeroSuivi}
+          transporteur={d.colisTransporteur}
+        />
+      </button>
+    );
+  }
+  if (!saisie) {
+    return (
+      <button
+        onClick={() => setSaisie(true)}
+        className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+      >
+        + suivi colis
+      </button>
+    );
+  }
+  return (
+    <input
+      value={num}
+      autoFocus
+      placeholder="scan N° suivi…"
+      onChange={(e) => setNum(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          setSaisie(false);
+          onDone(() => setColisSuiviAction(d.clientId, num));
+        }
+        if (e.key === "Escape") setSaisie(false);
+      }}
+      onBlur={() => {
+        setSaisie(false);
+        if (num !== (d.colisNumeroSuivi ?? "")) onDone(() => setColisSuiviAction(d.clientId, num));
+      }}
+      className="w-32 rounded-md border border-input bg-transparent px-1.5 py-0.5 font-mono text-[12px] outline-none focus:border-ring"
+    />
+  );
+}
 
 // Pastille au code couleur du TABLEAU SUIVI COMMANDES (mêmes teintes que le Sheet des ADV).
 function SelectStatutSuivi({
@@ -270,6 +326,11 @@ function LigneDossier({
         </button>
       </TableCell>
 
+      {/* Colis (suivi Chronopost) */}
+      <TableCell>
+        <ColisCell d={d} onDone={agir} />
+      </TableCell>
+
       {/* Matériel reçu / N° Chrono / Infos facturation */}
       <TableCell>
         <ChampSuivi clientId={d.clientId} champ="materielRecu" valeur={d.materielRecu} placeholder="matériel…" largeur="w-24" onDone={agir} />
@@ -331,7 +392,7 @@ export function GestionDossiers({
         <Table>
           <TableHeader className="sticky top-0 z-10">
             <TableRow className="hover:bg-transparent">
-              {["Client", "Statut ADV", "Impératif", "Étape", "Contact", "Intervention", "Technicien", "Lien", "Mails", "Zoho", "Matériel reçu", "N° Chrono", "Facturation", "Routeur"].map((h) => (
+              {["Client", "Statut ADV", "Impératif", "Étape", "Contact", "Intervention", "Technicien", "Lien", "Mails", "Zoho", "Colis", "Matériel reçu", "N° Chrono", "Facturation", "Routeur"].map((h) => (
                 <TableHead key={h} className="h-9 whitespace-nowrap">
                   {h}
                 </TableHead>
@@ -341,7 +402,7 @@ export function GestionDossiers({
           <TableBody>
             {visibles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={14} className="py-8 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={15} className="py-8 text-center text-sm text-muted-foreground">
                   Aucun dossier.
                 </TableCell>
               </TableRow>

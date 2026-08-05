@@ -9,6 +9,8 @@ import {
   supprimerTechnicien,
   updateTechnicien,
 } from "@/lib/repositories/technicienRepository";
+import { numeroSuiviValide } from "@/lib/domain/tracking/laposte";
+import { suivreColis } from "@/lib/tracking/laPosteClient";
 
 type Resultat = { success: boolean; error?: string };
 
@@ -47,6 +49,47 @@ export async function updateSuiviAdvAction(
         champ === "dateImperative"
           ? { dateImperative: v ? new Date(v) : null }
           : { [champ]: v || null },
+    });
+  });
+}
+
+// Enregistre le numéro de suivi du colis client (routeur/lien) et relève un premier état.
+// Numéro vide = on efface le suivi. Le cron rafraîchira ensuite l'état.
+export async function setColisSuiviAction(
+  clientId: string,
+  numeroSuivi: string,
+  transporteur = "Chronopost"
+): Promise<Resultat> {
+  return garde(async () => {
+    const num = numeroSuivi.trim();
+    if (!num) {
+      await prisma.client.update({
+        where: { id: clientId },
+        data: {
+          colisNumeroSuivi: null,
+          colisTransporteur: null,
+          colisSuiviStatut: null,
+          colisSuiviLibelle: null,
+          colisSuiviLivreLe: null,
+          colisSuiviMajLe: null,
+        },
+      });
+      return;
+    }
+    if (!numeroSuiviValide(num)) {
+      return { success: false, error: "Numéro de suivi invalide (11 à 15 caractères)." };
+    }
+    const etat = await suivreColis(num);
+    await prisma.client.update({
+      where: { id: clientId },
+      data: {
+        colisNumeroSuivi: num,
+        colisTransporteur: transporteur.trim() || "Chronopost",
+        colisSuiviStatut: etat?.statut ?? null,
+        colisSuiviLibelle: etat?.libelle ?? null,
+        colisSuiviLivreLe: etat?.livreLe ? new Date(etat.livreLe) : null,
+        colisSuiviMajLe: new Date(),
+      },
     });
   });
 }

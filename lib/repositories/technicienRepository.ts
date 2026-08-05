@@ -40,6 +40,11 @@ export interface DossierAdv {
   materielRecu: string | null;
   numeroChrono: string | null;
   infosFacturation: string | null;
+  // Suivi du colis expédié au client (La Poste/Chronopost).
+  colisTransporteur: string | null;
+  colisNumeroSuivi: string | null;
+  colisSuiviStatut: string | null;
+  colisSuiviLibelle: string | null;
 }
 
 // Tous les dossiers actifs avec leur état actionnable, pour le poste de travail ADV.
@@ -66,6 +71,10 @@ export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
       materielRecu: true,
       numeroChrono: true,
       infosFacturation: true,
+      colisTransporteur: true,
+      colisNumeroSuivi: true,
+      colisSuiviStatut: true,
+      colisSuiviLibelle: true,
       mailEnvois: {
         where: { succes: true },
         orderBy: { creeLe: "desc" },
@@ -98,6 +107,10 @@ export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
     materielRecu: c.materielRecu,
     numeroChrono: c.numeroChrono,
     infosFacturation: c.infosFacturation,
+    colisTransporteur: c.colisTransporteur,
+    colisNumeroSuivi: c.colisNumeroSuivi,
+    colisSuiviStatut: c.colisSuiviStatut,
+    colisSuiviLibelle: c.colisSuiviLibelle,
   }));
 }
 
