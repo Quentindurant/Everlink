@@ -143,16 +143,19 @@ export async function lireLignesSheet(): Promise<{ onglet: string; lignes: Ligne
     });
     const data = (await res.json()) as { records?: Record<string, unknown>[] };
     const S = (v: unknown) => (v == null ? "" : String(v));
-    const lignes: LigneZoho[] = (data.records ?? []).map((r) => ({
-      client: S(r["CLIENT"]),
-      dpt: S(r["DPT"]),
-      date: S(r["DATE"]),
-      heure: S(r["HEURE "] ?? r["HEURE"]),
-      tech: S(r["TECH"]),
-      nomTech: S(r["NOM TECH"]),
-      installation: S(r["INSTALLATION"]),
-      commentaires: S(r["PORTA ET COMMENTAIRES IMPORTANT "] ?? r["PORTA ET COMMENTAIRES IMPORTANT"]),
-    }));
+    const lignes: LigneZoho[] = (data.records ?? [])
+      // Ne garder que les dossiers gérés par Everlink (colonne PARTE).
+      .filter((r) => S(r["PARTE"]).trim().toUpperCase() === "EVERLINK")
+      .map((r) => ({
+        client: S(r["CLIENT"]),
+        dpt: S(r["DPT"]),
+        date: S(r["DATE"]),
+        heure: S(r["HEURE "] ?? r["HEURE"]),
+        tech: S(r["TECH"]),
+        nomTech: S(r["NOM TECH"]),
+        installation: S(r["INSTALLATION"]),
+        commentaires: S(r["PORTA ET COMMENTAIRES IMPORTANT "] ?? r["PORTA ET COMMENTAIRES IMPORTANT"]),
+      }));
     cacheLignes = { at: Date.now(), onglet, data: lignes };
     return { onglet, lignes };
   } catch {
