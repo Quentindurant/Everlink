@@ -4,15 +4,27 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const NAV_ITEMS = [
-  { href: "/", label: "Provisionning", dot: "#1f6bff" },
-  { href: "/clients", label: "Clients", dot: "#8a5bff" },
-  { href: "/telephone", label: "Téléphone", dot: "#00b8cc" },
-  { href: "/techniciens", label: "ADV", dot: "#16b57f" },
-  { href: "/lots", label: "Lots", dot: "#16b57f" },
-  { href: "/import-sda", label: "Export SDA", dot: "#ffb020" },
-  { href: "/import-mac", label: "Export MAC", dot: "#ffb020" },
-  { href: "/import-monday", label: "Import Monday", dot: "#1f6bff" },
+const NAV_GROUPES = [
+  {
+    titre: "Migration Téléphone",
+    items: [
+      { href: "/", label: "Provisionning", dot: "#1f6bff" },
+      { href: "/clients", label: "Clients", dot: "#8a5bff" },
+      { href: "/telephone", label: "Téléphone", dot: "#00b8cc" },
+      { href: "/lots", label: "Lots", dot: "#16b57f" },
+      { href: "/import-monday", label: "Import Monday", dot: "#1f6bff" },
+      { href: "/import-sda", label: "Export SDA", dot: "#ffb020" },
+      { href: "/import-mac", label: "Export MAC", dot: "#ffb020" },
+    ],
+  },
+  {
+    titre: "ADV",
+    items: [{ href: "/techniciens", label: "Pilotage dossiers", dot: "#16b57f" }],
+  },
+  {
+    titre: "Staging",
+    items: [{ href: "/staging", label: "Stock & routeurs", dot: "#00b8cc" }],
+  },
 ];
 
 function monogram(email: string): string {
@@ -41,9 +53,12 @@ export function AppSidebar({
   const estActif = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
-  const items = role === "ADMIN"
-    ? [...NAV_ITEMS, { href: "/parametres", label: "Paramètres", dot: "#7a8699" }]
-    : NAV_ITEMS;
+  const groupes = role === "ADMIN"
+    ? [
+        ...NAV_GROUPES,
+        { titre: "Admin", items: [{ href: "/parametres", label: "Paramètres", dot: "#7a8699" }] },
+      ]
+    : NAV_GROUPES;
 
   return (
     <aside
@@ -126,60 +141,67 @@ export function AppSidebar({
         )}
       </div>
 
-      {/* ── Navigation ── */}
-      <nav className="mt-4 flex flex-col gap-0.5">
-        {items.map((item) => {
-          const active = estActif(item.href);
-          const badge = badges[item.href];
-          const isAlert = badge === "!";
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "group flex items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-sm transition-colors",
-                active ? "font-bold" : "font-medium"
-              )}
-              style={{
-                background: active ? "var(--ev-navy-active)" : "transparent",
-                color: active ? "#fff" : "#93a6c2",
-                boxShadow: active ? `inset 3px 0 0 ${item.dot}` : "none",
-              }}
-              onMouseOver={(e) => {
-                if (!active) {
-                  e.currentTarget.style.background = "var(--ev-navy-hover)";
-                  e.currentTarget.style.color = "#fff";
-                }
-              }}
-              onMouseOut={(e) => {
-                if (!active) {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "#93a6c2";
-                }
-              }}
+      {/* ── Navigation (groupée par espace) ── */}
+      <nav className="mt-4 flex flex-col gap-3 overflow-y-auto">
+        {groupes.map((groupe) => (
+          <div key={groupe.titre} className="flex flex-col gap-0.5">
+            <span
+              className="mb-0.5 px-2.5 font-mono text-[9px] tracking-[.14em]"
+              style={{ color: "var(--ev-text-tertiary)" }}
             >
-              <span
-                className="size-[9px] shrink-0 rounded-sm"
-                style={{
-                  background: item.dot,
-                  opacity: active ? 1 : 0.55,
-                }}
-              />
-              <span className="flex-1 truncate">{item.label}</span>
-              {badge !== undefined && (
-                <span
-                  className="rounded-[7px] px-1.5 py-0.5 font-mono text-[10px] font-bold"
+              {groupe.titre.toUpperCase()}
+            </span>
+            {groupe.items.map((item) => {
+              const active = estActif(item.href);
+              const badge = badges[item.href];
+              const isAlert = badge === "!";
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "group flex items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-sm transition-colors",
+                    active ? "font-bold" : "font-medium"
+                  )}
                   style={{
-                    background: isAlert ? "var(--ev-red)" : "var(--ev-navy-border)",
-                    color: isAlert ? "#fff" : "#8ba0bf",
+                    background: active ? "var(--ev-navy-active)" : "transparent",
+                    color: active ? "#fff" : "#93a6c2",
+                    boxShadow: active ? `inset 3px 0 0 ${item.dot}` : "none",
+                  }}
+                  onMouseOver={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.background = "var(--ev-navy-hover)";
+                      e.currentTarget.style.color = "#fff";
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "#93a6c2";
+                    }
                   }}
                 >
-                  {badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+                  <span
+                    className="size-[9px] shrink-0 rounded-sm"
+                    style={{ background: item.dot, opacity: active ? 1 : 0.55 }}
+                  />
+                  <span className="flex-1 truncate">{item.label}</span>
+                  {badge !== undefined && (
+                    <span
+                      className="rounded-[7px] px-1.5 py-0.5 font-mono text-[10px] font-bold"
+                      style={{
+                        background: isAlert ? "var(--ev-red)" : "var(--ev-navy-border)",
+                        color: isAlert ? "#fff" : "#8ba0bf",
+                      }}
+                    >
+                      {badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* ── User footer ── */}

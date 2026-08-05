@@ -127,12 +127,54 @@ model Client {
   numeros      Numero[]
   equipements  Equipement[]
   mailEnvois   MailEnvoi[]
+  articlesStock ArticleStock[]
+
+  // Le jour de l'installation, on a parfois réutilisé le routeur déjà présent chez le client
+  // (reset) au lieu d'en envoyer un depuis notre stock.
+  routeurClientReutilise Boolean @default(false)
 
   @@index([cleRapprochement])
   @@index([lotId])
   @@index([statutBascule])
   @@index([etapeMigrationId])
   @@index([technicienId])
+}
+
+// Inventaire du staging (roulement des routeurs 4G, box, SIM...). On reçoit du matériel, on le
+// configure, on l'envoie chez le client, et le jour de l'installation on l'installe et on
+// récupère l'ancien routeur du client (ligne de retour, origine CLIENT).
+model ArticleStock {
+  id String @id @default(cuid())
+
+  // Type de matériel = onglet du fichier stock ("SIM", "Chateau LTE12 Mikrotik",
+  // "HAPac² Mikrotik", "HUAWEI AR617VW-LTE4EA", "Routeur 4G seul", "ONT").
+  type        String
+  numeroSerie String
+
+  dateReception DateTime?
+  etatAppareil  String? // texte libre du fichier ("Sale", "Pièce qui bouge...", etc.)
+
+  // EN_STOCK | CONFIGURE | ENVOYE | INSTALLE | RETOUR
+  statut String @default("EN_STOCK")
+  // EVERLINK (notre stock) | CLIENT (routeur récupéré chez le client le jour de l'install)
+  origine String @default("EVERLINK")
+
+  // Client final destinataire. Conservé aussi en texte tant qu'il n'est pas rattaché à une fiche.
+  client           Client?   @relation(fields: [clientId], references: [id])
+  clientId         String?
+  clientFinalTexte String?
+  dateEnvoi        DateTime?
+  dateInstallation DateTime?
+
+  commentaire String?
+  archiveA    DateTime?
+  creeLe      DateTime  @default(now())
+  majLe       DateTime  @updatedAt
+
+  @@index([type])
+  @@index([statut])
+  @@index([clientId])
+  @@index([numeroSerie])
 }
 
 // ---------------------------------------------------------------- Techniciens
