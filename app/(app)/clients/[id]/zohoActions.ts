@@ -4,33 +4,49 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ajouterLigneSheet } from "@/lib/zoho/zohoClient";
+import {
+  extraireCodePostal,
+  prefixeSemaine,
+  statutSheetPourEtape,
+} from "@/lib/domain/zoho/suiviSheet";
 
 // Mapping Everlink → colonnes du Zoho Sheet "TABLEAU SUIVI COMMANDES". Les clés doivent
-// correspondre EXACTEMENT aux en-têtes de la 1re ligne de l'onglet. À ajuster après le 1er test
-// live si Zoho renvoie une erreur de colonne inconnue.
+// correspondre EXACTEMENT aux en-têtes de la 1re ligne de l'onglet (espaces de fin compris,
+// vérifiés sur l'export du classeur). La ligne part complète, au format des ADV :
+// client préfixé de la semaine de pose, statut au vocabulaire du Sheet (leur code couleur
+// est une mise en forme conditionnelle sur la colonne INSTALLATION). IMPE, MATERIEL RECU,
+// N° CHRONO et INFOS FACTURATION restent à la main des ADV.
 function construireRecord(c: {
   raisonSociale: string;
   departement: string | null;
+  adresse: string | null;
+  scenario: string | null;
   dateIntervention: Date | null;
   creneauIntervention: string | null;
   commentaire: string | null;
   referenceClient: string | null;
+  contactNom: string | null;
+  contactPrenom: string | null;
   etapeLibelle: string | null;
   prestataireNom: string | null;
   technicienNom: string | null;
 }): Record<string, string> {
-  // Noms de colonnes EXACTS de la feuille (certains ont un espace en fin, vérifié via l'API).
   return {
-    CLIENT: c.raisonSociale,
+    CLIENT: `${prefixeSemaine(c.dateIntervention)}${c.raisonSociale}`,
     DPT: c.departement ?? "",
+    "CP CLIENT ": extraireCodePostal(c.adresse),
     // Les dossiers gérés par GC pour Everlink portent le partenaire "EVERLINK".
     PARTE: "EVERLINK",
     DATE: c.dateIntervention ? c.dateIntervention.toLocaleDateString("fr-FR") : "",
+    "PORTA ET COMMENTAIRES IMPORTANT ": [c.scenario, c.referenceClient]
+      .filter(Boolean)
+      .join(" — "),
     "HEURE ": c.creneauIntervention ?? "",
-    "PORTA ET COMMENTAIRES IMPORTANT ": [c.referenceClient, c.commentaire].filter(Boolean).join(" — "),
     TECH: c.prestataireNom ?? "",
     "NOM TECH": c.technicienNom ?? "",
-    INSTALLATION: c.etapeLibelle ?? "",
+    "NOM CP ": [c.contactPrenom, c.contactNom].filter(Boolean).join(" "),
+    INSTALLATION: statutSheetPourEtape(c.etapeLibelle),
+    "COMMENTAIRES PLANIF ": c.commentaire ?? "",
   };
 }
 
@@ -52,10 +68,14 @@ export async function pousserVersZohoAction(
   const record = construireRecord({
     raisonSociale: client.raisonSociale,
     departement: client.departement,
+    adresse: client.adresse,
+    scenario: client.scenario,
     dateIntervention: client.dateIntervention,
     creneauIntervention: client.creneauIntervention,
     commentaire: client.commentaire,
     referenceClient: client.referenceClient,
+    contactNom: client.contactNom,
+    contactPrenom: client.contactPrenom,
     etapeLibelle: client.etapeMigration?.libelle ?? null,
     prestataireNom: client.technicien?.prestataire?.nom ?? null,
     technicienNom: client.technicien?.nom ?? null,
