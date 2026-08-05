@@ -6,6 +6,10 @@ import { cn } from "@/lib/utils";
 
 const NAV_GROUPES = [
   {
+    titre: "",
+    items: [{ href: "/accueil", label: "Accueil", dot: "#1f6bff" }],
+  },
+  {
     titre: "Migration Téléphone",
     items: [
       { href: "/", label: "Provisionning", dot: "#1f6bff" },
@@ -144,13 +148,15 @@ export function AppSidebar({
       {/* ── Navigation (groupée par espace) ── */}
       <nav className="mt-4 flex flex-col gap-3 overflow-y-auto">
         {groupes.map((groupe) => (
-          <div key={groupe.titre} className="flex flex-col gap-0.5">
-            <span
-              className="mb-0.5 px-2.5 font-mono text-[9px] tracking-[.14em]"
-              style={{ color: "var(--ev-text-tertiary)" }}
-            >
-              {groupe.titre.toUpperCase()}
-            </span>
+          <div key={groupe.titre || "accueil"} className="flex flex-col gap-0.5">
+            {groupe.titre && (
+              <span
+                className="mb-0.5 px-2.5 font-mono text-[9px] tracking-[.14em]"
+                style={{ color: "var(--ev-text-tertiary)" }}
+              >
+                {groupe.titre.toUpperCase()}
+              </span>
+            )}
             {groupe.items.map((item) => {
               const active = estActif(item.href);
               const badge = badges[item.href];
