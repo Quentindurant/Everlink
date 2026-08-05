@@ -39,10 +39,11 @@ jobs:
             # Migrations + seed via psql (le CLI prisma rejette la chaîne Prisma Postgres).
             # Idempotent : n'applique que les migrations pas encore passées. Voir le script.
             bash scripts/deploy-migrate.sh
-            # Un run annulé par `concurrency` laisse son `next build` orphelin sur le VPS,
-            # qui bloque le build suivant ("Another next build process is already running").
-            # On le tue avant de builder. `pm2 reload` plus bas relance proprement l'app.
-            pkill -f "next build" || true
+            # Un run annulé par `concurrency` laisse son build Next orphelin sur le VPS, qui
+            # bloque le suivant. On le tue avant de rebuilder. Le crochet [n] empêche pkill de
+            # matcher CE script (sa propre ligne de commande contient le texte du pattern) —
+            # sans ça, pkill tuait la session SSH elle-même (exit 143).
+            pkill -f "[n]ext build" || true
             NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
             # reload = zéro coupure si l'app tourne déjà; sinon on la démarre.
