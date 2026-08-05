@@ -18,13 +18,13 @@ import { rafraichirZohoAction } from "./zohoViewActions";
 // Couleurs des statuts d'installation (approx. de la feuille).
 function classeStatut(s: string): string {
   const t = s.trim().toUpperCase();
-  if (t === "INSTALLATION") return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
-  if (t === "A PLANIFIER") return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
-  if (t.startsWith("ATT")) return "bg-amber-500/15 text-amber-700 dark:text-amber-400";
-  if (t === "STAND BY") return "bg-blue-500/15 text-blue-700 dark:text-blue-400";
-  if (t === "STAGING") return "bg-purple-500/15 text-purple-700 dark:text-purple-400";
-  if (t === "NEW") return "bg-pink-500/15 text-pink-700 dark:text-pink-400";
-  if (t === "ANNULEE") return "bg-destructive/15 text-destructive";
+  if (t === "INSTALLATION") return "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]";
+  if (t === "A PLANIFIER") return "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]";
+  if (t.startsWith("ATT")) return "bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]";
+  if (t === "STAND BY") return "bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)]";
+  if (t === "STAGING") return "bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]";
+  if (t === "NEW") return "bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]";
+  if (t === "ANNULEE") return "bg-[var(--pal-red-bg)] text-[color:var(--pal-red-fg)]";
   return "bg-muted text-muted-foreground";
 }
 

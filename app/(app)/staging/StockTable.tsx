@@ -26,10 +26,10 @@ import {
 
 const COULEUR_STATUT: Record<string, string> = {
   EN_STOCK: "bg-muted text-muted-foreground",
-  CONFIGURE: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  ENVOYE: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  INSTALLE: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  RETOUR: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
+  CONFIGURE: "bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)]",
+  ENVOYE: "bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]",
+  INSTALLE: "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]",
+  RETOUR: "bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]",
 };
 
 function LigneArticle({ a, listeClients }: { a: ArticleStockLigne; listeClients: string }) {

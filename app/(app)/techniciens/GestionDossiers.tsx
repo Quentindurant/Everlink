@@ -119,13 +119,13 @@ function LigneDossier({
         {!d.avecLien ? (
           <span className="text-xs text-muted-foreground">—</span>
         ) : d.lienLivre ? (
-          <span className="rounded-lg bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+          <span className="rounded-lg bg-[var(--pal-green-bg)] px-2 py-0.5 text-[11px] font-semibold text-[color:var(--pal-green-fg)]">
             Livré
           </span>
         ) : d.lienCommande ? (
           <button
             onClick={() => agir(() => marquerLienLivreAction(d.clientId))}
-            className="rounded-lg bg-blue-500/15 px-2 py-0.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-500/25 dark:text-blue-400"
+            className="rounded-lg bg-[var(--pal-blue-bg)] px-2 py-0.5 text-[11px] font-semibold text-[color:var(--pal-blue-fg)] hover:bg-[var(--pal-blue-bg)]"
             title="Cliquer pour marquer livré"
           >
             Commandé → livré ?
@@ -149,10 +149,10 @@ function LigneDossier({
           title="Ouvrir l'envoi de mails"
         >
           <Mail className="size-3 text-muted-foreground" />
-          <span className={cn("rounded px-1", d.mailPrevenanceLe ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground")} title={d.mailPrevenanceLe ? `prévenance le ${d.mailPrevenanceLe}` : "prévenance non envoyée"}>
+          <span className={cn("rounded px-1", d.mailPrevenanceLe ? "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]" : "bg-muted text-muted-foreground")} title={d.mailPrevenanceLe ? `prévenance le ${d.mailPrevenanceLe}` : "prévenance non envoyée"}>
             P
           </span>
-          <span className={cn("rounded px-1", d.mailConfirmationLe ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground")} title={d.mailConfirmationLe ? `confirmation le ${d.mailConfirmationLe}` : "confirmation non envoyée"}>
+          <span className={cn("rounded px-1", d.mailConfirmationLe ? "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]" : "bg-muted text-muted-foreground")} title={d.mailConfirmationLe ? `confirmation le ${d.mailConfirmationLe}` : "confirmation non envoyée"}>
             C
           </span>
         </Link>
@@ -164,7 +164,7 @@ function LigneDossier({
           onClick={() => agir(() => pousserVersZohoAction(d.clientId))}
           className={cn(
             "inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] hover:bg-muted",
-            d.zohoPousseLe ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"
+            d.zohoPousseLe ? "text-[color:var(--pal-green-fg)]" : "text-muted-foreground"
           )}
           title={d.zohoPousseLe ? `déjà poussé le ${d.zohoPousseLe} — re-cliquer ajoute une nouvelle ligne` : "ajouter au tableau Zoho"}
         >
@@ -180,7 +180,7 @@ function LigneDossier({
           className={cn(
             "inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px]",
             d.routeurClientReutilise
-              ? "border-transparent bg-purple-500/15 text-purple-700 dark:text-purple-400"
+              ? "border-transparent bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]"
               : "text-muted-foreground hover:bg-muted"
           )}
           title="Réutilisation du routeur déjà présent chez le client (reset sur place)"

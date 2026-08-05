@@ -154,7 +154,7 @@ export function OngletMails({
             {isPending ? "Envoi…" : "Envoyer le mail"}
           </Button>
           {message && (
-            <span className={message.ok ? "text-sm text-emerald-700 dark:text-emerald-400" : "text-sm text-destructive"}>
+            <span className={message.ok ? "text-sm text-[color:var(--pal-green-fg)]" : "text-sm text-destructive"}>
               {message.texte}
             </span>
           )}
@@ -195,7 +195,7 @@ export function OngletMails({
                   <TableCell className="max-w-64 truncate" title={e.objet}>{e.objet}</TableCell>
                   <TableCell>
                     {e.succes ? (
-                      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                      <span className="rounded-full bg-[var(--pal-green-bg)] px-2 py-0.5 text-[11px] font-semibold text-[color:var(--pal-green-fg)]">
                         Envoyé
                       </span>
                     ) : (

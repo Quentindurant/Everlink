@@ -84,12 +84,12 @@ export function ImportTechniciens() {
       </form>
 
       {applique && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[color:var(--pal-green-dot)] bg-[var(--pal-green-bg)] p-3 text-sm">
           <CheckCircle2 className="size-4 text-emerald-600" />
           <Badge variant="outline">{applique.crees} créés</Badge>
           {applique.doublons > 0 && <Badge variant="outline">{applique.doublons} doublons ignorés</Badge>}
           {applique.prestatairesCrees.length > 0 && (
-            <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400">
+            <Badge className="border-transparent bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]">
               {applique.prestatairesCrees.length} prestataire(s) créé(s)
             </Badge>
           )}

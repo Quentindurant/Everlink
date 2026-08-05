@@ -128,8 +128,8 @@ export function ClientsFiltres({
 
 const LIEN_CLASSES: Record<string, string> = {
   NON_COMMANDE: "bg-muted text-muted-foreground",
-  COMMANDE: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  LIVRE: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  COMMANDE: "bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)]",
+  LIVRE: "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]",
 };
 const LIEN_LABEL: Record<string, string> = {
   NON_COMMANDE: "Non commandé",
@@ -221,7 +221,7 @@ export function ClientsTable({
               <TableCell className="tabular-nums">
                 {c.nbMacDistincts}
                 {c.nbMacDistincts !== c.nbMacSaisis && (
-                  <span className="ml-1 text-xs text-amber-700 dark:text-amber-400">
+                  <span className="ml-1 text-xs text-[color:var(--pal-amber-fg)]">
                     (partagées)
                   </span>
                 )}
@@ -235,9 +235,9 @@ export function ClientsTable({
                 {c.ecartPostes === null ? (
                   "—"
                 ) : c.ecartPostes === 0 ? (
-                  <span className="text-emerald-700 dark:text-emerald-400">0</span>
+                  <span className="text-[color:var(--pal-green-fg)]">0</span>
                 ) : (
-                  <span className="font-medium text-amber-700 dark:text-amber-400">
+                  <span className="font-medium text-[color:var(--pal-amber-fg)]">
                     {c.ecartPostes > 0 ? `+${c.ecartPostes}` : c.ecartPostes}
                   </span>
                 )}

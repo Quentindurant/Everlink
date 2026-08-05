@@ -112,10 +112,10 @@ export function AdvTabs({
                 <Badge variant="outline" className="tabular-nums">
                   Non commandé : {overview.liens.nonCommande}
                 </Badge>
-                <Badge className="border-transparent bg-blue-500/15 text-blue-700 tabular-nums dark:text-blue-400">
+                <Badge className="border-transparent bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)] tabular-nums">
                   Commandé : {overview.liens.commande}
                 </Badge>
-                <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 tabular-nums dark:text-emerald-400">
+                <Badge className="border-transparent bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)] tabular-nums">
                   Livré : {overview.liens.livre}
                 </Badge>
               </div>

@@ -12,8 +12,8 @@ import type { AInstallerLigne } from "@/lib/repositories/stockRepository";
 import { LIBELLE_STATUT } from "@/lib/domain/stock/statuts";
 
 const COULEUR_LIEN: Record<string, string> = {
-  Livré: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  Commandé: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
+  Livré: "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]",
+  Commandé: "bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)]",
   "Non commandé": "bg-muted text-muted-foreground",
 };
 
@@ -54,7 +54,7 @@ export function AInstaller({ lignes }: { lignes: AInstallerLigne[] }) {
                   {l.type} <span className="font-mono text-muted-foreground">{l.numeroSerie}</span>
                 </TableCell>
                 <TableCell>
-                  <span className="rounded-lg bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                  <span className="rounded-lg bg-[var(--pal-amber-bg)] px-2 py-0.5 text-[11px] font-semibold text-[color:var(--pal-amber-fg)]">
                     {LIBELLE_STATUT[l.statut] ?? l.statut}
                   </span>
                 </TableCell>

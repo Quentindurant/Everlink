@@ -90,14 +90,14 @@ export function ImportSewanDevices({ clientId }: { clientId: string }) {
       </form>
 
       {applique && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[color:var(--pal-green-dot)] bg-[var(--pal-green-bg)] p-3 text-sm">
           <CheckCircle2 className="size-4 text-emerald-600" />
           <Badge variant="outline">{applique.crees} équipements créés (sans utilisateur)</Badge>
           {applique.dejaPresents > 0 && (
             <Badge variant="outline">{applique.dejaPresents} déjà présents, ignorés</Badge>
           )}
           {applique.modelesCrees.length > 0 && (
-            <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400">
+            <Badge className="border-transparent bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]">
               modèles créés (éligibles export) : {applique.modelesCrees.join(", ")}
             </Badge>
           )}
@@ -135,7 +135,7 @@ export function ImportSewanDevices({ clientId }: { clientId: string }) {
                       {r.dejaPresent ? (
                         <Badge variant="outline">déjà présent</Badge>
                       ) : (
-                        <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                        <Badge className="border-transparent bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]">
                           nouveau
                         </Badge>
                       )}

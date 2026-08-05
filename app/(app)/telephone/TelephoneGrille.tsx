@@ -50,8 +50,8 @@ function CelluleStatut({
       }}
       className={cn(
         "w-full rounded-md border border-transparent bg-transparent px-1 py-0.5 text-sm transition-colors outline-none hover:border-input focus:border-ring focus:ring-2 focus:ring-ring/40 disabled:opacity-50",
-        statut === "Fait" && "font-medium text-emerald-700 dark:text-emerald-400",
-        statut === "En cours" && "text-amber-700 dark:text-amber-400",
+        statut === "Fait" && "font-medium text-[color:var(--pal-green-fg)]",
+        statut === "En cours" && "text-[color:var(--pal-amber-fg)]",
         statut === "Sans objet" && "text-muted-foreground"
       )}
     >
@@ -170,7 +170,7 @@ export function TelephoneGrille({ grille }: { grille: Grille }) {
                           className={cn(
                             "tabular-nums",
                             pct === 100 &&
-                              "border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                              "border-transparent bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]"
                           )}
                         >
                           {pct}% fait

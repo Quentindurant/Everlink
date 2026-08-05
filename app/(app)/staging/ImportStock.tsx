@@ -87,14 +87,14 @@ export function ImportStock() {
       </form>
 
       {applique && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[color:var(--pal-green-dot)] bg-[var(--pal-green-bg)] p-3 text-sm">
           <CheckCircle2 className="size-4 text-emerald-600" />
           <Badge variant="outline">{applique.crees} articles ajoutés</Badge>
           {applique.dejaPresents > 0 && (
             <Badge variant="outline">{applique.dejaPresents} déjà présents, ignorés</Badge>
           )}
           {Object.entries(applique.parType).map(([t, n]) => (
-            <Badge key={t} className="border-transparent bg-cyan-500/15 text-cyan-700 dark:text-cyan-400">
+            <Badge key={t} className="border-transparent bg-[var(--pal-cyan-bg)] text-[color:var(--pal-cyan-fg)]">
               {t} : {n}
             </Badge>
           ))}
@@ -131,7 +131,7 @@ export function ImportStock() {
                       {r.dejaPresent ? (
                         <Badge variant="outline">présent</Badge>
                       ) : (
-                        <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">nouveau</Badge>
+                        <Badge className="border-transparent bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]">nouveau</Badge>
                       )}
                     </TableCell>
                   </TableRow>

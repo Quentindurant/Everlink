@@ -77,14 +77,14 @@ export function ImportMondayForm() {
       </form>
 
       {applique && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[color:var(--pal-green-dot)] bg-[var(--pal-green-bg)] p-3 text-sm">
           <CheckCircle2 className="size-4 text-emerald-600" />
           <span className="font-medium">Import appliqué :</span>
           <Badge variant="outline">{applique.crees} créés</Badge>
           <Badge variant="outline">{applique.misAJour} mis à jour</Badge>
           <Badge variant="outline">{applique.ignores} ignorés</Badge>
           {applique.modelesCrees.length > 0 && (
-            <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400">
+            <Badge className="border-transparent bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]">
               {applique.modelesCrees.length} modèle(s) créé(s) — vérifier l'éligibilité dans
               Paramètres
             </Badge>
@@ -109,14 +109,14 @@ export function ImportMondayForm() {
               variant="outline"
               className={
                 payload.resultat.aRapprocher.length > 0
-                  ? "border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                  ? "border-transparent bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]"
                   : ""
               }
             >
               {payload.resultat.aRapprocher.length} à rapprocher
             </Badge>
             {payload.resultat.modelesInconnus.length > 0 && (
-              <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400">
+              <Badge className="border-transparent bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]">
                 Modèles inconnus : {payload.resultat.modelesInconnus.join(", ")}
               </Badge>
             )}

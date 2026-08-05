@@ -141,7 +141,7 @@ export function SectionModeles({ modeles }: { modeles: ModeleLigne[] }) {
                         })
                       }
                     />
-                    <span className={cn("text-sm", m.eligibleExport ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground")}>
+                    <span className={cn("text-sm", m.eligibleExport ? "text-[color:var(--pal-green-fg)]" : "text-muted-foreground")}>
                       {m.eligibleExport ? "Oui" : "Non"}
                     </span>
                   </label>
@@ -359,7 +359,7 @@ export function SectionEtapesMigration({ etapes }: { etapes: EtapeMigrationLigne
       titre="Étapes de migration"
       description="Le parcours des clients (prévenance, contact, RDV, bascule…). Couleurs et ordre pilotent l'affichage partout dans l'app."
     >
-      <div className="overflow-x-auto rounded-2xl border bg-card shadow-xs">
+      <div className="overflow-x-auto rounded-[10px] border bg-card shadow-xs">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -685,7 +685,7 @@ function CompteRow({ compte }: { compte: CompteLigne }) {
       </TableCell>
       <TableCell>
         {compte.actif ? (
-          <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Actif</Badge>
+          <Badge className="border-transparent bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]">Actif</Badge>
         ) : (
           <Badge variant="outline">Désactivé</Badge>
         )}
@@ -731,7 +731,7 @@ export function SectionSync({
 
   return (
     <Section titre="Synchronisation Google Sheets" description="Synchronisation sortante uniquement.">
-      <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-800 dark:text-amber-300">
+      <div className="rounded-xl border border-[color:var(--pal-amber-dot)] bg-[var(--pal-amber-bg)] p-3 text-sm text-[color:var(--pal-amber-fg)]">
         L'application est la source de vérité. La synchronisation <strong>écrase</strong> les onglets
         du Sheet (Provisionning, Clients, Téléphone, Import SDA, Import MAC). Toute modification faite
         directement dans le Sheet sera perdue.
@@ -753,7 +753,7 @@ export function SectionSync({
           <RefreshCw data-icon="inline-start" className={isPending ? "animate-spin" : ""} />
           Lancer la synchronisation
         </Button>
-        {message && <span className="text-sm text-emerald-700 dark:text-emerald-400">{message}</span>}
+        {message && <span className="text-sm text-[color:var(--pal-green-fg)]">{message}</span>}
         <Erreur texte={erreur} />
       </div>
       {syncRuns.length > 0 && (
@@ -782,9 +782,9 @@ export function SectionSync({
                     </TableCell>
                     <TableCell>
                       {run.succes ? (
-                        <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">OK</Badge>
+                        <Badge className="border-transparent bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]">OK</Badge>
                       ) : (
-                        <Badge className="border-transparent bg-destructive/15 text-destructive">Erreur</Badge>
+                        <Badge className="border-transparent bg-[var(--pal-red-bg)] text-[color:var(--pal-red-fg)]">Erreur</Badge>
                       )}
                     </TableCell>
                     <TableCell>{run.auteur?.email ?? "—"}</TableCell>
@@ -820,7 +820,7 @@ export function SectionControle() {
           <RefreshCw data-icon="inline-start" className={isPending ? "animate-spin" : ""} />
           Recalculer maintenant
         </Button>
-        {message && <span className="text-sm text-emerald-700 dark:text-emerald-400">{message}</span>}
+        {message && <span className="text-sm text-[color:var(--pal-green-fg)]">{message}</span>}
       </div>
     </Section>
   );

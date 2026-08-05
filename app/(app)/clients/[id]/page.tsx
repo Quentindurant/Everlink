@@ -72,7 +72,7 @@ export default async function ClientDetailPage({
             </Link>
           )}
           {client.clientVip && (
-            <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400">
+            <Badge className="border-transparent bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]">
               VIP
             </Badge>
           )}

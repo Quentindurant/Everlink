@@ -25,11 +25,11 @@ const PAGES: Resultat[] = [
 
 const COULEUR_TYPE: Record<string, string> = {
   Page: "bg-muted text-muted-foreground",
-  Client: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  Utilisateur: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
-  "Numéro": "bg-cyan-500/15 text-cyan-700 dark:text-cyan-400",
-  MAC: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  Stock: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  Client: "bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)]",
+  Utilisateur: "bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]",
+  "Numéro": "bg-[var(--pal-cyan-bg)] text-[color:var(--pal-cyan-fg)]",
+  MAC: "bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]",
+  Stock: "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]",
 };
 
 export function CommandPalette() {
@@ -103,7 +103,7 @@ export function CommandPalette() {
       onClick={() => setOuvert(false)}
     >
       <div
-        className="w-full max-w-xl overflow-hidden rounded-2xl border bg-card shadow-2xl"
+        className="w-full max-w-xl overflow-hidden rounded-[10px] border bg-card shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b px-4">

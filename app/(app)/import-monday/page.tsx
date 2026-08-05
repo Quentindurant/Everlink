@@ -64,7 +64,7 @@ export default async function ImportMondayPage() {
         </div>
       ) : (
         <div
-          className="rounded-2xl border border-dashed p-6 text-sm"
+          className="rounded-[10px] border border-dashed p-6 text-sm"
           style={{ color: "var(--ev-body-muted)" }}
         >
           Import réservé aux administrateurs.
@@ -77,14 +77,14 @@ export default async function ImportMondayPage() {
         </h2>
         {runs.length === 0 ? (
           <p
-            className="rounded-2xl border border-dashed p-6 text-sm"
+            className="rounded-[10px] border border-dashed p-6 text-sm"
             style={{ color: "var(--ev-body-muted)" }}
           >
             Aucun import Monday pour l&apos;instant.
           </p>
         ) : (
           <div
-            className="overflow-x-auto rounded-2xl border shadow-sm"
+            className="overflow-x-auto rounded-[10px] border shadow-sm"
             style={{
               background: "var(--ev-card)",
               borderColor: "var(--ev-card-border)",
@@ -151,7 +151,7 @@ export default async function ImportMondayPage() {
                             OK
                           </span>
                         ) : (
-                          <Badge className="border-transparent bg-destructive/15 text-destructive">
+                          <Badge className="border-transparent bg-[var(--pal-red-bg)] text-[color:var(--pal-red-fg)]">
                             Erreurs
                           </Badge>
                         )}

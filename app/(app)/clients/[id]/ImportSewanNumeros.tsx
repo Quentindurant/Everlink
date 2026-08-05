@@ -91,11 +91,11 @@ export function ImportSewanNumeros({ clientId }: { clientId: string }) {
       </form>
 
       {applique && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[color:var(--pal-green-dot)] bg-[var(--pal-green-bg)] p-3 text-sm">
           <CheckCircle2 className="size-4 text-emerald-600" />
           <Badge variant="outline">{applique.crees} numéros créés</Badge>
           {applique.enrichis > 0 && (
-            <Badge className="border-transparent bg-blue-500/15 text-blue-700 dark:text-blue-400">
+            <Badge className="border-transparent bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)]">
               {applique.enrichis} RIO ajoutés à des numéros existants
             </Badge>
           )}
@@ -110,7 +110,7 @@ export function ImportSewanNumeros({ clientId }: { clientId: string }) {
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <Badge className="tabular-nums">{nouveaux} nouveaux</Badge>
             {aEnrichir > 0 && (
-              <Badge className="border-transparent bg-blue-500/15 text-blue-700 tabular-nums dark:text-blue-400">
+              <Badge className="border-transparent bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)] tabular-nums">
                 {aEnrichir} à enrichir (RIO)
               </Badge>
             )}
@@ -136,11 +136,11 @@ export function ImportSewanNumeros({ clientId }: { clientId: string }) {
                     <TableCell className="text-xs">{r.statut ?? "—"}</TableCell>
                     <TableCell>
                       {r.enrichitRio ? (
-                        <Badge className="border-transparent bg-blue-500/15 text-blue-700 dark:text-blue-400">+ RIO</Badge>
+                        <Badge className="border-transparent bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)]">+ RIO</Badge>
                       ) : r.dejaPresent ? (
                         <Badge variant="outline">déjà présent</Badge>
                       ) : (
-                        <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">nouveau</Badge>
+                        <Badge className="border-transparent bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]">nouveau</Badge>
                       )}
                     </TableCell>
                   </TableRow>

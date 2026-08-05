@@ -17,9 +17,9 @@ import type { ModeleMailLite } from "@/lib/repositories/mailRepository";
 import { OngletMails, type EnvoiLigne } from "./OngletMails";
 
 const NIVEAU_CLASSES: Record<string, string> = {
-  OK: "border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  AVERTISSEMENT: "border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  ERREUR: "border-transparent bg-destructive/15 text-destructive",
+  OK: "border-transparent bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]",
+  AVERTISSEMENT: "border-transparent bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]",
+  ERREUR: "border-transparent bg-[var(--pal-red-bg)] text-[color:var(--pal-red-fg)]",
 };
 
 const ONGLETS = [

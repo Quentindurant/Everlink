@@ -163,7 +163,7 @@ export function LotsTable({ lots }: { lots: LotLigne[] }) {
                         <div
                           className={cn(
                             "h-full rounded-full",
-                            pct === 100 ? "bg-emerald-500" : "bg-primary"
+                            pct === 100 ? "bg-[var(--pal-green-dot)]" : "bg-primary"
                           )}
                           style={{ width: `${pct}%` }}
                         />
@@ -185,7 +185,7 @@ export function LotsTable({ lots }: { lots: LotLigne[] }) {
                       {lot.clos ? (
                         <Badge variant="outline">Clos</Badge>
                       ) : (
-                        <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                        <Badge className="border-transparent bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]">
                           Actif
                         </Badge>
                       )}

@@ -43,7 +43,7 @@ export function BoutonZoho({
         <span className="text-xs text-muted-foreground">déjà poussé le {pousse}</span>
       )}
       {message && (
-        <span className={message.ok ? "text-sm text-emerald-700 dark:text-emerald-400" : "text-sm text-destructive"}>
+        <span className={message.ok ? "text-sm text-[color:var(--pal-green-fg)]" : "text-sm text-destructive"}>
           {message.texte}
         </span>
       )}

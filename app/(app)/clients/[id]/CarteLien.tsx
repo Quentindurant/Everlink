@@ -15,8 +15,8 @@ import {
 
 const STATUT_CLASSES = {
   NON_COMMANDE: "bg-muted text-muted-foreground",
-  COMMANDE: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  LIVRE: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  COMMANDE: "bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)]",
+  LIVRE: "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]",
 } as const;
 
 export function CarteLien({
@@ -66,7 +66,7 @@ export function CarteLien({
             </span>
           )}
           {lien.lienLivreLe && (
-            <span className="text-xs text-emerald-700 dark:text-emerald-400">
+            <span className="text-xs text-[color:var(--pal-green-fg)]">
               livré le {lien.lienLivreLe}
             </span>
           )}

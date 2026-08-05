@@ -157,7 +157,7 @@ function StatutBasculeCell({
         }}
         className={cn(
           "w-full rounded-md border border-transparent bg-transparent px-1 py-0.5 text-sm transition-colors outline-none hover:border-input focus:border-ring focus:ring-2 focus:ring-ring/40 disabled:opacity-50",
-          valeurInitiale === "Fait" && "font-medium text-emerald-700 dark:text-emerald-400"
+          valeurInitiale === "Fait" && "font-medium text-[color:var(--pal-green-fg)]"
         )}
       >
         <option value=""></option>
