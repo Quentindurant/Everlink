@@ -51,7 +51,7 @@ export function ProvisionningFiltresBar({
 
   return (
     <div
-      className="flex flex-wrap items-center gap-3 rounded-[18px] border p-4 shadow-sm"
+      className="flex flex-wrap items-center gap-2.5 rounded-[10px] border p-3"
       style={{
         background: "var(--ev-card)",
         borderColor: "var(--ev-card-border)",
@@ -60,10 +60,10 @@ export function ProvisionningFiltresBar({
       <div className="relative min-w-[280px] flex-1">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-[18px] -translate-y-1/2 text-muted-foreground" />
         <Input
-          className="h-10 rounded-xl pl-9"
+          className="h-9 rounded-[7px] pl-9"
           style={{
-            background: "var(--ev-surface)",
-            borderColor: "transparent",
+            background: "var(--ev-input-bg)",
+            borderColor: "var(--ev-input-border)",
             color: "var(--ev-body)",
           }}
           placeholder="Rechercher un numéro, une MAC, un utilisateur..."

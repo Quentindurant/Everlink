@@ -63,9 +63,9 @@ import {
 } from "./actions";
 
 const NIVEAU_CLASSES: Record<string, string> = {
-  OK: "border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  AVERTISSEMENT: "border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  ERREUR: "border-transparent bg-destructive/15 text-destructive",
+  OK: "border-transparent bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]",
+  AVERTISSEMENT: "border-transparent bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]",
+  ERREUR: "border-transparent bg-[var(--pal-red-bg)] text-[color:var(--pal-red-fg)]",
 };
 
 function EditableCell({
@@ -377,7 +377,10 @@ function BarreActionsMasse({
   };
 
   return (
-    <div className="sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-background/95 p-2 shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <div
+      className="sticky top-[60px] z-20 flex flex-wrap items-center gap-2 rounded-lg border p-2"
+      style={{ background: "var(--ev-sel-bg)", borderColor: "var(--ev-sel-border)" }}
+    >
       <Badge className="tabular-nums">{selection.length}</Badge>
       <span className="text-sm font-medium">
         ligne{selection.length > 1 ? "s" : ""} sélectionnée{selection.length > 1 ? "s" : ""}
@@ -751,7 +754,7 @@ export function ProvisionningTable({
       </div>
       <BarreActionsMasse selection={selection} onDone={() => setSelection([])} />
       <div
-        className="overflow-x-auto rounded-[18px] border shadow-sm"
+        className="overflow-x-auto rounded-[10px] border"
         style={{
           background: "var(--ev-card)",
           borderColor: "var(--ev-card-border)",
@@ -803,9 +806,9 @@ export function ProvisionningTable({
                               )}
                             />
                           </span>
-                          <span className="text-sm font-semibold">{raisonSociale}</span>
+                          <span className="text-[13.5px] font-bold">{raisonSociale}</span>
                           {dateInterv ? (
-                            <Badge className="border-transparent bg-primary/15 text-primary tabular-nums">
+                            <Badge className="border-transparent bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)] tabular-nums">
                               install {new Date(dateInterv).toLocaleDateString("fr-FR")}
                             </Badge>
                           ) : (
