@@ -1,7 +1,7 @@
 import type { EtapeMigrationLite } from "@/lib/domain/migration/etapes";
-import { pastelBg, pastelFg } from "./pastel";
+import { StatutBadge } from "@/components/StatutBadge";
 
-// Pastille pastel façon design system v2: fond doux, texte foncé teinté, point saturé.
+// Pastille d'étape de migration — délègue au badge de statut unifié du design system v2.
 export function EtapeMigrationBadge({
   etape,
   className = "",
@@ -18,13 +18,5 @@ export function EtapeMigrationBadge({
       </span>
     );
   }
-  return (
-    <span
-      className={`ev-badge ${className}`}
-      style={{ background: pastelBg(etape.couleur), color: pastelFg(etape.couleur) }}
-    >
-      <span className="ev-badge-dot" style={{ background: etape.couleur }} />
-      {etape.libelle}
-    </span>
-  );
+  return <StatutBadge label={etape.libelle} couleur={etape.couleur} className={className} />;
 }

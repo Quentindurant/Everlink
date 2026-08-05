@@ -7,6 +7,7 @@ export interface InterventionProche {
   dateIso: string;
   technicienNom: string | null;
   etape: string | null;
+  etapeCouleur: string | null;
   lienStatut: string | null;
 }
 
@@ -37,7 +38,7 @@ export async function fetchAccueil(): Promise<AccueilData> {
         lienLivre: true,
         scenario: true,
         technicien: { select: { nom: true } },
-        etapeMigration: { select: { libelle: true } },
+        etapeMigration: { select: { libelle: true, couleur: true } },
       },
       orderBy: { dateIntervention: "asc" },
       take: 20,
@@ -74,6 +75,7 @@ export async function fetchAccueil(): Promise<AccueilData> {
       dateIso: jour(c.dateIntervention) as string,
       technicienNom: c.technicien?.nom ?? null,
       etape: c.etapeMigration?.libelle ?? null,
+      etapeCouleur: c.etapeMigration?.couleur ?? null,
       lienStatut: (c.scenario ?? "").toLowerCase().includes("lien")
         ? c.lienLivre
           ? "Livré"

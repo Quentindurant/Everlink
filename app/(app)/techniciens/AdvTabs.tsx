@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { StatutBadge } from "@/components/StatutBadge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -99,18 +100,7 @@ export function AdvTabs({
               </h2>
               <div className="flex flex-wrap gap-2 rounded-xl border bg-card p-3 shadow-xs">
                 {overview.parEtape.map((e) => (
-                  <span
-                    key={e.libelle}
-                    className="ev-badge"
-                    style={{
-                      background: `color-mix(in oklab, ${e.couleur} 14%, white)`,
-                      color: `color-mix(in oklab, ${e.couleur} 58%, oklch(0.3 0.015 240))`,
-                    }}
-                  >
-                    <span className="ev-badge-dot" style={{ background: e.couleur }} />
-                    {e.libelle}
-                    <span className="rounded bg-black/10 px-1 font-mono tabular-nums">{e.count}</span>
-                  </span>
+                  <StatutBadge key={e.libelle} label={e.libelle} couleur={e.couleur} count={e.count} />
                 ))}
               </div>
             </section>
