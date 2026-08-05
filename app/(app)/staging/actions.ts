@@ -42,7 +42,7 @@ export async function validerStockAction(
   if (!(await garde())) return { success: false, error: "Non authentifié." };
   try {
     const resultat = await importStock(rows);
-    revalidatePath("/staging");
+    revalidatePath("/staging", "layout");
     return { success: true, resultat };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Échec de l'import." };
@@ -65,7 +65,7 @@ export async function avancerStatutAction(id: string): Promise<void> {
       ...(suivant === "INSTALLE" ? { dateInstallation: new Date() } : {}),
     },
   });
-  revalidatePath("/staging");
+  revalidatePath("/staging", "layout");
 }
 
 // Expédie un article : le passe en « Envoyé », enregistre le transporteur (défaut Chronopost)
@@ -94,7 +94,7 @@ export async function expedierAvecSuiviAction(
       suiviMajLe: num ? new Date() : null,
     },
   });
-  revalidatePath("/staging");
+  revalidatePath("/staging", "layout");
   return { success: true };
 }
 
@@ -135,7 +135,7 @@ export async function expedierLotAction(
       suiviMajLe: num ? new Date() : null,
     },
   });
-  revalidatePath("/staging");
+  revalidatePath("/staging", "layout");
   return { success: true };
 }
 
@@ -147,7 +147,7 @@ export async function rattacherClientAction(id: string, nom: string): Promise<vo
   const t = nom.trim();
   if (!t) {
     await prisma.articleStock.update({ where: { id }, data: { clientId: null, clientFinalTexte: null } });
-    revalidatePath("/staging");
+    revalidatePath("/staging", "layout");
     return;
   }
   const client = await prisma.client.findFirst({
@@ -160,7 +160,7 @@ export async function rattacherClientAction(id: string, nom: string): Promise<vo
       ? { clientId: client.id, clientFinalTexte: t }
       : { clientId: null, clientFinalTexte: t },
   });
-  revalidatePath("/staging");
+  revalidatePath("/staging", "layout");
 }
 
 // Enregistre le routeur récupéré chez le client le jour de l'installation (origine CLIENT).
@@ -180,12 +180,12 @@ export async function ajouterRetourAction(
       clientFinalTexte: clientFinal.trim() || null,
     },
   });
-  revalidatePath("/staging");
+  revalidatePath("/staging", "layout");
   return { success: true };
 }
 
 export async function supprimerArticleAction(id: string): Promise<void> {
   if (!(await garde())) return;
   await prisma.articleStock.update({ where: { id }, data: { archiveA: new Date() } });
-  revalidatePath("/staging");
+  revalidatePath("/staging", "layout");
 }
