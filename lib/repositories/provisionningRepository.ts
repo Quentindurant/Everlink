@@ -19,6 +19,8 @@ export interface ProvisionningLigne {
   numeroId: string | null;
   clientId: string;
   clientRaisonSociale: string;
+  // Date d'intervention planifiée par l'ADV: pilote l'ordre de configuration/migration.
+  clientDateIntervention: Date | null;
   numeroBrut: string | null;
   numeroNormalise: string | null;
   numerosCourts: string[];
@@ -105,7 +107,14 @@ export async function fetchProvisionningLignes(
         : {}),
     },
     include: { client: true, utilisateur: true },
-    orderBy: [{ client: { raisonSociale: "asc" } }, { ordre: "asc" }, { id: "asc" }],
+    // Ordre de config/migration = ordre des interventions planifiées par l'ADV (les plus proches
+    // d'abord). Les clients sans date planifiée passent en dernier, puis tri alphabétique.
+    orderBy: [
+      { client: { dateIntervention: { sort: "asc", nulls: "last" } } },
+      { client: { raisonSociale: "asc" } },
+      { ordre: "asc" },
+      { id: "asc" },
+    ],
   });
 
   const utilisateurIds = numeros
@@ -162,6 +171,7 @@ export async function fetchProvisionningLignes(
     const base = {
       clientId: n.clientId,
       clientRaisonSociale: n.client.raisonSociale,
+      clientDateIntervention: n.client.dateIntervention,
       numeroBrut: n.numeroBrut,
       numeroNormalise: n.numeroNormalise,
       numerosCourts: n.numerosCourts,
@@ -252,7 +262,12 @@ export async function fetchProvisionningLignes(
             : {}),
         },
         include: { client: true, modele: true, utilisateur: true },
-        orderBy: [{ client: { raisonSociale: "asc" } }, { ordre: "asc" }, { id: "asc" }],
+        orderBy: [
+          { client: { dateIntervention: { sort: "asc", nulls: "last" } } },
+          { client: { raisonSociale: "asc" } },
+          { ordre: "asc" },
+          { id: "asc" },
+        ],
       });
 
   const lignesEquipementSeul: ProvisionningLigne[] = orphanEquipements.map((e) => {
@@ -261,6 +276,7 @@ export async function fetchProvisionningLignes(
       numeroId: null,
       clientId: e.clientId,
       clientRaisonSociale: e.client.raisonSociale,
+      clientDateIntervention: e.client.dateIntervention,
       numeroBrut: null,
       numeroNormalise: null,
       numerosCourts: [],
@@ -284,6 +300,28 @@ export async function fetchProvisionningLignes(
   });
 
   let lignes: ProvisionningLigne[] = [...lignesNumero, ...lignesEquipementSeul];
+
+  // Regroupe les lignes d'un même client (numéros + équipements orphelins) et ordonne les
+  // clients par date d'intervention (les plus proches d'abord), sans date en dernier.
+  const rangClient = new Map<string, { date: number; nom: string }>();
+  for (const l of lignes) {
+    if (!rangClient.has(l.clientId)) {
+      rangClient.set(l.clientId, {
+        date: l.clientDateIntervention ? l.clientDateIntervention.getTime() : Number.POSITIVE_INFINITY,
+        nom: l.clientRaisonSociale,
+      });
+    }
+  }
+  lignes = lignes
+    .map((l, i) => ({ l, i }))
+    .sort((a, b) => {
+      const ra = rangClient.get(a.l.clientId)!;
+      const rb = rangClient.get(b.l.clientId)!;
+      if (ra.date !== rb.date) return ra.date - rb.date;
+      if (ra.nom !== rb.nom) return ra.nom.localeCompare(rb.nom);
+      return a.i - b.i; // préserve l'ordre intra-client (numéros puis équipements)
+    })
+    .map((x) => x.l);
 
   if (filtres.eligibleExportSeulement) {
     lignes = lignes.filter((l) => l.equipementEligible);

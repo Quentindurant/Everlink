@@ -760,6 +760,7 @@ export function ProvisionningTable({
           <TableBody>
             {Array.from(groupes.entries()).map(([raisonSociale, rowsDuClient]) => {
               const clientId = rowsDuClient[0]?.original.clientId;
+              const dateInterv = rowsDuClient[0]?.original.clientDateIntervention ?? null;
               const nbNumeros = rowsDuClient.filter((r) => r.original.numeroId).length;
               const nbMac = rowsDuClient.filter((r) => r.original.equipementMacBrut).length;
               // Une ligne de duplication (2e équipement d'un utilisateur) répète le statut
@@ -786,6 +787,15 @@ export function ProvisionningTable({
                             />
                           </button>
                           <span className="text-sm font-semibold">{raisonSociale}</span>
+                          {dateInterv ? (
+                            <Badge className="border-transparent bg-primary/15 text-primary tabular-nums">
+                              install {new Date(dateInterv).toLocaleDateString("fr-FR")}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-muted-foreground">
+                              install à planifier
+                            </Badge>
+                          )}
                           <Badge variant="outline" className="tabular-nums">
                             {nbNumeros} numéro{nbNumeros > 1 ? "s" : ""}
                           </Badge>

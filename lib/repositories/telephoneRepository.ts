@@ -44,10 +44,16 @@ export async function fetchTelephoneGrille(filtres: {
           : {}),
       },
       include: {
-        client: { select: { id: true, raisonSociale: true } },
+        client: { select: { id: true, raisonSociale: true, dateIntervention: true } },
         suivis: { where: { etape: { actif: true } } },
       },
-      orderBy: [{ client: { raisonSociale: "asc" } }, { ordre: "asc" }, { id: "asc" }],
+      // Même ordre que le Provisionning: interventions planifiées les plus proches d'abord.
+      orderBy: [
+        { client: { dateIntervention: { sort: "asc", nulls: "last" } } },
+        { client: { raisonSociale: "asc" } },
+        { ordre: "asc" },
+        { id: "asc" },
+      ],
     }),
   ]);
 
