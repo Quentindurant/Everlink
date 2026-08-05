@@ -22,7 +22,80 @@ import { noterTentativeContactAction } from "@/app/(app)/clients/actions";
 import { setCreneauInterventionAction } from "@/app/(app)/clients/[id]/mailActions";
 import { marquerLienCommandeAction, marquerLienLivreAction } from "@/app/(app)/clients/[id]/lienActions";
 import { pousserVersZohoAction } from "@/app/(app)/clients/[id]/zohoActions";
-import { affecterTechnicienAction, setRouteurClientReutiliseAction } from "./actions";
+import { couleurStatutSuivi, STATUTS_SUIVI } from "@/lib/domain/zoho/suiviSheet";
+import {
+  affecterTechnicienAction,
+  setRouteurClientReutiliseAction,
+  updateSuiviAdvAction,
+} from "./actions";
+
+// Pastille au code couleur du TABLEAU SUIVI COMMANDES (mêmes teintes que le Sheet des ADV).
+function SelectStatutSuivi({
+  clientId,
+  statut,
+  onDone,
+}: {
+  clientId: string;
+  statut: string | null;
+  onDone: (fn: () => Promise<unknown>) => void;
+}) {
+  const couleur = statut ? couleurStatutSuivi(statut) : null;
+  return (
+    <select
+      value={statut ?? ""}
+      onChange={(e) => onDone(() => updateSuiviAdvAction(clientId, "statutSuivi", e.target.value))}
+      className="cursor-pointer appearance-none rounded-full border border-transparent px-2.5 py-1 text-[11px] font-bold tracking-wide outline-none focus:border-ring focus:ring-2 focus:ring-ring/40"
+      style={
+        couleur
+          ? {
+              background: `color-mix(in oklab, ${couleur} 30%, white)`,
+              color: `color-mix(in oklab, ${couleur} 62%, black)`,
+            }
+          : { color: "var(--ev-body-placeholder)" }
+      }
+    >
+      <option value="">— statut —</option>
+      {STATUTS_SUIVI.map((s) => (
+        <option key={s.statut} value={s.statut}>
+          {s.statut}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+// Champ texte inline sauvegardé au blur (matériel reçu, n° chrono, infos facturation).
+function ChampSuivi({
+  clientId,
+  champ,
+  valeur,
+  placeholder,
+  largeur = "w-24",
+  onDone,
+}: {
+  clientId: string;
+  champ: "materielRecu" | "numeroChrono" | "infosFacturation";
+  valeur: string | null;
+  placeholder: string;
+  largeur?: string;
+  onDone: (fn: () => Promise<unknown>) => void;
+}) {
+  const [v, setV] = useState(valeur ?? "");
+  return (
+    <input
+      value={v}
+      placeholder={placeholder}
+      onChange={(e) => setV(e.target.value)}
+      onBlur={() => {
+        if (v !== (valeur ?? "")) onDone(() => updateSuiviAdvAction(clientId, champ, v));
+      }}
+      className={cn(
+        largeur,
+        "rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[12.5px] outline-none placeholder:text-muted-foreground/40 hover:border-input focus:border-ring"
+      )}
+    />
+  );
+}
 
 function LigneDossier({
   d,
@@ -37,6 +110,7 @@ function LigneDossier({
   const [isPending, startTransition] = useTransition();
   const [date, setDate] = useState(d.dateIso ?? "");
   const [creneau, setCreneau] = useState(d.creneau ?? "");
+  const [dateImp, setDateImp] = useState(d.dateImperativeIso ?? "");
 
   const agir = (fn: () => Promise<unknown>) =>
     startTransition(async () => {
@@ -59,6 +133,29 @@ function LigneDossier({
         {d.departement && (
           <span className="ml-1.5 font-mono text-[11px] text-muted-foreground">{d.departement}</span>
         )}
+      </TableCell>
+
+      {/* Statut ADV (code couleur du Sheet) */}
+      <TableCell>
+        <SelectStatutSuivi clientId={d.clientId} statut={d.statutSuivi} onDone={agir} />
+      </TableCell>
+
+      {/* Impératif */}
+      <TableCell>
+        <input
+          type="date"
+          value={dateImp}
+          onChange={(e) => setDateImp(e.target.value)}
+          onBlur={() => {
+            if (dateImp !== (d.dateImperativeIso ?? ""))
+              agir(() => updateSuiviAdvAction(d.clientId, "dateImperative", dateImp));
+          }}
+          className={cn(
+            "rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[12.5px] outline-none hover:border-input focus:border-ring",
+            dateImp && "font-bold text-[color:var(--pal-red-fg)]"
+          )}
+          title="Date impérative (IMPE)"
+        />
       </TableCell>
 
       {/* Étape */}
@@ -173,6 +270,17 @@ function LigneDossier({
         </button>
       </TableCell>
 
+      {/* Matériel reçu / N° Chrono / Infos facturation */}
+      <TableCell>
+        <ChampSuivi clientId={d.clientId} champ="materielRecu" valeur={d.materielRecu} placeholder="matériel…" largeur="w-24" onDone={agir} />
+      </TableCell>
+      <TableCell>
+        <ChampSuivi clientId={d.clientId} champ="numeroChrono" valeur={d.numeroChrono} placeholder="n° chrono…" largeur="w-32" onDone={agir} />
+      </TableCell>
+      <TableCell>
+        <ChampSuivi clientId={d.clientId} champ="infosFacturation" valeur={d.infosFacturation} placeholder="factu…" largeur="w-24" onDone={agir} />
+      </TableCell>
+
       {/* Routeur client réutilisé (reset sur place, pas d'envoi depuis le stock) */}
       <TableCell>
         <button
@@ -223,8 +331,8 @@ export function GestionDossiers({
         <Table>
           <TableHeader className="sticky top-0 z-10">
             <TableRow className="hover:bg-transparent">
-              {["Client", "Étape", "Contact", "Intervention", "Technicien", "Lien", "Mails", "Zoho", "Routeur"].map((h) => (
-                <TableHead key={h} className="h-9 text-xs font-semibold whitespace-nowrap text-muted-foreground">
+              {["Client", "Statut ADV", "Impératif", "Étape", "Contact", "Intervention", "Technicien", "Lien", "Mails", "Zoho", "Matériel reçu", "N° Chrono", "Facturation", "Routeur"].map((h) => (
+                <TableHead key={h} className="h-9 whitespace-nowrap">
                   {h}
                 </TableHead>
               ))}
@@ -233,7 +341,7 @@ export function GestionDossiers({
           <TableBody>
             {visibles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={14} className="py-8 text-center text-sm text-muted-foreground">
                   Aucun dossier.
                 </TableCell>
               </TableRow>
@@ -246,9 +354,10 @@ export function GestionDossiers({
         </Table>
       </div>
       <p className="text-xs text-muted-foreground">
-        Tout est éditable ici : étape, tentative de contact (+1 au clic), date/créneau, technicien,
-        lien (clic = commandé puis livré), P/C = mails prévenance/confirmation (clic = ouvrir
-        l&apos;envoi), Zoho = ajouter la ligne au tableau de suivi.
+        Tout est éditable ici : statut ADV (code couleur du tableau de suivi), date impérative,
+        étape, tentative de contact (+1 au clic), date/créneau, technicien, lien (clic = commandé
+        puis livré), P/C = mails prévenance/confirmation, Zoho = ajouter la ligne au tableau,
+        matériel reçu, n° Chrono, infos facturation.
       </p>
     </div>
   );

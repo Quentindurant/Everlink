@@ -4,6 +4,32 @@
 // A SUIVRE orange, PORTA violet, CLOTUREE gris. Il faut donc envoyer LEURS termes,
 // pas les libellés d'étape Everlink, sinon la ligne reste blanche.
 
+// Statuts du suivi ADV, dans l'ordre du cycle de vie d'un dossier, avec la couleur de la
+// mise en forme conditionnelle du Sheet (relevée sur l'export du classeur). Ces couleurs
+// alimentent aussi les pastilles de l'app : mêmes repères visuels des deux côtés.
+export const STATUTS_SUIVI: { statut: string; couleur: string }[] = [
+  { statut: "NEW", couleur: "#FFFF00" },
+  { statut: "A PLANIFIER", couleur: "#13ED0C" },
+  { statut: "ATT CLIENT", couleur: "#F8B5C8" },
+  { statut: "ATT TECH", couleur: "#F8B5C8" },
+  { statut: "ATT PARTE", couleur: "#F8B5C8" },
+  { statut: "A SUIVRE", couleur: "#FFA600" },
+  { statut: "STAND BY", couleur: "#85C1E9" },
+  { statut: "COLLECTE", couleur: "#F9E79F" },
+  { statut: "TECHNIQUE", couleur: "#F1C40F" },
+  { statut: "STAGING", couleur: "#F8B5C8" },
+  { statut: "INSTALLATION", couleur: "#9BDEB4" },
+  { statut: "OPER", couleur: "#EBDEF0" },
+  { statut: "PORTA", couleur: "#C39BD3" },
+  { statut: "PV", couleur: "#763E8D" },
+  { statut: "CLOTUREE", couleur: "#A6A6A6" },
+  { statut: "ANNULEE", couleur: "#FF0000" },
+];
+
+export function couleurStatutSuivi(statut: string): string {
+  return STATUTS_SUIVI.find((s) => s.statut === statut)?.couleur ?? "#A6A6A6";
+}
+
 const ETAPE_VERS_STATUT_SHEET: [RegExp, string][] = [
   [/à qualifier/i, "NEW"],
   [/prévenance/i, "ATT CLIENT"],

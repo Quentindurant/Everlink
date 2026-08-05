@@ -133,6 +133,15 @@ model Client {
   // (reset) au lieu d'en envoyer un depuis notre stock.
   routeurClientReutilise Boolean @default(false)
 
+  // Suivi ADV — colonnes du TABLEAU SUIVI COMMANDES, pilotées depuis l'app (le push Zoho
+  // les recopie). statutSuivi porte le vocabulaire ADV (NEW, ATT CLIENT, INSTALLATION…)
+  // qui pilote le code couleur ; null = statut dérivé de l'étape de migration.
+  statutSuivi      String?
+  dateImperative   DateTime?
+  materielRecu     String?
+  numeroChrono     String?
+  infosFacturation String?
+
   @@index([cleRapprochement])
   @@index([lotId])
   @@index([statutBascule])

@@ -32,6 +32,25 @@ export async function affecterTechnicienAction(
   return garde(() => affecterTechnicien(clientId, technicienId || null));
 }
 
+// Met à jour un champ du suivi ADV (colonnes du TABLEAU SUIVI COMMANDES pilotées depuis
+// l'app). Chaîne vide = effacement (null en base).
+export async function updateSuiviAdvAction(
+  clientId: string,
+  champ: "statutSuivi" | "materielRecu" | "numeroChrono" | "infosFacturation" | "dateImperative",
+  valeur: string
+): Promise<Resultat> {
+  return garde(async () => {
+    const v = valeur.trim();
+    await prisma.client.update({
+      where: { id: clientId },
+      data:
+        champ === "dateImperative"
+          ? { dateImperative: v ? new Date(v) : null }
+          : { [champ]: v || null },
+    });
+  });
+}
+
 // Marque (ou non) qu'on réutilise le routeur déjà présent chez le client, au lieu d'en envoyer
 // un depuis le stock.
 export async function setRouteurClientReutiliseAction(

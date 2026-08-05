@@ -30,8 +30,14 @@ function construireRecord(c: {
   etapeLibelle: string | null;
   prestataireNom: string | null;
   technicienNom: string | null;
+  statutSuivi: string | null;
+  dateImperative: Date | null;
+  materielRecu: string | null;
+  numeroChrono: string | null;
+  infosFacturation: string | null;
 }): Record<string, string> {
   return {
+    IMPE: c.dateImperative ? c.dateImperative.toLocaleDateString("fr-FR") : "",
     CLIENT: `${prefixeSemaine(c.dateIntervention)}${c.raisonSociale}`,
     DPT: c.departement ?? "",
     "CP CLIENT ": extraireCodePostal(c.adresse),
@@ -45,8 +51,12 @@ function construireRecord(c: {
     TECH: c.prestataireNom ?? "",
     "NOM TECH": c.technicienNom ?? "",
     "NOM CP ": [c.contactPrenom, c.contactNom].filter(Boolean).join(" "),
-    INSTALLATION: statutSheetPourEtape(c.etapeLibelle),
+    // Le statut saisi par les ADV prime ; sinon on le dérive de l'étape de migration.
+    INSTALLATION: c.statutSuivi ?? statutSheetPourEtape(c.etapeLibelle),
     "COMMENTAIRES PLANIF ": c.commentaire ?? "",
+    "MATERIEL RECU ": c.materielRecu ?? "",
+    "N° CHRONO ": c.numeroChrono ?? "",
+    "INFOS FACTURATION ": c.infosFacturation ?? "",
   };
 }
 
@@ -79,6 +89,11 @@ export async function pousserVersZohoAction(
     etapeLibelle: client.etapeMigration?.libelle ?? null,
     prestataireNom: client.technicien?.prestataire?.nom ?? null,
     technicienNom: client.technicien?.nom ?? null,
+    statutSuivi: client.statutSuivi,
+    dateImperative: client.dateImperative,
+    materielRecu: client.materielRecu,
+    numeroChrono: client.numeroChrono,
+    infosFacturation: client.infosFacturation,
   });
 
   const r = await ajouterLigneSheet(record);

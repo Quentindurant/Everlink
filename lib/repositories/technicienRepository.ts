@@ -34,6 +34,12 @@ export interface DossierAdv {
   mailConfirmationLe: string | null;
   zohoPousseLe: string | null;
   routeurClientReutilise: boolean;
+  // Suivi ADV (colonnes du TABLEAU SUIVI COMMANDES pilotées depuis l'app).
+  statutSuivi: string | null;
+  dateImperativeIso: string | null;
+  materielRecu: string | null;
+  numeroChrono: string | null;
+  infosFacturation: string | null;
 }
 
 // Tous les dossiers actifs avec leur état actionnable, pour le poste de travail ADV.
@@ -55,6 +61,11 @@ export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
       lienLivre: true,
       zohoLignePousseeLe: true,
       routeurClientReutilise: true,
+      statutSuivi: true,
+      dateImperative: true,
+      materielRecu: true,
+      numeroChrono: true,
+      infosFacturation: true,
       mailEnvois: {
         where: { succes: true },
         orderBy: { creeLe: "desc" },
@@ -82,6 +93,11 @@ export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
     mailConfirmationLe: d(c.mailEnvois.find((m) => m.type === "CONFIRMATION")?.creeLe ?? null),
     zohoPousseLe: d(c.zohoLignePousseeLe),
     routeurClientReutilise: c.routeurClientReutilise,
+    statutSuivi: c.statutSuivi,
+    dateImperativeIso: d(c.dateImperative),
+    materielRecu: c.materielRecu,
+    numeroChrono: c.numeroChrono,
+    infosFacturation: c.infosFacturation,
   }));
 }
 
