@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;color:oklch(0.24 0.012 240);background:oklch(0.975 0.003 240);-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:oklch(0.5 0.12 220);text-decoration:none}
+a:hover{color:oklch(0.42 0.12 220);text-decoration:underline}
+select,input,button,textarea{font-family:inherit}
+input::placeholder{color:oklch(0.65 0.01 240)}
+</style>
+</helmet>
+<div style="display:flex;height:100vh;overflow:hidden">
+  <aside style="width:232px;flex:none;background:#fff;border-right:1px solid oklch(0.915 0.006 240);display:flex;flex-direction:column">
+    <div style="padding:16px 16px 12px;display:flex;align-items:center;gap:9px">
+      <div style="width:28px;height:28px;border-radius:7px;background:oklch(0.52 0.12 220);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;letter-spacing:0.02em">GC</div>
+      <div>
+        <div style="font-weight:700;font-size:13px;line-height:1.1">GC Développement</div>
+        <div style="font-size:10.5px;color:oklch(0.55 0.012 240)">Migration opérateur</div>
+      </div>
+    </div>
+    <nav style="flex:1;overflow:auto;padding:4px 10px 10px">
+      <sc-for list="{{ navSections }}" as="ns" hint-placeholder-count="5">
+        <div style="margin-bottom:12px">
+          <sc-if value="{{ ns.title }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:oklch(0.6 0.012 240);padding:6px 10px 4px">{{ ns.title }}</div>
+          </sc-if>
+          <div style="display:flex;flex-direction:column;gap:1px">
+            <sc-for list="{{ ns.items }}" as="it" hint-placeholder-count="3">
+              <div onClick="{{ it.go }}" style="padding:6px 10px;border-radius:7px;font-size:13px;cursor:pointer;user-select:none;font-weight:{{ it.fw }};background:{{ it.bg }};color:{{ it.fg }}" style-hover="background:oklch(0.945 0.008 230)">{{ it.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </nav>
+    <div style="padding:12px 14px;border-top:1px solid oklch(0.93 0.005 240)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+        <span style="font-size:11.5px;font-weight:700">SEWAN → UNYC</span>
+        <span style="font-size:11.5px;font-weight:700;color:oklch(0.45 0.11 220)">39 %</span>
+      </div>
+      <div style="height:5px;border-radius:99px;background:oklch(0.93 0.008 240);overflow:hidden;margin-bottom:6px"><div style="height:100%;width:39%;border-radius:99px;background:oklch(0.52 0.12 220)"></div></div>
+      <div style="font-size:11px;color:oklch(0.52 0.012 240)">142 / 364 numéros basculés</div>
+    </div>
+    <div style="padding:11px 14px;border-top:1px solid oklch(0.93 0.005 240);display:flex;align-items:center;gap:9px">
+      <div style="width:28px;height:28px;border-radius:99px;background:oklch(0.93 0.04 220);color:oklch(0.4 0.11 220);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex:none">Q</div>
+      <div style="min-width:0;flex:1">
+        <div style="font-size:11.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">quentin@gcdev.fr</div>
+        <div style="font-size:10.5px;color:oklch(0.55 0.012 240)">ADMIN · <a href="#" style="font-size:10.5px">Déconnexion</a></div>
+      </div>
+    </div>
+  </aside>
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <header style="height:52px;flex:none;background:#fff;border-bottom:1px solid oklch(0.915 0.006 240);display:flex;align-items:center;gap:16px;padding:0 20px">
+      <div style="font-size:15px;font-weight:700;flex:1">{{ screenTitle }}</div>
+      <div style="position:relative;display:flex;align-items:center">
+        <input placeholder="Rechercher clients, numéros, MAC…" style="width:290px;font-size:12.5px;padding:6px 64px 6px 11px;border:1px solid oklch(0.9 0.006 240);border-radius:8px;background:oklch(0.975 0.003 240);outline:none;color:inherit">
+        <span style="position:absolute;right:8px;font-size:10px;font-weight:600;color:oklch(0.58 0.012 240);border:1px solid oklch(0.9 0.006 240);border-radius:5px;padding:2px 6px;background:#fff">Ctrl K</span>
+      </div>
+    </header>
+    <div style="flex:1;overflow:auto;padding:20px 24px 40px">
+
+      <sc-if value="{{ sAccueil }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="Accueil — Vue du jour" style="max-width:1180px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px">
+          <sc-for list="{{ homeKpis }}" as="k" hint-placeholder-count="3">
+            <div onClick="{{ k.go }}" style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;padding:16px 18px;cursor:pointer" style-hover="border-color:oklch(0.82 0.03 220)">
+              <div style="font-size:30px;font-weight:700;line-height:1;color:{{ k.color }}">{{ k.n }}</div>
+              <div style="font-size:12.5px;color:oklch(0.45 0.012 240);margin-top:6px">{{ k.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+          <sc-for list="{{ shortcuts }}" as="k" hint-placeholder-count="4">
+            <div onClick="{{ k.go }}" style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px" style-hover="border-color:oklch(0.82 0.03 220)">
+              <span style="font-size:17px;font-weight:700;color:oklch(0.45 0.11 220)">{{ k.n }}</span>
+              <span style="font-size:12px;color:oklch(0.42 0.012 240)">{{ k.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 330px;gap:14px;align-items:start">
+          <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;overflow:hidden">
+            <div style="padding:12px 16px;font-size:13px;font-weight:700;border-bottom:1px solid oklch(0.93 0.005 240)">Interventions à venir</div>
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr>
+                <th style="text-align:left;padding:7px 12px;font-size:10.5px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Date</th>
+                <th style="text-align:left;padding:7px 12px;font-size:10.5px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Client</th>
+                <th style="text-align:left;padding:7px 12px;font-size:10.5px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Étape</th>
+                <th style="text-align:left;padding:7px 12px;font-size:10.5px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Lien</th>
+                <th style="text-align:left;padding:7px 12px;font-size:10.5px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Technicien</th>
+              </tr></thead>
+              <tbody>
+              <sc-for list="{{ intervRows }}" as="r" hint-placeholder-count="6">
+                <tr style="border-top:1px solid oklch(0.945 0.004 240)" style-hover="background:oklch(0.975 0.004 240)">
+                  <td style="padding:8px 12px;font-size:12.5px;white-space:nowrap;font-weight:{{ r.dateFw }};color:{{ r.dateFg }}">{{ r.date }}</td>
+                  <td style="padding:8px 12px;font-size:12.5px"><a href="#" onClick="{{ r.go }}">{{ r.client }}</a></td>
+                  <td style="padding:8px 12px"><span style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap;background:{{ r.etapeB.bg }};color:{{ r.etapeB.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ r.etapeB.dotD }};background:{{ r.etapeB.dot }}"></span>{{ r.etapeB.label }}</span></td>
+                  <td style="padding:8px 12px"><span style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap;background:{{ r.lienB.bg }};color:{{ r.lienB.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ r.lienB.dotD }};background:{{ r.lienB.dot }}"></span>{{ r.lienB.label }}</span></td>
+                  <td style="padding:8px 12px;font-size:12.5px">{{ r.tech }}</td>
+                </tr>
+              </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px">
+              <div style="padding:12px 16px;font-size:13px;font-weight:700;border-bottom:1px solid oklch(0.93 0.005 240)">Dossiers bloqués</div>
+              <sc-for list="{{ bloqRows }}" as="r" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-top:1px solid oklch(0.955 0.003 240)">
+                  <a href="#" onClick="{{ r.go }}" style="font-size:12.5px;font-weight:600">{{ r.client }}</a>
+                  <span style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;background:{{ r.b.bg }};color:{{ r.b.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ r.b.dotD }};background:{{ r.b.dot }}"></span>{{ r.b.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px">
+              <div style="padding:12px 16px;font-size:13px;font-weight:700;border-bottom:1px solid oklch(0.93 0.005 240)">À relancer</div>
+              <sc-for list="{{ relanceRows }}" as="r" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-top:1px solid oklch(0.955 0.003 240)">
+                  <span style="font-size:12.5px;font-weight:600">{{ r.client }}</span>
+                  <span style="font-size:11.5px;color:oklch(0.55 0.15 25);font-weight:600">{{ r.n }} tentatives</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sProv }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Provisionning">
+        <div style="display:flex;gap:22px;align-items:baseline;margin-bottom:14px;background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;padding:12px 18px">
+          <div style="display:flex;gap:7px;align-items:baseline"><span style="font-size:21px;font-weight:700">364</span><span style="font-size:12px;color:oklch(0.5 0.012 240)">numéros suivis</span></div>
+          <div style="display:flex;gap:7px;align-items:baseline"><span style="font-size:21px;font-weight:700;color:oklch(0.45 0.1 150)">142</span><span style="font-size:12px;color:oklch(0.5 0.012 240)">basculés</span></div>
+          <div style="display:flex;gap:7px;align-items:baseline"><span style="font-size:21px;font-weight:700;color:oklch(0.55 0.13 70)">3</span><span style="font-size:12px;color:oklch(0.5 0.012 240)">anomalies</span></div>
+          <div style="display:flex;gap:7px;align-items:baseline"><span style="font-size:21px;font-weight:700;color:oklch(0.55 0.15 25)">2</span><span style="font-size:12px;color:oklch(0.5 0.012 240)">clients sans ligne</span></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+          <input value="{{ q }}" onChange="{{ setQ }}" placeholder="Recherche libre (numéro, utilisateur, MAC…)" style="width:250px;font-size:12.5px;padding:6px 10px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;outline:none;color:inherit">
+          <select value="{{ fLot }}" onChange="{{ setFLot }}" style="font-size:12.5px;padding:6px 8px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;color:inherit"><sc-for list="{{ lotOpts }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select>
+          <select value="{{ fClient }}" onChange="{{ setFClient }}" style="font-size:12.5px;padding:6px 8px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;color:inherit;max-width:210px"><sc-for list="{{ clientOpts }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select>
+          <select style="font-size:12.5px;padding:6px 8px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;color:inherit"><option>Hébergeur : SEWAN</option></select>
+          <select value="{{ fStatut }}" onChange="{{ setFStatut }}" style="font-size:12.5px;padding:6px 8px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;color:inherit"><option value="Tous">Bascule : toutes</option><option value="À faire">À faire</option><option value="Fait">Fait</option></select>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;color:oklch(0.4 0.012 240)"><input type="checkbox" checked="{{ fAnom }}" onChange="{{ toggleAnom }}">anomalies seulement</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;color:oklch(0.4 0.012 240)"><input type="checkbox" checked="{{ fElig }}" onChange="{{ toggleElig }}">éligibles export seulement</label>
+          <div style="flex:1"></div>
+          <button onClick="{{ toggleAll }}" style="font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;border:1px solid oklch(0.88 0.008 240);background:#fff;color:oklch(0.35 0.012 240);cursor:pointer" style-hover="background:oklch(0.965 0.005 240)">{{ toggleAllLabel }}</button>
+        </div>
+        <sc-if value="{{ hasSel }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:12px;background:oklch(0.94 0.04 220);border:1px solid oklch(0.85 0.06 220);border-radius:8px;padding:7px 12px;margin-bottom:12px">
+            <span style="font-size:12.5px;font-weight:600;color:oklch(0.35 0.1 220)">{{ selCount }} numéro(s) sélectionné(s)</span>
+            <button onClick="{{ markFait }}" style="font-size:12px;font-weight:600;padding:5px 11px;border-radius:6px;border:none;background:oklch(0.52 0.12 220);color:#fff;cursor:pointer">Marquer Fait</button>
+            <button onClick="{{ clearSel }}" style="font-size:12px;padding:5px 8px;border:none;background:transparent;color:oklch(0.4 0.08 220);cursor:pointer;text-decoration:underline">Tout désélectionner</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noGroups }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#fff;border:1px dashed oklch(0.87 0.008 240);border-radius:10px;padding:36px;text-align:center">
+            <div style="font-size:13px;color:oklch(0.5 0.012 240);margin-bottom:10px">Aucun numéro ne correspond aux filtres.</div>
+            <button onClick="{{ resetFilters }}" style="font-size:12px;font-weight:600;padding:6px 12px;border-radius:7px;border:1px solid oklch(0.88 0.008 240);background:#fff;cursor:pointer;color:inherit">Réinitialiser les filtres</button>
+          </div>
+        </sc-if>
+        <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+          <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;user-select:none" style-hover="background:oklch(0.98 0.003 240)" onClick="{{ g.toggle }}">
+              <span style="font-size:11px;color:oklch(0.55 0.012 240);width:12px">{{ g.caret }}</span>
+              <a href="#" onClick="{{ g.goClient }}" style="font-size:13.5px;font-weight:700;white-space:nowrap">{{ g.rs }}</a>
+              <span style="font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap;background:{{ g.instBg }};color:{{ g.instFg }}">{{ g.installLabel }}</span>
+              <span style="font-size:12px;color:oklch(0.52 0.012 240);white-space:nowrap">{{ g.meta }}</span>
+              <span style="font-size:12px;font-weight:600;color:oklch(0.42 0.09 220);white-space:nowrap">{{ g.prog }}</span>
+              <div style="flex:1"></div>
+              <select value="{{ g.etape }}" onChange="{{ g.setEtape }}" onClick="{{ stop }}" style="font-size:12px;padding:4px 6px;border:1px solid oklch(0.9 0.006 240);border-radius:6px;background:#fff;color:inherit"><sc-for list="{{ etapeOpts }}" as="e"><option value="{{ e.i }}">{{ e.label }}</option></sc-for></select>
+              <button onClick="{{ g.addRow }}" style="font-size:12px;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid oklch(0.88 0.008 240);background:#fff;color:oklch(0.42 0.09 220);cursor:pointer;white-space:nowrap" style-hover="background:oklch(0.96 0.01 220)">+ Ajouter une ligne</button>
+            </div>
+            <sc-if value="{{ g.open }}" hint-placeholder-val="{{ false }}">
+              <div style="border-top:1px solid oklch(0.93 0.005 240);overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse">
+                <thead><tr>
+                  <th style="padding:6px 8px 6px 14px"><span style="font-size:10px;color:oklch(0.6 0.012 240)">SÉL.</span></th>
+                  <th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240);white-space:nowrap">Numéro à porter</th>
+                  <th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Court</th>
+                  <th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Contrôle</th>
+                  <th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Équipement</th>
+                  <th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Adresse MAC</th>
+                  <th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Utilisateur</th>
+                  <th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Hébergeur</th>
+                  <th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Bascule</th>
+                  <th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Date</th>
+                  <th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Commentaire</th>
+                  <th style="text-align:left;padding:6px 14px 6px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240);white-space:nowrap">Excl. export</th>
+                </tr></thead>
+                <tbody>
+                <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="5">
+                  <tr style="border-top:1px solid oklch(0.95 0.004 240);background:{{ r.rowBg }}">
+                    <td style="padding:{{ padY }} 8px {{ padY }} 14px"><input type="checkbox" checked="{{ r.sel }}" onChange="{{ r.toggleSel }}" style="cursor:pointer"></td>
+                    <td style="padding:{{ padY }} 8px;font-family:'Space Mono',monospace;font-size:12px;white-space:nowrap">{{ r.num }}</td>
+                    <td style="padding:{{ padY }} 8px;font-family:'Space Mono',monospace;font-size:12px">{{ r.court }}</td>
+                    <td style="padding:{{ padY }} 8px;white-space:nowrap"><span title="{{ r.msg }}" style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;background:{{ r.ctrlB.bg }};color:{{ r.ctrlB.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ r.ctrlB.dotD }};background:{{ r.ctrlB.dot }}"></span>{{ r.ctrlB.label }}</span><div style="font-size:10.5px;color:oklch(0.5 0.012 240);max-width:150px;white-space:normal;line-height:1.25">{{ r.msg }}</div></td>
+                    <td style="padding:{{ padY }} 8px"><select value="{{ r.equip }}" onChange="{{ r.setEquip }}" style="font-size:12px;padding:3px 5px;border:1px solid transparent;border-radius:6px;background:transparent;color:inherit;cursor:pointer;max-width:130px" style-hover="border-color:oklch(0.88 0.008 240);background:#fff"><sc-for list="{{ equipOpts }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select></td>
+                    <td style="padding:{{ padY }} 8px"><input value="{{ r.mac }}" onChange="{{ r.setMac }}" placeholder="—" style="font-family:'Space Mono',monospace;font-size:11.5px;width:142px;padding:3px 6px;border:1px solid transparent;border-radius:6px;background:transparent;color:inherit;outline:none" style-hover="border-color:oklch(0.88 0.008 240);background:#fff" style-focus="border-color:oklch(0.7 0.09 220);background:#fff"></td>
+                    <td style="padding:{{ padY }} 8px;font-size:12.5px;white-space:nowrap">{{ r.user }}</td>
+                    <td style="padding:{{ padY }} 8px;font-size:11.5px;color:oklch(0.5 0.012 240);white-space:nowrap">SEWAN → UNYC</td>
+                    <td style="padding:{{ padY }} 8px;white-space:nowrap"><span onClick="{{ r.toggleBasc }}" title="Cliquer pour basculer" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;background:{{ r.bascB.bg }};color:{{ r.bascB.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ r.bascB.dotD }};background:{{ r.bascB.dot }}"></span>{{ r.bascB.label }}</span></td>
+                    <td style="padding:{{ padY }} 8px;font-size:12px;color:oklch(0.45 0.012 240);white-space:nowrap">{{ r.dateB }}</td>
+                    <td style="padding:{{ padY }} 8px;min-width:150px"><input value="{{ r.com }}" onChange="{{ r.setCom }}" placeholder="—" style="font-size:12px;width:100%;min-width:140px;padding:3px 6px;border:1px solid transparent;border-radius:6px;background:transparent;color:inherit;outline:none" style-hover="border-color:oklch(0.88 0.008 240);background:#fff" style-focus="border-color:oklch(0.7 0.09 220);background:#fff"></td>
+                    <td style="padding:{{ padY }} 14px {{ padY }} 8px;text-align:center"><input type="checkbox" checked="{{ r.exclu }}" onChange="{{ r.toggleExclu }}" style="cursor:pointer"></td>
+                  </tr>
+                </sc-for>
+                </tbody>
+              </table>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sClient }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Fiche client" style="max-width:1180px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div>
+            <div style="font-size:19px;font-weight:700">{{ cur.rs }}</div>
+            <div style="font-size:12.5px;color:oklch(0.5 0.012 240);margin-top:3px">département {{ cur.dept }} · scénario <b style="color:oklch(0.35 0.012 240)">{{ cur.scenario }}</b> · lot <b style="color:oklch(0.35 0.012 240)">{{ cur.lot }}</b></div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="text-align:right">
+            <button onClick="{{ pushZoho }}" style="font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:7px;border:1px solid oklch(0.88 0.008 240);background:#fff;color:oklch(0.35 0.012 240);cursor:pointer" style-hover="background:oklch(0.965 0.005 240)">Pousser vers Zoho</button>
+            <sc-if value="{{ zohoNote }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:oklch(0.55 0.012 240);margin-top:4px">{{ zohoNote }}</div></sc-if>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;padding:18px 14px 14px;margin-bottom:14px">
+          <div style="display:flex">
+            <sc-for list="{{ steps }}" as="s" hint-placeholder-count="8">
+              <div onClick="{{ s.pick }}" style="flex:1;cursor:pointer;user-select:none">
+                <div style="display:flex;align-items:center">
+                  <div style="height:2px;flex:1;background:{{ s.lineL }}"></div>
+                  <div style="width:24px;height:24px;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none;background:{{ s.dotBg }};color:{{ s.dotFg }};border:2px solid {{ s.dotBd }}">{{ s.mark }}</div>
+                  <div style="height:2px;flex:1;background:{{ s.lineR }}"></div>
+                </div>
+                <div style="text-align:center;font-size:10.5px;margin-top:7px;line-height:1.25;padding:0 3px;color:{{ s.fg }};font-weight:{{ s.fw }}">{{ s.label }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;padding:14px 16px">
+            <div style="font-size:13px;font-weight:700;margin-bottom:12px">Contact &amp; planification</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+              <span style="font-size:12.5px;color:oklch(0.45 0.012 240)">Tentatives d'appel</span>
+              <span style="font-size:15px;font-weight:700;color:{{ tentFg }}">{{ tentN }}</span>
+              <button onClick="{{ incTent }}" style="font-size:12px;font-weight:700;width:26px;height:24px;border-radius:6px;border:1px solid oklch(0.88 0.008 240);background:#fff;cursor:pointer;color:inherit" style-hover="background:oklch(0.965 0.005 240)">+1</button>
+              <sc-if value="{{ tentAlert }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px;font-weight:600;color:oklch(0.55 0.15 25);background:oklch(0.945 0.035 25);padding:2px 8px;border-radius:99px">seuil atteint — passer en Bloqué ?</span></sc-if>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <div><div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:oklch(0.58 0.012 240);margin-bottom:4px">Date d'intervention</div><input value="{{ iDate }}" onChange="{{ setIDate }}" style="font-size:12.5px;padding:5px 9px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;width:110px;background:#fff;color:inherit;outline:none"></div>
+              <div><div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:oklch(0.58 0.012 240);margin-bottom:4px">Créneau</div><select value="{{ iCren }}" onChange="{{ setICren }}" style="font-size:12.5px;padding:5px 8px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;color:inherit"><sc-for list="{{ crenOpts }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select></div>
+              <div><div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:oklch(0.58 0.012 240);margin-bottom:4px">Technicien affecté</div><select value="{{ iTech }}" onChange="{{ setITech }}" style="font-size:12.5px;padding:5px 8px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;color:inherit"><sc-for list="{{ techOpts }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select><div style="font-size:11px;color:oklch(0.55 0.012 240);margin-top:4px">disponibles ce jour : Bruce (78), Fathi (75·92·93)</div></div>
+            </div>
+          </div>
+          <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;padding:14px 16px">
+            <div style="font-size:13px;font-weight:700;margin-bottom:12px">Lien internet</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:99px;font-size:11.5px;font-weight:600;background:{{ lienB.bg }};color:{{ lienB.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ lienB.dotD }};background:{{ lienB.dot }}"></span>{{ lienB.label }}</span>
+              <sc-if value="{{ hasLienBtn }}" hint-placeholder-val="{{ false }}"><button onClick="{{ lienAdvance }}" style="font-size:12px;font-weight:600;padding:5px 11px;border-radius:7px;border:none;background:oklch(0.52 0.12 220);color:#fff;cursor:pointer" style-hover="background:oklch(0.46 0.12 220)">{{ lienBtnLabel }}</button></sc-if>
+            </div>
+            <sc-if value="{{ lienShowInfo }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:12.5px">
+                <span style="color:oklch(0.55 0.012 240)">Commandé le</span><span>{{ cur.lienDate }}</span>
+                <span style="color:oklch(0.55 0.012 240)">Opérateur</span><span>{{ cur.lienOp }}</span>
+                <span style="color:oklch(0.55 0.012 240)">Référence</span><span style="font-family:'Space Mono',monospace;font-size:12px">{{ cur.lienRef }}</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ lienNone }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:oklch(0.55 0.012 240)">Aucune commande en cours pour ce client.</div></sc-if>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button onClick="{{ impUsers }}" style="font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;border:1px dashed oklch(0.84 0.02 220);background:oklch(0.975 0.008 220);color:oklch(0.4 0.09 220);cursor:pointer" style-hover="background:oklch(0.955 0.015 220)">↥ Importer des utilisateurs (CSV Sewan)</button>
+          <button onClick="{{ impEquips }}" style="font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;border:1px dashed oklch(0.84 0.02 220);background:oklch(0.975 0.008 220);color:oklch(0.4 0.09 220);cursor:pointer" style-hover="background:oklch(0.955 0.015 220)">↥ Importer les équipements (CSV Sewan)</button>
+          <button onClick="{{ impNums }}" style="font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;border:1px dashed oklch(0.84 0.02 220);background:oklch(0.975 0.008 220);color:oklch(0.4 0.09 220);cursor:pointer" style-hover="background:oklch(0.955 0.015 220)">↥ Importer les numéros (Sewan v4, code RIO)</button>
+        </div>
+        <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;overflow:hidden">
+          <div style="display:flex;gap:2px;padding:8px 12px 0;border-bottom:1px solid oklch(0.93 0.005 240)">
+            <sc-for list="{{ clientTabs }}" as="t" hint-placeholder-count="5">
+              <div onClick="{{ t.pick }}" style="font-size:12.5px;padding:7px 13px;cursor:pointer;user-select:none;border-radius:7px 7px 0 0;font-weight:{{ t.fw }};color:{{ t.fg }};border-bottom:2px solid {{ t.bd }}">{{ t.label }}</div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ tNums }}" hint-placeholder-val="{{ true }}">
+            <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr>
+                <th style="text-align:left;padding:7px 8px 7px 14px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240);white-space:nowrap">Numéro</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Court</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Contrôle</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Équipement</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">MAC</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Utilisateur</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Bascule</th>
+                <th style="text-align:left;padding:7px 14px 7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Date</th>
+              </tr></thead>
+              <tbody>
+              <sc-for list="{{ clientRows }}" as="r" hint-placeholder-count="6">
+                <tr style="border-top:1px solid oklch(0.95 0.004 240);background:{{ r.rowBg }}">
+                  <td style="padding:{{ padY }} 8px {{ padY }} 14px;font-family:'Space Mono',monospace;font-size:12px">{{ r.num }}</td>
+                  <td style="padding:{{ padY }} 8px;font-family:'Space Mono',monospace;font-size:12px">{{ r.court }}</td>
+                  <td style="padding:{{ padY }} 8px"><span title="{{ r.msg }}" style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;background:{{ r.ctrlB.bg }};color:{{ r.ctrlB.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ r.ctrlB.dotD }};background:{{ r.ctrlB.dot }}"></span>{{ r.ctrlB.label }}</span></td>
+                  <td style="padding:{{ padY }} 8px"><select value="{{ r.equip }}" onChange="{{ r.setEquip }}" style="font-size:12px;padding:3px 5px;border:1px solid transparent;border-radius:6px;background:transparent;color:inherit;cursor:pointer" style-hover="border-color:oklch(0.88 0.008 240);background:#fff"><sc-for list="{{ equipOpts }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select></td>
+                  <td style="padding:{{ padY }} 8px;font-family:'Space Mono',monospace;font-size:11.5px">{{ r.mac }}</td>
+                  <td style="padding:{{ padY }} 8px;font-size:12.5px">{{ r.user }}</td>
+                  <td style="padding:{{ padY }} 8px"><span onClick="{{ r.toggleBasc }}" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;background:{{ r.bascB.bg }};color:{{ r.bascB.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ r.bascB.dotD }};background:{{ r.bascB.dot }}"></span>{{ r.bascB.label }}</span></td>
+                  <td style="padding:{{ padY }} 14px {{ padY }} 8px;font-size:12px;color:oklch(0.45 0.012 240)">{{ r.dateB }}</td>
+                </tr>
+              </sc-for>
+              </tbody>
+            </table>
+            </div>
+          </sc-if>
+          <sc-if value="{{ tEquips }}" hint-placeholder-val="{{ false }}">
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr>
+                <th style="text-align:left;padding:7px 8px 7px 14px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Modèle</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Adresse MAC</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Affecté à</th>
+              </tr></thead>
+              <tbody>
+              <sc-for list="{{ equipRows }}" as="r" hint-placeholder-count="5">
+                <tr style="border-top:1px solid oklch(0.95 0.004 240)"><td style="padding:7px 8px 7px 14px;font-size:12.5px">{{ r.model }}</td><td style="padding:7px 8px;font-family:'Space Mono',monospace;font-size:11.5px">{{ r.mac }}</td><td style="padding:7px 8px;font-size:12.5px">{{ r.user }}</td></tr>
+              </sc-for>
+              </tbody>
+            </table>
+          </sc-if>
+          <sc-if value="{{ tUsers }}" hint-placeholder-val="{{ false }}">
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr>
+                <th style="text-align:left;padding:7px 8px 7px 14px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Utilisateur</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Numéro</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Court</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Équipement</th>
+              </tr></thead>
+              <tbody>
+              <sc-for list="{{ userRows }}" as="r" hint-placeholder-count="5">
+                <tr style="border-top:1px solid oklch(0.95 0.004 240)"><td style="padding:7px 8px 7px 14px;font-size:12.5px;font-weight:600">{{ r.user }}</td><td style="padding:7px 8px;font-family:'Space Mono',monospace;font-size:12px">{{ r.num }}</td><td style="padding:7px 8px;font-family:'Space Mono',monospace;font-size:12px">{{ r.court }}</td><td style="padding:7px 8px;font-size:12.5px">{{ r.equip }}</td></tr>
+              </sc-for>
+              </tbody>
+            </table>
+          </sc-if>
+          <sc-if value="{{ tMails }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:220px 1fr;gap:0">
+              <div style="border-right:1px solid oklch(0.93 0.005 240);padding:10px">
+                <div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:oklch(0.58 0.012 240);padding:4px 8px 8px">Modèles</div>
+                <sc-for list="{{ mailTpls }}" as="t" hint-placeholder-count="4">
+                  <div onClick="{{ t.pick }}" style="font-size:12.5px;padding:7px 10px;border-radius:7px;cursor:pointer;margin-bottom:2px;font-weight:{{ t.fw }};background:{{ t.bg }};color:{{ t.fg }}" style-hover="background:oklch(0.955 0.008 230)">{{ t.name }}</div>
+                </sc-for>
+              </div>
+              <div style="padding:14px 18px">
+                <div style="border:1px solid oklch(0.92 0.006 240);border-radius:9px;padding:14px 16px;margin-bottom:12px;background:oklch(0.985 0.002 240)">
+                  <div style="font-size:11px;color:oklch(0.55 0.012 240);margin-bottom:4px">À : {{ mailTo }}</div>
+                  <div style="font-size:13px;font-weight:700;margin-bottom:10px">{{ mailSubj }}</div>
+                  <div style="font-size:12.5px;line-height:1.55;white-space:pre-line;color:oklch(0.35 0.012 240)">{{ mailBody }}</div>
+                </div>
+                <button onClick="{{ sendMail }}" style="font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:7px;border:none;background:oklch(0.52 0.12 220);color:#fff;cursor:pointer" style-hover="background:oklch(0.46 0.12 220)">Envoyer</button>
+                <div style="font-size:11px;color:oklch(0.55 0.012 240);margin:16px 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em">Historique des envois</div>
+                <sc-for list="{{ mailHist }}" as="h" hint-placeholder-count="2">
+                  <div style="display:flex;gap:12px;font-size:12px;padding:6px 0;border-top:1px solid oklch(0.95 0.004 240)"><span style="color:oklch(0.5 0.012 240);white-space:nowrap">{{ h.d }}</span><span style="font-weight:600">{{ h.t }}</span><span style="color:oklch(0.5 0.012 240)">→ {{ h.to }}</span></div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ tJournal }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:12px 16px">
+              <sc-for list="{{ journal }}" as="j" hint-placeholder-count="5">
+                <div style="font-family:'Space Mono',monospace;font-size:11.5px;line-height:1.5;padding:6px 0;border-bottom:1px solid oklch(0.955 0.003 240);color:oklch(0.38 0.012 240)">{{ j }}</div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sAdv }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="ADV — Pilotage dossiers" style="max-width:1180px">
+        <div style="display:flex;gap:2px;border-bottom:1px solid oklch(0.9 0.006 240);margin-bottom:16px">
+          <sc-for list="{{ advTabs }}" as="t" hint-placeholder-count="4">
+            <div onClick="{{ t.pick }}" style="font-size:13px;padding:8px 15px;cursor:pointer;user-select:none;font-weight:{{ t.fw }};color:{{ t.fg }};border-bottom:2px solid {{ t.bd }};margin-bottom:-1px">{{ t.label }}</div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ aDossiers }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+            <input value="{{ dossQ }}" onChange="{{ setDossQ }}" placeholder="Filtrer par client…" style="width:220px;font-size:12.5px;padding:6px 10px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;outline:none;color:inherit">
+            <select value="{{ dossEtape }}" onChange="{{ setDossEtape }}" style="font-size:12.5px;padding:6px 8px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;color:inherit"><option value="Toutes">Toutes les étapes</option><sc-for list="{{ etapeOpts }}" as="e"><option value="{{ e.label }}">{{ e.label }}</option></sc-for></select>
+            <span style="font-size:12px;color:oklch(0.55 0.012 240)">{{ dossCount }}</span>
+          </div>
+          <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;overflow:hidden">
+          <sc-for list="{{ dossRows }}" as="d" hint-placeholder-count="6">
+            <div style="display:flex;gap:16px;padding:11px 16px;border-bottom:1px solid oklch(0.94 0.005 240);align-items:center" style-hover="background:oklch(0.98 0.003 240)">
+              <div style="width:196px;flex:none">
+                <div style="font-size:13px;font-weight:700;line-height:1.25">{{ d.rs }}</div>
+                <div style="font-size:11px;color:oklch(0.55 0.012 240);margin-top:2px">{{ d.sub }}</div>
+              </div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px">
+                <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+                  <select value="{{ d.etape }}" onChange="{{ d.setEtape }}" style="font-size:12px;padding:4px 6px;border:1px solid oklch(0.9 0.006 240);border-radius:6px;background:#fff;color:inherit;width:168px"><sc-for list="{{ etapeOpts }}" as="e"><option value="{{ e.i }}">{{ e.label }}</option></sc-for></select>
+                  <span onClick="{{ d.incTent }}" title="+1 tentative" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 9px;border-radius:99px;border:1px solid {{ d.tentBd }};color:{{ d.tentFg }};background:{{ d.tentBg }};font-weight:600;user-select:none">{{ d.tent }} appels <b style="font-weight:700">+1</b></span>
+                  <span onClick="{{ d.cycleLien }}" title="{{ d.lienTitle }}" style="cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:99px;font-size:11.5px;font-weight:600;background:{{ d.lienB.bg }};color:{{ d.lienB.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ d.lienB.dotD }};background:{{ d.lienB.dot }}"></span>{{ d.lienB.label }}</span>
+                  <span style="display:inline-flex;gap:4px;align-items:center">
+                    <span style="font-size:11px;color:oklch(0.58 0.012 240)">mails</span>
+                    <span onClick="{{ d.toggleP }}" title="Prévenance" style="cursor:pointer;user-select:none;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:{{ d.mpBg }};color:{{ d.mpFg }}">P</span>
+                    <span onClick="{{ d.toggleC }}" title="Confirmation RDV" style="cursor:pointer;user-select:none;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:{{ d.mcBg }};color:{{ d.mcFg }}">C</span>
+                  </span>
+                  <sc-if value="{{ d.zoho }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px;color:oklch(0.48 0.09 150);font-weight:600">Zoho · poussé le {{ d.zoho }}</span></sc-if>
+                  <sc-if value="{{ d.noZoho }}" hint-placeholder-val="{{ false }}"><button onClick="{{ d.pushZoho }}" style="font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:99px;border:1px solid oklch(0.88 0.008 240);background:#fff;color:oklch(0.42 0.09 220);cursor:pointer" style-hover="background:oklch(0.96 0.01 220)">Pousser Zoho</button></sc-if>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                  <input value="{{ d.date }}" onChange="{{ d.setDate }}" placeholder="date à planifier" style="font-size:12px;width:104px;padding:4px 8px;border:1px solid oklch(0.92 0.005 240);border-radius:6px;background:oklch(0.98 0.002 240);color:inherit;outline:none" style-focus="border-color:oklch(0.7 0.09 220);background:#fff">
+                  <select value="{{ d.cren }}" onChange="{{ d.setCren }}" style="font-size:12px;padding:4px 6px;border:1px solid oklch(0.92 0.005 240);border-radius:6px;background:oklch(0.98 0.002 240);color:inherit"><option value="">créneau —</option><sc-for list="{{ crenOpts }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select>
+                  <select value="{{ d.tech }}" onChange="{{ d.setTech }}" style="font-size:12px;padding:4px 6px;border:1px solid oklch(0.92 0.005 240);border-radius:6px;background:oklch(0.98 0.002 240);color:inherit"><sc-for list="{{ techOpts }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select>
+                  <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:oklch(0.48 0.012 240);cursor:pointer"><input type="checkbox" checked="{{ d.routeur }}" onChange="{{ d.toggleRouteur }}">routeur client réutilisé</label>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ aPilotage }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:oklch(0.58 0.012 240);margin-bottom:8px">Dossiers par étape</div>
+          <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:10px;margin-bottom:20px">
+            <sc-for list="{{ pilotEtapes }}" as="p" hint-placeholder-count="8">
+              <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;padding:12px 12px 10px">
+                <div style="font-size:24px;font-weight:700;line-height:1;margin-bottom:8px">{{ p.n }}</div>
+                <span style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:10.5px;font-weight:600;background:{{ p.b.bg }};color:{{ p.b.fg }};white-space:nowrap"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ p.b.dotD }};background:{{ p.b.dot }}"></span>{{ p.b.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:oklch(0.58 0.012 240);margin-bottom:8px">État des liens</div>
+          <div style="display:grid;grid-template-columns:repeat(3,220px);gap:10px;margin-bottom:20px">
+            <sc-for list="{{ pilotLiens }}" as="p" hint-placeholder-count="3">
+              <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px">
+                <span style="font-size:24px;font-weight:700">{{ p.n }}</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;background:{{ p.b.bg }};color:{{ p.b.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ p.b.dotD }};background:{{ p.b.dot }}"></span>{{ p.b.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:oklch(0.58 0.012 240);margin-bottom:8px">Affectations</div>
+          <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;overflow:hidden">
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr>
+                <th style="text-align:left;padding:7px 8px 7px 14px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Client</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Technicien</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Date</th>
+                <th style="text-align:left;padding:7px 14px 7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Étape</th>
+              </tr></thead>
+              <tbody>
+              <sc-for list="{{ affectRows }}" as="r" hint-placeholder-count="5">
+                <tr style="border-top:1px solid oklch(0.95 0.004 240)">
+                  <td style="padding:7px 8px 7px 14px;font-size:12.5px;font-weight:600">{{ r.client }}</td>
+                  <td style="padding:7px 8px;font-size:12.5px">{{ r.tech }}</td>
+                  <td style="padding:7px 8px;font-size:12.5px">{{ r.date }}</td>
+                  <td style="padding:7px 14px 7px 8px"><span style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;background:{{ r.b.bg }};color:{{ r.b.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ r.b.dotD }};background:{{ r.b.dot }}"></span>{{ r.b.label }}</span></td>
+                </tr>
+              </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </sc-if>
+        <sc-if value="{{ aZoho }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <span style="font-size:12.5px;color:oklch(0.5 0.012 240)">46 lignes · synchronisé du Zoho Sheet partagé · <b style="color:oklch(0.42 0.09 150)">maj il y a 12 s</b></span>
+            <div style="flex:1"></div>
+            <button style="font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;border:1px solid oklch(0.88 0.008 240);background:#fff;color:oklch(0.35 0.012 240);cursor:pointer" style-hover="background:oklch(0.965 0.005 240)">Ouvrir le tableau Zoho ↗</button>
+          </div>
+          <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;overflow:hidden">
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr>
+                <th style="text-align:left;padding:7px 8px 7px 14px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Client</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Dépt</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Date</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Heure</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Prestataire</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Tech</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Statut installation</th>
+                <th style="text-align:left;padding:7px 14px 7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Commentaires</th>
+              </tr></thead>
+              <tbody>
+              <sc-for list="{{ zohoRows }}" as="r" hint-placeholder-count="8">
+                <tr style="border-top:1px solid oklch(0.95 0.004 240)">
+                  <td style="padding:7px 8px 7px 14px;font-size:12.5px;font-weight:600;white-space:nowrap">{{ r.client }}</td>
+                  <td style="padding:7px 8px;font-size:12.5px">{{ r.dept }}</td>
+                  <td style="padding:7px 8px;font-size:12.5px;white-space:nowrap">{{ r.date }}</td>
+                  <td style="padding:7px 8px;font-size:12.5px">{{ r.heure }}</td>
+                  <td style="padding:7px 8px;font-size:12.5px;white-space:nowrap">{{ r.prest }}</td>
+                  <td style="padding:7px 8px;font-size:12.5px">{{ r.tech }}</td>
+                  <td style="padding:7px 8px"><span style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:10.5px;font-weight:700;white-space:nowrap;background:{{ r.b.bg }};color:{{ r.b.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ r.b.dotD }};background:{{ r.b.dot }}"></span>{{ r.b.label }}</span></td>
+                  <td style="padding:7px 14px 7px 8px;font-size:12px;color:oklch(0.45 0.012 240)">{{ r.com }}</td>
+                </tr>
+              </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </sc-if>
+        <sc-if value="{{ aTechs }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;padding:14px 16px;margin-bottom:14px">
+            <div style="font-size:13px;font-weight:700;margin-bottom:10px">Recherche de disponibilité</div>
+            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+              <div><div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:oklch(0.58 0.012 240);margin-bottom:4px">Date</div><input value="{{ techDate }}" onChange="{{ setTechDate }}" style="font-size:12.5px;padding:5px 9px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;width:110px;background:#fff;color:inherit;outline:none"></div>
+              <div><div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:oklch(0.58 0.012 240);margin-bottom:4px">Département</div><input value="{{ techDept }}" onChange="{{ setTechDept }}" style="font-size:12.5px;padding:5px 9px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;width:70px;background:#fff;color:inherit;outline:none"></div>
+              <button onClick="{{ searchTech }}" style="font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:7px;border:none;background:oklch(0.52 0.12 220);color:#fff;cursor:pointer" style-hover="background:oklch(0.46 0.12 220)">Chercher</button>
+              <sc-if value="{{ hasTechRes }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;gap:8px;align-items:center">
+                  <span style="font-size:12px;color:oklch(0.55 0.012 240)">disponibles :</span>
+                  <sc-for list="{{ techRes }}" as="t" hint-placeholder-count="2">
+                    <span style="font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;background:oklch(0.95 0.045 150);color:oklch(0.4 0.1 150)">{{ t.n }} — {{ t.d }}</span>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <span style="font-size:12.5px;color:oklch(0.5 0.012 240)">Référentiel · <b style="color:oklch(0.3 0.012 240)">130 techniciens</b></span>
+            <div style="flex:1"></div>
+            <button style="font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;border:1px solid oklch(0.88 0.008 240);background:#fff;color:oklch(0.35 0.012 240);cursor:pointer" style-hover="background:oklch(0.965 0.005 240)">↥ Importer xlsx</button>
+          </div>
+          <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;overflow:hidden">
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr>
+                <th style="text-align:left;padding:7px 8px 7px 14px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Nom</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Société prestataire</th>
+                <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Départements couverts</th>
+                <th style="text-align:left;padding:7px 14px 7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Actif</th>
+              </tr></thead>
+              <tbody>
+              <sc-for list="{{ refTechs }}" as="r" hint-placeholder-count="6">
+                <tr style="border-top:1px solid oklch(0.95 0.004 240)">
+                  <td style="padding:7px 8px 7px 14px;font-size:12.5px;font-weight:600">{{ r.nom }}</td>
+                  <td style="padding:7px 8px;font-size:12.5px">{{ r.soc }}</td>
+                  <td style="padding:7px 8px;font-size:12.5px;font-family:'Space Mono',monospace;font-size:11.5px">{{ r.depts }}</td>
+                  <td style="padding:7px 14px 7px 8px"><span style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;background:{{ r.b.bg }};color:{{ r.b.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ r.b.dotD }};background:{{ r.b.dot }}"></span>{{ r.b.label }}</span></td>
+                </tr>
+              </sc-for>
+              </tbody>
+            </table>
+            <div style="padding:9px 14px;font-size:11.5px;color:oklch(0.58 0.012 240);border-top:1px solid oklch(0.94 0.005 240)">8 affichés sur 130 — recherche pour affiner</div>
+          </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sStaging }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Staging — Stock et routeurs" style="max-width:1180px">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px">
+          <sc-for list="{{ stCounters }}" as="k" hint-placeholder-count="4">
+            <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;padding:14px 16px">
+              <div style="font-size:26px;font-weight:700;line-height:1;margin-bottom:8px">{{ k.n }}</div>
+              <span style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;background:{{ k.b.bg }};color:{{ k.b.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ k.b.dotD }};background:{{ k.b.dot }}"></span>{{ k.b.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 320px;gap:14px;margin-bottom:18px;align-items:start">
+          <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;overflow:hidden">
+            <div style="padding:12px 16px;font-size:13px;font-weight:700;border-bottom:1px solid oklch(0.93 0.005 240)">À installer</div>
+            <sc-for list="{{ aInstall }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid oklch(0.955 0.003 240);flex-wrap:wrap">
+                <span style="font-size:12.5px;font-weight:700;width:190px">{{ r.client }}</span>
+                <span style="font-size:12px">{{ r.type }}</span>
+                <span style="font-family:'Space Mono',monospace;font-size:11px;color:oklch(0.45 0.012 240)">{{ r.sn }}</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;background:{{ r.b.bg }};color:{{ r.b.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ r.b.dotD }};background:{{ r.b.dot }}"></span>{{ r.b.label }}</span>
+                <span style="font-size:11.5px;color:oklch(0.52 0.012 240)">lien {{ r.lien }} · interv. {{ r.date }} · {{ r.tech }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;padding:14px 16px">
+            <div style="font-size:13px;font-weight:700;margin-bottom:3px">Routeur récupéré chez le client</div>
+            <div style="font-size:11.5px;color:oklch(0.55 0.012 240);margin-bottom:12px">L'article revient au stock avec le statut Retour.</div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <select value="{{ retType }}" onChange="{{ setRetType }}" style="font-size:12.5px;padding:6px 8px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;color:inherit"><sc-for list="{{ typeOpts }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select>
+              <input value="{{ retSn }}" onChange="{{ setRetSn }}" placeholder="N° de série" style="font-family:'Space Mono',monospace;font-size:12px;padding:6px 9px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;color:inherit;outline:none">
+              <input value="{{ retClient }}" onChange="{{ setRetClient }}" placeholder="Client d'origine" style="font-size:12.5px;padding:6px 9px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;color:inherit;outline:none">
+              <button onClick="{{ addRetour }}" style="font-size:12.5px;font-weight:600;padding:7px;border-radius:7px;border:none;background:oklch(0.52 0.12 220);color:#fff;cursor:pointer" style-hover="background:oklch(0.46 0.12 220)">Enregistrer le retour</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;font-weight:700">Inventaire</span>
+          <select value="{{ sType }}" onChange="{{ setSType }}" style="font-size:12px;padding:5px 7px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;color:inherit"><option value="Tous">Type : tous</option><sc-for list="{{ typeOpts }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select>
+          <select value="{{ sStatut }}" onChange="{{ setSStatut }}" style="font-size:12px;padding:5px 7px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;color:inherit"><option value="Tous">Statut : tous</option><sc-for list="{{ stockOpts }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select>
+          <div style="flex:1"></div>
+          <button style="font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;border:1px solid oklch(0.88 0.008 240);background:#fff;color:oklch(0.35 0.012 240);cursor:pointer" style-hover="background:oklch(0.965 0.005 240)">↥ Import xlsx multi-onglets</button>
+        </div>
+        <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;overflow:hidden">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;padding:7px 8px 7px 14px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Type</th>
+              <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">N° de série</th>
+              <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Statut</th>
+              <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">État</th>
+              <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Client destinataire</th>
+              <th style="text-align:left;padding:7px 14px 7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Action</th>
+            </tr></thead>
+            <tbody>
+            <sc-for list="{{ invRows }}" as="r" hint-placeholder-count="8">
+              <tr style="border-top:1px solid oklch(0.95 0.004 240)" style-hover="background:oklch(0.98 0.003 240)">
+                <td style="padding:7px 8px 7px 14px;font-size:12.5px;white-space:nowrap">{{ r.type }}</td>
+                <td style="padding:7px 8px;font-family:'Space Mono',monospace;font-size:11.5px">{{ r.sn }}</td>
+                <td style="padding:7px 8px"><span style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap;background:{{ r.b.bg }};color:{{ r.b.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ r.b.dotD }};background:{{ r.b.dot }}"></span>{{ r.b.label }}</span></td>
+                <td style="padding:7px 8px;font-size:12px;color:oklch(0.5 0.012 240)">{{ r.etat }}</td>
+                <td style="padding:7px 8px"><input value="{{ r.client }}" onChange="{{ r.setClient }}" placeholder="—" style="font-size:12px;width:180px;padding:3px 6px;border:1px solid transparent;border-radius:6px;background:transparent;color:inherit;outline:none" style-hover="border-color:oklch(0.88 0.008 240);background:#fff" style-focus="border-color:oklch(0.7 0.09 220);background:#fff"></td>
+                <td style="padding:7px 14px 7px 8px;white-space:nowrap"><sc-if value="{{ r.hasNext }}" hint-placeholder-val="{{ false }}"><button onClick="{{ r.next }}" style="font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid oklch(0.88 0.008 240);background:#fff;color:oklch(0.42 0.09 220);cursor:pointer" style-hover="background:oklch(0.96 0.01 220)">{{ r.nextLabel }}</button></sc-if></td>
+              </tr>
+            </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sClients }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Clients" style="max-width:900px">
+        <input value="{{ clQ }}" onChange="{{ setClQ }}" placeholder="Rechercher un client…" style="width:260px;font-size:12.5px;padding:6px 10px;border:1px solid oklch(0.9 0.006 240);border-radius:7px;background:#fff;outline:none;color:inherit;margin-bottom:12px">
+        <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;overflow:hidden">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;padding:7px 8px 7px 14px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Raison sociale</th>
+              <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Dépt</th>
+              <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Lot</th>
+              <th style="text-align:left;padding:7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Étape</th>
+              <th style="text-align:left;padding:7px 14px 7px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Numéros</th>
+            </tr></thead>
+            <tbody>
+            <sc-for list="{{ clientListRows }}" as="r" hint-placeholder-count="6">
+              <tr style="border-top:1px solid oklch(0.95 0.004 240)" style-hover="background:oklch(0.98 0.003 240)">
+                <td style="padding:8px 8px 8px 14px;font-size:12.5px"><a href="#" onClick="{{ r.go }}" style="font-weight:600">{{ r.rs }}</a></td>
+                <td style="padding:8px;font-size:12.5px">{{ r.dept }}</td>
+                <td style="padding:8px;font-size:12.5px">{{ r.lot }}</td>
+                <td style="padding:8px"><span style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap;background:{{ r.b.bg }};color:{{ r.b.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ r.b.dotD }};background:{{ r.b.dot }}"></span>{{ r.b.label }}</span></td>
+                <td style="padding:8px 14px 8px 8px;font-size:12.5px">{{ r.n }}</td>
+              </tr>
+            </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sLots }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Lots" style="max-width:700px;display:flex;flex-direction:column;gap:12px">
+        <sc-for list="{{ lotRows }}" as="l" hint-placeholder-count="3">
+          <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;padding:14px 18px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+              <span style="font-size:14px;font-weight:700">{{ l.name }}</span>
+              <span style="font-size:12.5px;color:oklch(0.5 0.012 240)">{{ l.clients }} clients · <b style="color:oklch(0.42 0.09 220)">{{ l.pct }} % basculés</b></span>
+            </div>
+            <div style="height:6px;border-radius:99px;background:oklch(0.93 0.008 240);overflow:hidden"><div style="height:100%;border-radius:99px;background:oklch(0.52 0.12 220);width:{{ l.w }}"></div></div>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sStatuts }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Système de statuts" style="max-width:900px">
+        <div style="font-size:12.5px;color:oklch(0.5 0.012 240);margin-bottom:16px;max-width:640px">Le langage central de l'application. Six familles, une teinte par signification — même style partout (tableaux, fiches, compteurs). Le style des badges est réglable dans les Tweaks (pastel, plein, minimal).</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ statusFamilies }}" as="f" hint-placeholder-count="6">
+            <div style="background:#fff;border:1px solid oklch(0.92 0.006 240);border-radius:10px;padding:14px 18px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:20px">
+                <span style="font-size:13.5px;font-weight:700">{{ f.name }}</span>
+                <span style="font-size:11.5px;color:oklch(0.55 0.012 240);text-align:right">{{ f.usage }}</span>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <sc-for list="{{ f.vals }}" as="b" hint-placeholder-count="4">
+                  <span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:99px;font-size:11.5px;font-weight:600;background:{{ b.bg }};color:{{ b.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ b.dotD }};background:{{ b.dot }}"></span>{{ b.label }}</span>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sStub }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Écran secondaire" style="max-width:640px;margin:60px auto 0;text-align:center">
+        <div style="width:48px;height:48px;border-radius:12px;background:oklch(0.94 0.02 220);color:oklch(0.5 0.1 220);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;margin:0 auto 16px">…</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px">{{ stubTitle }}</div>
+        <div style="font-size:13px;color:oklch(0.5 0.012 240);line-height:1.55">{{ stubHint }}</div>
+      </div>
+      </sc-if>
+
+    </div>
+  </main>
+
+  <sc-if value="{{ importOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:oklch(0.2 0.02 240 / 0.45);display:flex;align-items:center;justify-content:center;z-index:50" onClick="{{ impClose }}">
+      <div style="background:#fff;border-radius:14px;width:620px;max-height:80vh;overflow:auto;box-shadow:0 24px 60px oklch(0.2 0.02 240 / 0.3)" onClick="{{ stop }}">
+        <div style="padding:16px 20px;border-bottom:1px solid oklch(0.93 0.005 240);display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:14px;font-weight:700">{{ impTitle }}</div>
+            <div style="font-size:11.5px;color:oklch(0.55 0.012 240);margin-top:2px">{{ impStepLabel }}</div>
+          </div>
+          <button onClick="{{ impClose }}" style="font-size:14px;border:none;background:transparent;cursor:pointer;color:oklch(0.5 0.012 240);padding:4px 8px">✕</button>
+        </div>
+        <sc-if value="{{ impS1 }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:24px 20px">
+            <div onClick="{{ impNext }}" style="border:2px dashed oklch(0.85 0.02 220);border-radius:12px;padding:44px 20px;text-align:center;cursor:pointer;background:oklch(0.985 0.004 220)" style-hover="border-color:oklch(0.7 0.08 220);background:oklch(0.97 0.01 220)">
+              <div style="font-size:13.5px;font-weight:600;margin-bottom:6px">Déposez le fichier ici</div>
+              <div style="font-size:12px;color:oklch(0.55 0.012 240);margin-bottom:14px">{{ impFileHint }}</div>
+              <span style="font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:7px;background:oklch(0.52 0.12 220);color:#fff">Choisir un fichier</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ impS2 }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:16px 20px">
+            <div style="font-size:12px;color:oklch(0.5 0.012 240);margin-bottom:10px"><b style="font-family:'Space Mono',monospace;font-size:11.5px;color:oklch(0.35 0.012 240)">{{ impFileName }}</b> · 38 lignes lues</div>
+            <table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+              <thead><tr>
+                <th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">{{ impColA }}</th>
+                <th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">{{ impColB }}</th>
+                <th style="text-align:left;padding:6px 8px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.55 0.015 240)">Analyse</th>
+              </tr></thead>
+              <tbody>
+              <sc-for list="{{ impRows }}" as="r" hint-placeholder-count="6">
+                <tr style="border-top:1px solid oklch(0.95 0.004 240)">
+                  <td style="padding:6px 8px;font-size:12.5px">{{ r.a }}</td>
+                  <td style="padding:6px 8px;font-family:'Space Mono',monospace;font-size:11.5px">{{ r.c }}</td>
+                  <td style="padding:6px 8px"><span style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:600;background:{{ r.b.bg }};color:{{ r.b.fg }}"><span style="width:6px;height:6px;border-radius:99px;flex:none;display:{{ r.b.dotD }};background:{{ r.b.dot }}"></span>{{ r.b.label }}</span></td>
+                </tr>
+              </sc-for>
+              </tbody>
+            </table>
+            <div style="display:flex;justify-content:flex-end;gap:8px">
+              <button onClick="{{ impClose }}" style="font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:7px;border:1px solid oklch(0.88 0.008 240);background:#fff;color:oklch(0.35 0.012 240);cursor:pointer">Annuler</button>
+              <button onClick="{{ impConfirm }}" style="font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:7px;border:none;background:oklch(0.52 0.12 220);color:#fff;cursor:pointer" style-hover="background:oklch(0.46 0.12 220)">Confirmer l'import</button>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ impS3 }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:28px 20px;text-align:center">
+            <div style="width:44px;height:44px;border-radius:99px;background:oklch(0.95 0.045 150);color:oklch(0.43 0.1 150);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;margin:0 auto 14px">✓</div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:14px">Import terminé</div>
+            <div style="display:flex;justify-content:center;gap:20px;margin-bottom:20px">
+              <div><div style="font-size:20px;font-weight:700">36</div><div style="font-size:11.5px;color:oklch(0.55 0.012 240)">utilisateurs</div></div>
+              <div><div style="font-size:20px;font-weight:700">36</div><div style="font-size:11.5px;color:oklch(0.55 0.012 240)">numéros</div></div>
+              <div><div style="font-size:20px;font-weight:700">37</div><div style="font-size:11.5px;color:oklch(0.55 0.012 240)">équipements</div></div>
+              <div><div style="font-size:20px;font-weight:700;color:oklch(0.55 0.13 70)">2</div><div style="font-size:11.5px;color:oklch(0.55 0.012 240)">doublons ignorés</div></div>
+            </div>
+            <button onClick="{{ impClose }}" style="font-size:12.5px;font-weight:600;padding:7px 16px;border-radius:7px;border:none;background:oklch(0.52 0.12 220);color:#fff;cursor:pointer">Fermer</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;styleBadges&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;pastel&quot;,&quot;plein&quot;,&quot;minimal&quot;],&quot;default&quot;:&quot;pastel&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Apparence&quot;},&quot;densite&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;normale&quot;,&quot;compacte&quot;],&quot;default&quot;:&quot;normale&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Apparence&quot;},&quot;seuilAlerteTentatives&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:3,&quot;min&quot;:1,&quot;max&quot;:10,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Comportement&quot;}}">
+class Component extends DCLogic {
+  constructor(p){
+    super(p);
+    const R=(num,court,user,equip,mac,st,dateB,ctrl,msg,com)=>({num,court,user,equip,mac,st:st||0,dateB:dateB||'',ctrl:ctrl||0,msg:msg||'',com:com||'',exclu:false,sel:false});
+    this.PAL={gray:['oklch(0.955 0.004 240)','oklch(0.44 0.015 240)','oklch(0.65 0.02 240)'],blue:['oklch(0.945 0.035 235)','oklch(0.42 0.1 235)','oklch(0.55 0.13 235)'],cyan:['oklch(0.95 0.04 215)','oklch(0.42 0.09 220)','oklch(0.62 0.11 215)'],violet:['oklch(0.95 0.035 290)','oklch(0.44 0.1 290)','oklch(0.6 0.13 290)'],amber:['oklch(0.955 0.05 85)','oklch(0.5 0.11 70)','oklch(0.72 0.14 78)'],red:['oklch(0.945 0.035 25)','oklch(0.5 0.15 25)','oklch(0.62 0.19 25)'],green:['oklch(0.95 0.045 150)','oklch(0.43 0.1 150)','oklch(0.62 0.14 150)'],teal:['oklch(0.95 0.04 180)','oklch(0.42 0.09 180)','oklch(0.6 0.11 180)']};
+    this.ETAPES=['À qualifier','Prévenance envoyée','Contact en cours','Bloqué','RDV planifié','Lien livré','Bascule faite','Post-migration J+7'];
+    this.ETC=['gray','violet','blue','red','cyan','teal','green','green'];
+    this.LIENS=['Non commandé','Commandé','Livré'];this.LIC=['gray','amber','green'];
+    this.STOCK=['En stock','Configuré','Envoyé','Installé','Retour'];this.STC=['blue','violet','amber','green','red'];
+    this.EQUIPS=['Yealink T54W','Yealink T53','Yealink T46U','Yealink W73P','Softphone'];
+    this.TECHS=['—','Bruce','Fathi','Zakaria','Karim','Ludovic'];
+    this.CRENEAUX=['9h-13h','13h-17h','Journée'];
+    this.TYPES=['SIM','Chateau LTE12 Mikrotik','HAPac² Mikrotik','HUAWEI AR617VW-LTE4EA','Routeur 4G seul','ONT'];
+    this.ZC={'INSTALLATION':'green','ATT CLIENT':'amber','STAND BY':'gray','A PLANIFIER':'blue','NEW':'violet'};
+    this.ZOHO=[
+      ['CHRONO PIECES AUTO','94','05/08/2026','09:00','SOGETEL','Bruce','INSTALLATION','RDV confirmé la veille'],
+      ['ALKIMMO ANNEMASSE','74','07/08/2026','14:00',"TECH'INSTALL",'Zakaria','INSTALLATION','routeur déjà sur site'],
+      ['AART ELECTRONICS','78','12/08/2026','09:00',"TECH'INSTALL",'Bruce','A PLANIFIER','attente livraison lien Kosc'],
+      ['ARDI SAS','75','14/08/2026','—','SOGETEL','Fathi','ATT CLIENT','standard fermé le lundi'],
+      ['CAP MEDICAL','69','19/08/2026','09:30','INEO RESEAUX','Karim','INSTALLATION',''],
+      ['ALLIANZ MONTROUGE','92','21/08/2026','09:00','SOGETEL','Fathi','A PLANIFIER',''],
+      ['ART CONCEPT','93','—','—','—','—','STAND BY','contact injoignable, 4 tentatives'],
+      ['ALEZAN','75','—','—','—','—','STAND BY','déménagement en cours'],
+      ['BATI CONFORT 74','74','—','—','—','—','NEW','dossier reçu de Monday'],
+      ['AXIOME EXPERTISE','92','—','—','—','—','NEW',''],
+    ];
+    this.REFTECHS=[['Bruce Marlin',"TECH'INSTALL",'78 · 95',1],['Fathi Benali','SOGETEL','75 · 92 · 93',1],['Zakaria Oubel',"TECH'INSTALL",'74 · 01',1],['Karim Sassi','INEO RESEAUX','69 · 42',1],['Ludovic Perrin','SOGETEL','33 · 24',1],['Marc Aubry','INEO RESEAUX','13 · 84',1],['Sofiane Kerza','ATLANTEL','44 · 85',0],['Julien Weiss','ATLANTEL','67 · 68',1]];
+    this.IMP={
+      users:{title:'Importer des utilisateurs (CSV Sewan)',file:'utilisateurs_sewan.csv',hint:'CSV Sewan — export « Utilisateurs »',colA:'Utilisateur',colB:'Numéro',rows:[['ALBOU Alain','0134083932','present'],['BERTIN Claire','0134083933','present'],['CANO David','0134083934','new'],['DUPUIS Emma','0134083935','new'],['ESTEVE Franck','0134083936','new'],['FAURE Gilles','0134083937','new']]},
+      equips:{title:'Importer les équipements (CSV Sewan)',file:'equipements_sewan.csv',hint:'CSV Sewan — export « Équipements »',colA:'Modèle',colB:'MAC',rows:[['Yealink T54W','80:5E:0C:D1:AB:48','present'],['Yealink T54W','80:5E:0C:D1:AC:12','new'],['Yealink T53','80:5E:0C:D2:04:9F','new'],['Yealink T53','80:5E:0C:D2:11:C3','new'],['Yealink T46U','80:5E:0C:D3:5B:77','new'],['Yealink W73P','80:5E:0C:D4:C2:E8','new']]},
+      nums:{title:'Importer les numéros (Sewan v4, code RIO)',file:'numeros_sewan_v4.csv',hint:'Export Sewan v4 — colonnes numéro + code RIO',colA:'Numéro',colB:'Code RIO',rows:[['0134083932','12P034987654W','rio'],['0134083933','12P034987655X','rio'],['0134083934','12P034987656Y','new'],['0134083935','12P034987657Z','new'],['0134083936','—','new'],['0134083937','12P034987659B','rio']]},
+    };
+    this.state={
+      screen:'accueil',stubTitle:'',curClient:1,clientTab:'numeros',advTab:'dossiers',open:{},
+      q:'',fLot:'Tous',fClient:'Tous',fStatut:'Tous',fAnom:false,fElig:false,clQ:'',
+      importOpen:false,importStep:1,importKind:'users',
+      mailTpl:0,mailHist:[{d:'22/07/2026 09:14',t:'Prévenance J-15',to:'contact@aart-electronics.fr'}],
+      techDate:'12/08/2026',techDept:'78',techRes:null,
+      retType:'Chateau LTE12 Mikrotik',retSn:'',retClient:'',sType:'Tous',sStatut:'Tous',
+      dossQ:'',dossEtape:'Toutes',
+      clients:[
+        {rs:'ALKIMMO ANNEMASSE',dept:'74',lot:'LOT 1a',scenario:'CENTREX seul',install:'07/08/2026',etape:5,nMac:7,tent:1,iDate:'07/08/2026',iCren:'13h-17h',iTech:'Zakaria',lien:2,lienDate:'21/07/2026',lienOp:'Kosc',lienRef:'CMD-2026-0791',zoho:'02/08',rows:[
+          R('0450871204','201','BARDET Sophie','Yealink T53','80:5E:0C:A1:22:07',1,'01/08/2026'),
+          R('0450871205','202','COSTE Rémi','Yealink T53','80:5E:0C:A1:22:31',1,'01/08/2026'),
+          R('0450871206','203','DENIS Paul','Yealink T54W','80:5E:0C:A1:23:0C'),
+          R('0134083932','204','FROMENT Léa','Yealink T53','80:5E:0C:A1:24:55',0,'',2,'doublon du 0134083932 (AART ELECTRONICS)'),
+          R('0450871208','205','GRAS Manon','Yealink T46U','80:5E:0C:A1:25:1B'),
+          R('0450871209','206','HUET Olivier','Yealink T53','80:5E:0C:A1:26:C2'),
+        ]},
+        {rs:'AART ELECTRONICS CHANTELOUP',dept:'78',lot:'LOT 1a',scenario:'Lien + CENTREX',install:'12/08/2026',etape:4,nMac:14,tent:2,iDate:'12/08/2026',iCren:'9h-13h',iTech:'Bruce',lien:1,lienDate:'28/07/2026',lienOp:'Kosc',lienRef:'CMD-2026-0847',zoho:'04/08',rows:[
+          R('0134083932','432','ALBOU Alain','Yealink T54W','80:5E:0C:D1:AB:48',1,'04/08/2026'),
+          R('0134083933','433','BERTIN Claire','Yealink T54W','80:5E:0C:D1:AC:12',1,'04/08/2026'),
+          R('0134083934','434','CANO David','Yealink T53','80:5E:0C:D2:04:9F',1,'04/08/2026'),
+          R('0134083935','435','DUPUIS Emma','Yealink T53','80:5E:0C:D2:11:C3',0,'',0,'','porta reportée, standard fermé le lundi'),
+          R('0134083936','436','ESTEVE Franck','Yealink T46U','80:5E:0C:D3:5B:77'),
+          R('0134083937','437','FAURE Gilles','Yealink T54W','80:5E:0C:D3:8E:02'),
+          R('0134083938','438','GARNIER Hélène','Yealink T53','80:5E:0C:D4:19:B4'),
+          R('0134083939','439','IBANEZ Jules','Softphone','',0,'',1,'utilisateur sans équipement'),
+          R('0134083940','440','LAMY Karine','Yealink W73P','80:5E:0C:D4:C2:E8'),
+          R('0134083941','441','MOREL Luc','Yealink T54W','80:5E:0C:D5:33:1A'),
+          R('0134083942','442','NGUYEN Marc','Yealink T53','80:5E:0C:D5:71:4D'),
+          R('0134083943','443','PICARD Nora','Yealink T46U','80:5E:0C:D6:0A:55'),
+        ]},
+        {rs:'ARDI SAS',dept:'75',lot:'LOT 1b',scenario:'CENTREX seul',install:'14/08/2026',etape:2,nMac:5,tent:3,iDate:'14/08/2026',iCren:'Journée',iTech:'Fathi',lien:0,lienDate:'',lienOp:'',lienRef:'',zoho:null,rows:[
+          R('0139571120','101','ROCHE Julien','Yealink T53','80:5E:0C:B2:40:1E'),
+          R('0139571121','102','SALMON Iris','Yealink T53','80:5E:0C:B2:41:88'),
+          R('0139571122','103','TESSIER Hugo','Yealink T54W','80:5E:0C:B2:42:D0'),
+          R('0139571123','104','VASSEUR Anne','Softphone','',0,'',1,'utilisateur sans équipement'),
+          R('0139571124','105','WEBER Léo','Yealink T46U','80:5E:0C:B2:44:3A'),
+        ]},
+        {rs:'ALLIANZ MONTROUGE',dept:'92',lot:'LOT 1b',scenario:'Lien + CENTREX',install:'21/08/2026',etape:4,nMac:6,tent:1,iDate:'21/08/2026',iCren:'9h-13h',iTech:'Fathi',lien:1,lienDate:'30/07/2026',lienOp:'Kosc',lienRef:'CMD-2026-0862',zoho:'04/08',rows:[
+          R('0146540870','301','ANDRE Paule','Yealink T54W','80:5E:0C:C3:10:07'),
+          R('0146540871','302','BLANC Serge','Yealink T53','80:5E:0C:C3:11:4B'),
+          R('0146540872','303','CHEVAL Fanny','Yealink T53','80:5E:0C:C3:12:9E'),
+          R('0146540873','304','DIALLO Issa','Yealink T46U','80:5E:0C:C3:13:C1'),
+          R('0146540874','305','EVRARD Zoé','Yealink T53','80:5E:0C:C3:14:F5'),
+        ]},
+        {rs:'ART CONCEPT',dept:'93',lot:'LOT 1b',scenario:'CENTREX seul',install:null,etape:3,nMac:4,tent:4,iDate:'',iCren:'',iTech:'—',lien:0,lienDate:'',lienOp:'',lienRef:'',zoho:null,rows:[
+          R('0148332410','501','FERRAND Max','Yealink T53','80:5E:0C:E4:20:11'),
+          R('0148332411','502','GOMES Rita','Yealink T53','80:5E:0C:E4:21:67'),
+          R('0148332412','503','HAMON Yves','Yealink T54W','80:5E:0C:E4:22:BC'),
+          R('0148332413','504','JOLY Marine','Yealink T46U','80:5E:0C:E4:23:0F'),
+        ]},
+        {rs:'ALEZAN',dept:'75',lot:'LOT 2',scenario:'Lien + CENTREX',install:null,etape:3,nMac:3,tent:3,iDate:'',iCren:'',iTech:'—',lien:0,lienDate:'',lienOp:'',lienRef:'',zoho:null,rows:[
+          R('0142689230','601','KLEIN Ambre','Yealink T53','80:5E:0C:F5:30:2A'),
+          R('0142689231','602','LEROY Tom','Yealink T53','80:5E:0C:F5:31:78'),
+          R('0142689232','603','MASSON Eva','Yealink T54W','80:5E:0C:F5:32:D4'),
+        ]},
+      ],
+      dossiers:[
+        {rs:'ALLIANZ MONTROUGE',sub:'92 · LOT 1b',etape:4,tent:1,date:'21/08/2026',cren:'9h-13h',tech:'Fathi',lien:1,mP:1,mC:1,zoho:'04/08',routeur:false},
+        {rs:'AART ELECTRONICS CHANTELOUP',sub:'78 · LOT 1a',etape:4,tent:2,date:'12/08/2026',cren:'9h-13h',tech:'Bruce',lien:1,mP:1,mC:1,zoho:'04/08',routeur:false},
+        {rs:'ALKIMMO ANNEMASSE',sub:'74 · LOT 1a',etape:5,tent:1,date:'07/08/2026',cren:'13h-17h',tech:'Zakaria',lien:2,mP:1,mC:1,zoho:'02/08',routeur:true},
+        {rs:'CHRONO PIECES AUTO',sub:'94 · LOT 1a',etape:5,tent:1,date:'05/08/2026',cren:'9h-13h',tech:'Bruce',lien:2,mP:1,mC:1,zoho:'01/08',routeur:true},
+        {rs:'ARDI SAS',sub:'75 · LOT 1b',etape:2,tent:3,date:'14/08/2026',cren:'Journée',tech:'Fathi',lien:0,mP:1,mC:0,zoho:null,routeur:false},
+        {rs:'CAP MEDICAL',sub:'69 · LOT 1b',etape:4,tent:2,date:'19/08/2026',cren:'9h-13h',tech:'Karim',lien:1,mP:1,mC:1,zoho:'05/08',routeur:false},
+        {rs:'ART CONCEPT',sub:'93 · LOT 1b',etape:3,tent:4,date:'',cren:'',tech:'—',lien:0,mP:1,mC:0,zoho:null,routeur:false},
+        {rs:'ALEZAN',sub:'75 · LOT 2',etape:3,tent:3,date:'',cren:'',tech:'—',lien:0,mP:0,mC:0,zoho:null,routeur:false},
+        {rs:'BOREAL HYGIENE',sub:'95 · LOT 2',etape:2,tent:4,date:'',cren:'',tech:'—',lien:0,mP:1,mC:0,zoho:null,routeur:false},
+        {rs:'AGOGUET AVOCATS',sub:'75 · LOT 2',etape:2,tent:3,date:'',cren:'',tech:'—',lien:0,mP:1,mC:0,zoho:null,routeur:false},
+        {rs:'CABINET MERCIER',sub:'92 · LOT 2',etape:2,tent:3,date:'',cren:'',tech:'—',lien:0,mP:1,mC:0,zoho:null,routeur:false},
+        {rs:'AXIOME EXPERTISE',sub:'92 · LOT 2',etape:1,tent:3,date:'',cren:'',tech:'—',lien:0,mP:1,mC:0,zoho:null,routeur:false},
+        {rs:'BATI CONFORT 74',sub:'74 · LOT 2',etape:1,tent:1,date:'',cren:'',tech:'—',lien:0,mP:0,mC:0,zoho:null,routeur:false},
+        {rs:'BELLEVUE OPTIQUE',sub:'69 · LOT 2',etape:0,tent:0,date:'',cren:'',tech:'—',lien:0,mP:0,mC:0,zoho:null,routeur:false},
+      ],
+      stock:[
+        {type:'Chateau LTE12 Mikrotik',sn:'HGH09JK4T8E',statut:2,etat:'',client:'AART ELECTRONICS CHANTELOUP'},
+        {type:'HAPac² Mikrotik',sn:'F6500FA34971',statut:0,etat:'Sale, pièce qui bouge à l’intérieur',client:''},
+        {type:'SIM',sn:'8933011558893030377',statut:0,etat:'',client:''},
+        {type:'SIM',sn:'8933011558893030412',statut:1,etat:'',client:'ALKIMMO ANNEMASSE'},
+        {type:'HUAWEI AR617VW-LTE4EA',sn:'21530912208GH910256',statut:0,etat:'',client:''},
+        {type:'Chateau LTE12 Mikrotik',sn:'HGH09JK4T2A',statut:1,etat:'',client:'ARDI SAS'},
+        {type:'ONT',sn:'ALCL:F87A2C41',statut:0,etat:'',client:''},
+        {type:'Routeur 4G seul',sn:'RT4G-2210-0087',statut:2,etat:'',client:'ALLIANZ MONTROUGE'},
+        {type:'HAPac² Mikrotik',sn:'F6500FA34802',statut:4,etat:'À tester',client:'ex BOREAL HYGIENE'},
+        {type:'Chateau LTE12 Mikrotik',sn:'HGH09JK4T9C',statut:0,etat:'',client:''},
+      ],
+      journal:[
+        '04/08 10:32 — quentin@gcdev.fr — statut bascule 0134083932 : À faire → Fait',
+        '04/08 10:31 — quentin@gcdev.fr — statut bascule 0134083933 : À faire → Fait',
+        '04/08 09:58 — quentin@gcdev.fr — dossier poussé vers Zoho',
+        '28/07 14:12 — marie@gcdev.fr — lien : Non commandé → Commandé (Kosc, CMD-2026-0847)',
+        '22/07 09:14 — marie@gcdev.fr — mail « Prévenance J-15 » envoyé à contact@aart-electronics.fr',
+        '18/07 16:40 — quentin@gcdev.fr — import numéros Sewan v4 : 36 lignes, 2 doublons ignorés',
+      ],
+    };
+  }
+  upClient(gi,patch){this.setState(s=>({clients:s.clients.map((c,i)=>i===gi?{...c,...patch}:c)}));}
+  upRow(gi,ri,patch){this.setState(s=>({clients:s.clients.map((c,i)=>i===gi?{...c,rows:c.rows.map((r,j)=>j===ri?{...r,...patch}:r)}:c)}));}
+  upDoss(i,patch){this.setState(s=>({dossiers:s.dossiers.map((d,j)=>j===i?{...d,...patch}:d)}));}
+  renderVals(){
+    const S=this.state,P=this.props;
+    const seuil=P.seuilAlerteTentatives??3;
+    const padY=(P.densite??'normale')==='compacte'?'3px':'6px';
+    const B=(c,label)=>{const p=this.PAL[c],st=P.styleBadges??'pastel';
+      if(st==='plein')return{label,bg:p[2],fg:'#fff',dot:'transparent',dotD:'none'};
+      if(st==='minimal')return{label,bg:'transparent',fg:p[1],dot:p[2],dotD:'inline-block'};
+      return{label,bg:p[0],fg:p[1],dot:p[2],dotD:'inline-block'};};
+    const goClient=gi=>e=>{if(e&&e.preventDefault)e.preventDefault();if(e&&e.stopPropagation)e.stopPropagation();this.setState({screen:'client',curClient:gi,clientTab:'numeros'});};
+    const goByRs=rs=>{const gi=S.clients.findIndex(c=>c.rs.startsWith(rs)||rs.startsWith(c.rs.split(' ')[0]));return goClient(gi>=0?gi:1);};
+    const item=(label,scr,stub)=>{const active=stub?(S.screen==='stub'&&S.stubTitle===stub):(S.screen===scr);
+      return{label,fw:active?600:450,bg:active?'oklch(0.93 0.045 220)':'transparent',fg:active?'oklch(0.35 0.1 220)':'oklch(0.4 0.012 240)',go:()=>this.setState(stub?{screen:'stub',stubTitle:stub}:{screen:scr})};};
+    const navSections=[
+      {title:'',items:[item('Accueil — vue du jour','accueil')]},
+      {title:'Migration téléphone',items:[item('Provisionning','prov'),item('Clients','clients'),item('Téléphone',null,'Téléphone'),item('Lots','lots'),item('Import Monday',null,'Import Monday'),item('Export SDA',null,'Export SDA'),item('Export MAC',null,'Export MAC')]},
+      {title:'ADV',items:[item('Pilotage dossiers','adv')]},
+      {title:'Staging',items:[item('Stock & routeurs','staging')]},
+      {title:'Référence',items:[item('Système de statuts','statuts'),item('Paramètres',null,'Paramètres')]},
+    ];
+    const cur=S.clients[S.curClient];
+    const titles={accueil:'Vue du jour',prov:'Provisionning',clients:'Clients',lots:'Lots',client:cur.rs,adv:'ADV — Pilotage dossiers',staging:'Staging — Stock & routeurs',statuts:'Système de statuts',stub:S.stubTitle};
+    // Accueil
+    const homeKpis=[
+      {n:3,label:'interventions à venir',color:'oklch(0.45 0.11 220)',go:()=>this.setState({screen:'adv',advTab:'dossiers'})},
+      {n:2,label:'dossiers bloqués',color:'oklch(0.55 0.15 25)',go:()=>this.setState({screen:'adv',advTab:'dossiers'})},
+      {n:5,label:'clients à relancer',color:'oklch(0.55 0.13 70)',go:()=>this.setState({screen:'adv',advTab:'dossiers'})},
+    ];
+    const shortcuts=[
+      {n:24,label:'liens à commander',go:()=>this.setState({screen:'adv',advTab:'dossiers'})},
+      {n:12,label:'routeurs en stock',go:()=>this.setState({screen:'staging'})},
+      {n:4,label:'à configurer / envoyer',go:()=>this.setState({screen:'staging'})},
+      {n:6,label:'à installer',go:()=>this.setState({screen:'staging'})},
+    ];
+    const iv=(date,today,client,et,li,tech)=>({date,dateFw:today?700:450,dateFg:today?'oklch(0.45 0.11 220)':'inherit',client,etapeB:B(this.ETC[et],this.ETAPES[et]),lienB:B(this.LIC[li],this.LIENS[li]),tech,go:e=>{e.preventDefault();goByRs(client)();}});
+    const intervRows=[
+      iv('aujourd’hui',1,'CHRONO PIECES AUTO',5,2,'Bruce'),
+      iv('07/08/2026',0,'ALKIMMO ANNEMASSE',5,2,'Zakaria'),
+      iv('12/08/2026',0,'AART ELECTRONICS CHANTELOUP',4,1,'Bruce'),
+      iv('14/08/2026',0,'ARDI SAS',2,0,'Fathi'),
+      iv('19/08/2026',0,'CAP MEDICAL',4,1,'Karim'),
+      iv('21/08/2026',0,'ALLIANZ MONTROUGE',4,1,'Fathi'),
+    ];
+    const bloqRows=['ART CONCEPT','ALEZAN'].map(c=>({client:c,b:B('red','Bloqué'),go:e=>{e.preventDefault();goByRs(c)();}}));
+    const relanceRows=[['BOREAL HYGIENE',4],['AGOGUET AVOCATS',3],['ARDI SAS',3],['CABINET MERCIER',3],['AXIOME EXPERTISE',3]].map(([client,n])=>({client,n}));
+    // Provisionning
+    const etapeOpts=this.ETAPES.map((label,i)=>({label,i}));
+    const anyFilter=!!(S.q||S.fLot!=='Tous'||S.fClient!=='Tous'||S.fStatut!=='Tous'||S.fAnom||S.fElig);
+    const mkRow=gi=>(r,ri)=>({
+      num:r.num,court:r.court,user:r.user,equip:r.equip,mac:r.mac,com:r.com,msg:r.msg,dateB:r.dateB||'—',
+      rowBg:r.ctrl===2?'oklch(0.98 0.012 25)':(r.ctrl===1?'oklch(0.985 0.015 85)':'transparent'),
+      ctrlB:B(['green','amber','red'][r.ctrl],['OK','AVERT.','ERREUR'][r.ctrl]),
+      bascB:B(r.st?'green':'gray',r.st?'Fait':'À faire'),
+      toggleBasc:()=>this.upRow(gi,ri,{st:r.st?0:1,dateB:r.st?'':'05/08/2026'}),
+      setEquip:e=>this.upRow(gi,ri,{equip:e.target.value}),
+      setMac:e=>this.upRow(gi,ri,{mac:e.target.value}),
+      setCom:e=>this.upRow(gi,ri,{com:e.target.value}),
+      exclu:r.exclu,toggleExclu:()=>this.upRow(gi,ri,{exclu:!r.exclu}),
+      sel:r.sel,toggleSel:()=>this.upRow(gi,ri,{sel:!r.sel}),
+    });
+    const groups=[];
+    S.clients.forEach((c,gi)=>{
+      if(S.fLot!=='Tous'&&c.lot!==S.fLot)return;
+      if(S.fClient!=='Tous'&&c.rs!==S.fClient)return;
+      const q=S.q.toLowerCase();
+      const idx=c.rows.map((r,ri)=>({r,ri})).filter(({r})=>{
+        if(q&&!(r.num+' '+r.user+' '+r.mac+' '+r.equip).toLowerCase().includes(q))return false;
+        if(S.fStatut!=='Tous'&&((S.fStatut==='Fait')!==(r.st===1)))return false;
+        if(S.fAnom&&r.ctrl===0)return false;
+        if(S.fElig&&(r.exclu||!r.mac))return false;
+        return true;});
+      if(anyFilter&&!idx.length)return;
+      const done=c.rows.filter(r=>r.st===1).length;
+      const open=anyFilter?true:!!S.open[gi];
+      groups.push({rs:c.rs,goClient:goClient(gi),
+        installLabel:c.install?('install '+c.install):'install à planifier',
+        instBg:c.install?'oklch(0.955 0.004 240)':'oklch(0.955 0.05 85)',instFg:c.install?'oklch(0.44 0.015 240)':'oklch(0.5 0.11 70)',
+        meta:c.rows.length+' numéros · '+c.nMac+' MAC',prog:done+'/'+c.rows.length+' bascules faites',
+        caret:open?'▾':'▸',open,toggle:()=>this.setState(s=>({open:{...s.open,[gi]:!open}})),
+        etape:c.etape,setEtape:e=>this.upClient(gi,{etape:+e.target.value}),
+        addRow:e=>{e.stopPropagation();this.setState(s=>({open:{...s.open,[gi]:true},clients:s.clients.map((cc,i)=>i===gi?{...cc,rows:[...cc.rows,{num:'',court:'',user:'',equip:'Yealink T54W',mac:'',st:0,dateB:'',ctrl:1,msg:'ligne incomplète',com:'',exclu:false,sel:false}]}:cc)}));},
+        rows:idx.map(({r,ri})=>mkRow(gi)(r,ri)),
+      });
+    });
+    let selCount=0;S.clients.forEach(c=>c.rows.forEach(r=>{if(r.sel)selCount++;}));
+    const markFait=()=>this.setState(s=>({clients:s.clients.map(c=>({...c,rows:c.rows.map(r=>r.sel?{...r,st:1,dateB:'05/08/2026',sel:false}:r)}))}));
+    const clearSel=()=>this.setState(s=>({clients:s.clients.map(c=>({...c,rows:c.rows.map(r=>r.sel?{...r,sel:false}:r)}))}));
+    const allOpen=S.clients.every((c,i)=>S.open[i]);
+    // Fiche client
+    const steps=this.ETAPES.map((label,i)=>{
+      const done=i<cur.etape,active=i===cur.etape;
+      const accent='oklch(0.52 0.12 220)';
+      return{label,mark:done?'✓':String(i+1),
+        dotBg:active?accent:(done?'oklch(0.93 0.045 220)':'#fff'),
+        dotFg:active?'#fff':(done?'oklch(0.4 0.1 220)':'oklch(0.6 0.012 240)'),
+        dotBd:active?accent:(done?'oklch(0.85 0.06 220)':'oklch(0.9 0.006 240)'),
+        lineL:i===0?'transparent':(i<=cur.etape?'oklch(0.82 0.06 220)':'oklch(0.92 0.006 240)'),
+        lineR:i===7?'transparent':(i<cur.etape?'oklch(0.82 0.06 220)':'oklch(0.92 0.006 240)'),
+        fg:active?'oklch(0.35 0.1 220)':(done?'oklch(0.42 0.012 240)':'oklch(0.58 0.012 240)'),fw:active?700:450,
+        pick:()=>this.upClient(S.curClient,{etape:i})};});
+    const slug=cur.rs.split(' ')[0].toLowerCase();
+    const tpls=[
+      {n:'Prévenance J-15',s:'Votre migration téléphonique — '+cur.rs,b:'Bonjour,\n\nDans le cadre du changement d’opérateur de votre téléphonie fixe, une intervention est planifiée le '+(cur.iDate||'(à planifier)')+' sur le créneau '+(cur.iCren||'—')+'.\n\nVos numéros sont conservés. Aucune action n’est attendue de votre part avant l’intervention.\n\nPour toute question : 01 84 60 00 00.\n\nL’équipe GC Développement'},
+      {n:'Confirmation RDV',s:'Confirmation d’intervention le '+(cur.iDate||'—')+' — '+cur.rs,b:'Bonjour,\n\nNous vous confirmons le passage de notre technicien '+(cur.iTech!=='—'?cur.iTech:'')+' le '+(cur.iDate||'—')+' (créneau '+(cur.iCren||'—')+').\n\nMerci de garantir l’accès au local technique et la présence d’un interlocuteur sur site.\n\nL’équipe GC Développement — 01 84 60 00 00'},
+      {n:'Rappel J-2',s:'Rappel : intervention le '+(cur.iDate||'—')+' — '+cur.rs,b:'Bonjour,\n\nPetit rappel : notre technicien interviendra le '+(cur.iDate||'—')+' (créneau '+(cur.iCren||'—')+') pour la bascule de votre téléphonie.\n\nUne coupure de quelques minutes par poste est à prévoir.\n\nL’équipe GC Développement — 01 84 60 00 00'},
+      {n:'Post-migration J+7',s:'Votre téléphonie une semaine après la migration — '+cur.rs,b:'Bonjour,\n\nVotre migration a été réalisée il y a une semaine. Constatez-vous un dysfonctionnement (numéro, renvoi, messagerie) ?\n\nRépondez à ce mail ou appelez le 01 84 60 00 00, nous intervenons sous 24 h.\n\nL’équipe GC Développement'}];
+    const curT=tpls[S.mailTpl];
+    const clientTabs=[['numeros','Numéros'],['equips','Équipements'],['users','Utilisateurs'],['mails','Mails'],['journal','Journal']].map(([k,label])=>{
+      const a=S.clientTab===k;return{label,fw:a?700:450,fg:a?'oklch(0.35 0.1 220)':'oklch(0.48 0.012 240)',bd:a?'oklch(0.52 0.12 220)':'transparent',pick:()=>this.setState({clientTab:k})};});
+    // ADV
+    const advTabs=[['dossiers','Dossiers'],['pilotage','Pilotage'],['zoho','Suivi Zoho'],['techs','Techniciens']].map(([k,label])=>{
+      const a=S.advTab===k;return{label,fw:a?700:450,fg:a?'oklch(0.35 0.1 220)':'oklch(0.48 0.012 240)',bd:a?'oklch(0.52 0.12 220)':'transparent',pick:()=>this.setState({advTab:k})};});
+    const dossAll=S.dossiers.map((d,i)=>{
+      const alert=d.tent>=seuil;
+      return{rs:d.rs,sub:d.sub,etape:d.etape,setEtape:e=>this.upDoss(i,{etape:+e.target.value}),
+        tent:d.tent,incTent:()=>this.upDoss(i,{tent:d.tent+1}),
+        tentBd:alert?'oklch(0.85 0.08 25)':'oklch(0.9 0.006 240)',tentFg:alert?'oklch(0.5 0.15 25)':'oklch(0.42 0.012 240)',tentBg:alert?'oklch(0.965 0.02 25)':'#fff',
+        lienB:B(this.LIC[d.lien],this.LIENS[d.lien]),lienTitle:d.lien<2?('Cliquer : passer à « '+this.LIENS[d.lien+1]+' »'):'Livré',
+        cycleLien:()=>this.upDoss(i,{lien:(d.lien+1)%3}),
+        mpBg:d.mP?'oklch(0.95 0.045 150)':'oklch(0.955 0.004 240)',mpFg:d.mP?'oklch(0.43 0.1 150)':'oklch(0.55 0.015 240)',toggleP:()=>this.upDoss(i,{mP:d.mP?0:1}),
+        mcBg:d.mC?'oklch(0.95 0.045 150)':'oklch(0.955 0.004 240)',mcFg:d.mC?'oklch(0.43 0.1 150)':'oklch(0.55 0.015 240)',toggleC:()=>this.upDoss(i,{mC:d.mC?0:1}),
+        zoho:d.zoho,noZoho:!d.zoho,pushZoho:()=>this.upDoss(i,{zoho:'05/08'}),
+        date:d.date,setDate:e=>this.upDoss(i,{date:e.target.value}),
+        cren:d.cren,setCren:e=>this.upDoss(i,{cren:e.target.value}),
+        tech:d.tech,setTech:e=>this.upDoss(i,{tech:e.target.value}),
+        routeur:d.routeur,toggleRouteur:()=>this.upDoss(i,{routeur:!d.routeur}),
+        _et:this.ETAPES[d.etape]};});
+    const dq=S.dossQ.toLowerCase();
+    const dossRows=dossAll.filter(d=>(!dq||d.rs.toLowerCase().includes(dq))&&(S.dossEtape==='Toutes'||d._et===S.dossEtape));
+    const counts=[12,8,6,2,7,3,1,0];
+    const pilotEtapes=this.ETAPES.map((l,i)=>({n:counts[i],b:B(this.ETC[i],l)}));
+    const pilotLiens=[{n:24,b:B('gray','Non commandé')},{n:9,b:B('amber','Commandé')},{n:3,b:B('green','Livré')}];
+    const affectRows=S.dossiers.filter(d=>d.date&&d.tech!=='—').map(d=>({client:d.rs,tech:d.tech,date:d.date,b:B(this.ETC[d.etape],this.ETAPES[d.etape])}));
+    const zohoRows=this.ZOHO.map(([client,dept,date,heure,prest,tech,st,com])=>({client,dept,date,heure,prest,tech,com,b:B(this.ZC[st],st)}));
+    const refTechs=this.REFTECHS.map(([nom,soc,depts,a])=>({nom,soc,depts,b:B(a?'green':'gray',a?'Actif':'Inactif')}));
+    // Staging
+    const stCounters=[{n:12,b:B('blue','En stock')},{n:4,b:B('violet','Configuré')},{n:3,b:B('amber','Envoyé')},{n:8,b:B('green','Installé')}];
+    const aInstall=[
+      {client:'AART ELECTRONICS',type:'Chateau LTE12',sn:'HGH09JK4T8E',b:B('amber','Envoyé'),lien:'Commandé',date:'12/08',tech:'Bruce'},
+      {client:'ALLIANZ MONTROUGE',type:'Routeur 4G seul',sn:'RT4G-2210-0087',b:B('amber','Envoyé'),lien:'Commandé',date:'21/08',tech:'Fathi'},
+      {client:'ALKIMMO ANNEMASSE',type:'SIM',sn:'8933011558893030412',b:B('violet','Configuré'),lien:'Livré',date:'07/08',tech:'Zakaria'},
+    ];
+    const invRows=S.stock.map((a,i)=>({a,i})).filter(({a})=>(S.sType==='Tous'||a.type===S.sType)&&(S.sStatut==='Tous'||this.STOCK[a.statut]===S.sStatut)).map(({a,i})=>({
+      type:a.type,sn:a.sn,etat:a.etat||'—',client:a.client,b:B(this.STC[a.statut],this.STOCK[a.statut]),
+      hasNext:a.statut<3,nextLabel:a.statut<3?('→ '+this.STOCK[a.statut+1]):'',
+      next:()=>this.setState(s=>({stock:s.stock.map((x,j)=>j===i?{...x,statut:x.statut+1}:x)})),
+      setClient:e=>this.setState(s=>({stock:s.stock.map((x,j)=>j===i?{...x,client:e.target.value}:x)})),
+    }));
+    const addRetour=()=>{if(!S.retSn)return;this.setState(s=>({stock:[{type:s.retType,sn:s.retSn,statut:4,etat:'À contrôler',client:s.retClient?('ex '+s.retClient):''},...s.stock],retSn:'',retClient:''}));};
+    // Clients / Lots
+    const cq=S.clQ.toLowerCase();
+    const clientListRows=S.clients.filter(c=>!cq||c.rs.toLowerCase().includes(cq)).map((c,gi0)=>{const gi=S.clients.indexOf(c);return{rs:c.rs,dept:c.dept,lot:c.lot,n:c.rows.length,b:B(this.ETC[c.etape],this.ETAPES[c.etape]),go:goClient(gi)};});
+    const lotRows=[{name:'LOT 1a',clients:39,pct:61},{name:'LOT 1b',clients:27,pct:18},{name:'LOT 2',clients:31,pct:0}].map(l=>({...l,w:l.pct+'%'}));
+    // Statuts
+    const statusFamilies=[
+      {name:'Bascule d’un numéro',usage:'Provisionning · fiche client — cliquable pour basculer',vals:[B('gray','À faire'),B('green','Fait')]},
+      {name:'Contrôle',usage:'Vérifications automatiques sur un numéro',vals:[B('green','OK'),B('amber','AVERTISSEMENT'),B('red','ERREUR')]},
+      {name:'Étape de migration',usage:'Parcours dossier en 8 étapes — ADV, fiche client, pilotage',vals:this.ETAPES.map((l,i)=>B(this.ETC[i],l))},
+      {name:'Lien internet',usage:'Cycle de commande — cliquable pour avancer',vals:this.LIENS.map((l,i)=>B(this.LIC[i],l))},
+      {name:'Stock',usage:'Cycle de vie d’un article staging + retour client',vals:this.STOCK.map((l,i)=>B(this.STC[i],l))},
+      {name:'Mails',usage:'Prévenance (P) et confirmation (C)',vals:[B('green','Envoyé'),B('gray','Non envoyé')]},
+    ];
+    const stubHints={'Téléphone':'Référentiel des équipements téléphoniques (modèles, alias, éligibilité export). Écran secondaire — non maquetté dans ce lot.','Import Monday':'Upload xlsx → prévisualisation lignée → rapport. Même patron en 3 temps que les imports de la fiche client.','Export SDA':'Portée lot / client / tous, aperçu 2 colonnes, 212 numéros exportés, répartition par client. Défini en §3.6 — à maquetter au prochain lot.','Export MAC':'Tableaux Téléphonie & Réseau, lignes écartées avec motif. Défini en §3.6 — à maquetter au prochain lot.','Paramètres':'Catalogue des modèles d’équipement, listes de valeurs, comptes utilisateurs. Réservé au rôle ADMIN.'};
+    const K=this.IMP[S.importKind];
+    const IB={new:B('green','nouveau'),present:B('gray','déjà présent'),rio:B('blue','+ RIO')};
+    return{
+      navSections,screenTitle:titles[S.screen]||'',stop:e=>e.stopPropagation(),padY,
+      sAccueil:S.screen==='accueil',sProv:S.screen==='prov',sClient:S.screen==='client',sAdv:S.screen==='adv',sStaging:S.screen==='staging',sStatuts:S.screen==='statuts',sClients:S.screen==='clients',sLots:S.screen==='lots',sStub:S.screen==='stub',
+      stubTitle:S.stubTitle,stubHint:stubHints[S.stubTitle]||'Écran secondaire — non maquetté dans ce lot.',
+      homeKpis,shortcuts,intervRows,bloqRows,relanceRows,
+      q:S.q,setQ:e=>this.setState({q:e.target.value}),
+      fLot:S.fLot,setFLot:e=>this.setState({fLot:e.target.value}),lotOpts:['Tous','LOT 1a','LOT 1b','LOT 2'],
+      fClient:S.fClient,setFClient:e=>this.setState({fClient:e.target.value}),clientOpts:['Tous',...S.clients.map(c=>c.rs)],
+      fStatut:S.fStatut,setFStatut:e=>this.setState({fStatut:e.target.value}),
+      fAnom:S.fAnom,toggleAnom:()=>this.setState({fAnom:!S.fAnom}),
+      fElig:S.fElig,toggleElig:()=>this.setState({fElig:!S.fElig}),
+      resetFilters:()=>this.setState({q:'',fLot:'Tous',fClient:'Tous',fStatut:'Tous',fAnom:false,fElig:false}),
+      toggleAll:()=>this.setState({open:allOpen?{}:Object.fromEntries(S.clients.map((c,i)=>[i,true]))}),
+      toggleAllLabel:allOpen?'Tout replier':'Tout déplier',
+      groups,noGroups:groups.length===0,equipOpts:this.EQUIPS,etapeOpts,
+      hasSel:selCount>0,selCount,markFait,clearSel,
+      cur,steps,zohoNote:cur.zoho?('déjà poussé le '+cur.zoho):'',pushZoho:()=>this.upClient(S.curClient,{zoho:'05/08'}),
+      tentN:cur.tent,tentFg:cur.tent>=seuil?'oklch(0.55 0.15 25)':'inherit',tentAlert:cur.tent>=seuil,incTent:()=>this.upClient(S.curClient,{tent:cur.tent+1}),
+      iDate:cur.iDate,setIDate:e=>this.upClient(S.curClient,{iDate:e.target.value}),
+      iCren:cur.iCren,setICren:e=>this.upClient(S.curClient,{iCren:e.target.value}),crenOpts:this.CRENEAUX,
+      iTech:cur.iTech,setITech:e=>this.upClient(S.curClient,{iTech:e.target.value}),techOpts:this.TECHS,
+      lienB:B(this.LIC[cur.lien],this.LIENS[cur.lien]),hasLienBtn:cur.lien<2,lienBtnLabel:cur.lien===0?'Marquer commandé':'Marquer livré',
+      lienAdvance:()=>this.upClient(S.curClient,cur.lien===0?{lien:1,lienDate:'05/08/2026',lienOp:'Kosc',lienRef:'CMD-2026-09'+(10+S.curClient)}:{lien:2}),
+      lienShowInfo:cur.lien>=1,lienNone:cur.lien===0,
+      clientTabs,tNums:S.clientTab==='numeros',tEquips:S.clientTab==='equips',tUsers:S.clientTab==='users',tMails:S.clientTab==='mails',tJournal:S.clientTab==='journal',
+      clientRows:cur.rows.map(mkRow(S.curClient)),
+      equipRows:cur.rows.filter(r=>r.mac).map(r=>({model:r.equip,mac:r.mac,user:r.user})),
+      userRows:cur.rows.map(r=>({user:r.user,num:r.num,court:r.court,equip:r.equip})),
+      mailTpls:tpls.map((t,i)=>{const a=i===S.mailTpl;return{name:t.n,fw:a?600:450,bg:a?'oklch(0.93 0.045 220)':'transparent',fg:a?'oklch(0.35 0.1 220)':'oklch(0.4 0.012 240)',pick:()=>this.setState({mailTpl:i})};}),
+      mailTo:'contact@'+slug+'.fr',mailSubj:curT.s,mailBody:curT.b,
+      sendMail:()=>this.setState(s=>({mailHist:[{d:'05/08/2026 '+new Date().toTimeString().slice(0,5),t:curT.n,to:'contact@'+slug+'.fr'},...s.mailHist]})),
+      mailHist:S.mailHist,journal:S.journal,
+      impUsers:()=>this.setState({importOpen:true,importStep:1,importKind:'users'}),
+      impEquips:()=>this.setState({importOpen:true,importStep:1,importKind:'equips'}),
+      impNums:()=>this.setState({importOpen:true,importStep:1,importKind:'nums'}),
+      importOpen:S.importOpen,impS1:S.importStep===1,impS2:S.importStep===2,impS3:S.importStep===3,
+      impTitle:K.title,impStepLabel:'Étape '+S.importStep+' / 3 — '+['upload','prévisualisation','bilan'][S.importStep-1],
+      impFileHint:K.hint,impFileName:K.file,impColA:K.colA,impColB:K.colB,
+      impRows:K.rows.map(([a,c,k])=>({a,c,b:IB[k]})),
+      impNext:()=>this.setState({importStep:2}),impConfirm:()=>this.setState({importStep:3}),impClose:()=>this.setState({importOpen:false,importStep:1}),
+      advTabs,aDossiers:S.advTab==='dossiers',aPilotage:S.advTab==='pilotage',aZoho:S.advTab==='zoho',aTechs:S.advTab==='techs',
+      dossQ:S.dossQ,setDossQ:e=>this.setState({dossQ:e.target.value}),
+      dossEtape:S.dossEtape,setDossEtape:e=>this.setState({dossEtape:e.target.value}),
+      dossRows,dossCount:dossRows.length+' affichés · 40 dossiers au total',
+      pilotEtapes,pilotLiens,affectRows,zohoRows,refTechs,
+      techDate:S.techDate,setTechDate:e=>this.setState({techDate:e.target.value}),
+      techDept:S.techDept,setTechDept:e=>this.setState({techDept:e.target.value}),
+      searchTech:()=>this.setState({techRes:[{n:'Bruce',d:'78'},{n:'Fathi',d:'75 · 92 · 93'}]}),
+      techRes:S.techRes||[],hasTechRes:!!S.techRes,
+      stCounters,aInstall,invRows,typeOpts:this.TYPES,stockOpts:this.STOCK,
+      retType:S.retType,setRetType:e=>this.setState({retType:e.target.value}),
+      retSn:S.retSn,setRetSn:e=>this.setState({retSn:e.target.value}),
+      retClient:S.retClient,setRetClient:e=>this.setState({retClient:e.target.value}),
+      addRetour,sType:S.sType,setSType:e=>this.setState({sType:e.target.value}),
+      sStatut:S.sStatut,setSStatut:e=>this.setState({sStatut:e.target.value}),
+      clQ:S.clQ,setClQ:e=>this.setState({clQ:e.target.value}),clientListRows,lotRows,
+      statusFamilies,
+    };
+  }
+}
+</script>
+</body>
+</html>

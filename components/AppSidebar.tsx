@@ -8,18 +8,16 @@ import { cn } from "@/lib/utils";
 const NAV_GROUPES = [
   {
     titre: "",
-    items: [{ href: "/accueil", label: "Accueil", dot: "var(--ev-blue)" }],
+    items: [
+      { href: "/accueil", label: "Accueil", dot: "var(--ev-blue)" },
+      { href: "/clients", label: "Clients", dot: "var(--ev-purple)" },
+    ],
   },
   {
     titre: "Migration Téléphone",
     items: [
       { href: "/", label: "Provisionning", dot: "var(--ev-blue)" },
-      { href: "/clients", label: "Clients", dot: "var(--ev-purple)" },
       { href: "/telephone", label: "Téléphone", dot: "var(--ev-cyan)" },
-      { href: "/lots", label: "Lots", dot: "var(--ev-green)" },
-      { href: "/import-monday", label: "Import Monday", dot: "var(--ev-blue)" },
-      { href: "/import-sda", label: "Export SDA", dot: "var(--ev-amber)" },
-      { href: "/import-mac", label: "Export MAC", dot: "var(--ev-amber)" },
     ],
   },
   {
@@ -29,6 +27,15 @@ const NAV_GROUPES = [
   {
     titre: "Staging",
     items: [{ href: "/staging", label: "Stock & routeurs", dot: "var(--ev-cyan)" }],
+  },
+  {
+    titre: "Management",
+    items: [
+      { href: "/lots", label: "Lots", dot: "var(--ev-green)" },
+      { href: "/import-monday", label: "Import Monday", dot: "var(--ev-blue)" },
+      { href: "/import-sda", label: "Export SDA", dot: "var(--ev-amber)" },
+      { href: "/import-mac", label: "Export MAC", dot: "var(--ev-amber)" },
+    ],
   },
 ];
 
