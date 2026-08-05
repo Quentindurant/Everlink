@@ -7,7 +7,7 @@
 /* ── Everlink Design Tokens — thème clair (Design system review v2) ── */
 :root {
   /* Surfaces */
-  --ev-surface: oklch(0.975 0.004 250);
+  --ev-surface: oklch(0.964 0.007 250);
   --ev-card: #ffffff;
   --ev-card-border: oklch(0.92 0.006 240);
   --ev-card-border-light: oklch(0.945 0.004 240);
@@ -85,7 +85,7 @@
   --pal-teal-dot: oklch(0.6 0.11 180);
 
   /* shadcn variables */
-  --background: oklch(0.975 0.004 250);
+  --background: oklch(0.964 0.007 250);
   --foreground: oklch(0.24 0.012 240);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.24 0.012 240);
@@ -186,6 +186,13 @@
   html {
     @apply font-sans;
   }
+}
+
+/* ── Micro-relief : les cartes bordées se détachent de la surface ── */
+[class*="rounded-[10px]"][class*="border"] {
+  box-shadow:
+    0 1px 2px oklch(0.25 0.02 240 / 0.04),
+    0 2px 8px oklch(0.25 0.02 240 / 0.03);
 }
 
 /* ── Badge de statut (pill façon template) ── */

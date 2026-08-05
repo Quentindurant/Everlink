@@ -27,8 +27,7 @@ function KpiCarte({
   return (
     <Link
       href={href}
-      className="rounded-[10px] border bg-white px-[18px] py-4 transition-colors"
-      style={{ borderColor: "var(--ev-card-border)" }}
+      className="rounded-[10px] border border-[color:var(--ev-card-border)] bg-white px-[18px] py-4 transition-colors hover:border-[color:var(--ev-card-border-hover)]"
     >
       <div
         className="font-mono text-[30px] font-bold leading-none"
@@ -48,8 +47,7 @@ function Raccourci({ valeur, label, href }: { valeur: number; label: string; hre
   return (
     <Link
       href={href}
-      className="flex items-center gap-2.5 rounded-[10px] border bg-white px-3.5 py-2.5 transition-colors"
-      style={{ borderColor: "var(--ev-card-border)" }}
+      className="flex items-center gap-2.5 rounded-[10px] border border-[color:var(--ev-card-border)] bg-white px-3.5 py-2.5 transition-colors hover:border-[color:var(--ev-card-border-hover)]"
     >
       <span
         className="font-mono text-[17px] font-bold"

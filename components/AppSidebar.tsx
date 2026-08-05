@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -7,27 +8,27 @@ import { cn } from "@/lib/utils";
 const NAV_GROUPES = [
   {
     titre: "",
-    items: [{ href: "/accueil", label: "Accueil" }],
+    items: [{ href: "/accueil", label: "Accueil", dot: "var(--ev-blue)" }],
   },
   {
     titre: "Migration Téléphone",
     items: [
-      { href: "/", label: "Provisionning" },
-      { href: "/clients", label: "Clients" },
-      { href: "/telephone", label: "Téléphone" },
-      { href: "/lots", label: "Lots" },
-      { href: "/import-monday", label: "Import Monday" },
-      { href: "/import-sda", label: "Export SDA" },
-      { href: "/import-mac", label: "Export MAC" },
+      { href: "/", label: "Provisionning", dot: "var(--ev-blue)" },
+      { href: "/clients", label: "Clients", dot: "var(--ev-purple)" },
+      { href: "/telephone", label: "Téléphone", dot: "var(--ev-cyan)" },
+      { href: "/lots", label: "Lots", dot: "var(--ev-green)" },
+      { href: "/import-monday", label: "Import Monday", dot: "var(--ev-blue)" },
+      { href: "/import-sda", label: "Export SDA", dot: "var(--ev-amber)" },
+      { href: "/import-mac", label: "Export MAC", dot: "var(--ev-amber)" },
     ],
   },
   {
     titre: "ADV",
-    items: [{ href: "/techniciens", label: "Pilotage dossiers" }],
+    items: [{ href: "/techniciens", label: "Pilotage dossiers", dot: "var(--ev-green)" }],
   },
   {
     titre: "Staging",
-    items: [{ href: "/staging", label: "Stock & routeurs" }],
+    items: [{ href: "/staging", label: "Stock & routeurs", dot: "var(--ev-cyan)" }],
   },
 ];
 
@@ -60,7 +61,7 @@ export function AppSidebar({
   const groupes = role === "ADMIN"
     ? [
         ...NAV_GROUPES,
-        { titre: "Admin", items: [{ href: "/parametres", label: "Paramètres" }] },
+        { titre: "Admin", items: [{ href: "/parametres", label: "Paramètres", dot: "var(--ev-slate)" }] },
       ]
     : NAV_GROUPES;
 
@@ -74,17 +75,15 @@ export function AppSidebar({
     >
       {/* ── Logo ── */}
       <div className="px-4 pt-[18px] pb-3.5">
-        <div className="flex items-center gap-2">
-          <span
-            className="grid size-6 shrink-0 place-items-center rounded-md font-mono text-[11px] font-bold text-white"
-            style={{ background: "var(--ev-blue)", letterSpacing: "-0.02em" }}
-          >
-            GC
-          </span>
-          <span className="text-[15px] font-bold tracking-[.04em]" style={{ color: "var(--ev-body)" }}>
-            EVERLINK
-          </span>
-        </div>
+        <Image
+          src="/everlink-logo.png"
+          alt="EverLink"
+          width={155}
+          height={24}
+          priority
+          unoptimized
+          className="h-6 w-auto"
+        />
         <div className="mt-[7px] text-[10.5px]" style={{ color: "var(--ev-text-tertiary)" }}>
           Migration opérateur · GC Développement
         </div>
@@ -126,6 +125,10 @@ export function AppSidebar({
                       if (!active) e.currentTarget.style.background = "transparent";
                     }}
                   >
+                    <span
+                      className="size-2 shrink-0 rounded-[2px]"
+                      style={{ background: item.dot, opacity: active ? 1 : 0.45 }}
+                    />
                     <span className="flex-1 truncate">{item.label}</span>
                     {badge !== undefined && (
                       <span
