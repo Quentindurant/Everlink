@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { AppSidebar } from "@/components/AppSidebar";
+import { CommandPalette } from "@/components/CommandPalette";
 import { logoutAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,7 @@ export default async function AppLayout({
         progression={progression}
       />
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+      <CommandPalette />
     </div>
   );
 }

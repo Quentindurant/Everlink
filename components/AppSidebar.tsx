@@ -145,8 +145,28 @@ export function AppSidebar({
         )}
       </div>
 
+      {/* ── Recherche globale ── */}
+      <button
+        onClick={() => window.dispatchEvent(new CustomEvent("ouvrir-palette"))}
+        className="mt-4 flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors"
+        style={{
+          background: "var(--ev-navy-light)",
+          borderColor: "var(--ev-navy-border)",
+          color: "var(--ev-text-muted)",
+        }}
+      >
+        <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <span className="flex-1 text-left text-[13px]">Rechercher…</span>
+        <kbd className="rounded border px-1 py-0.5 font-mono text-[9px]" style={{ borderColor: "var(--ev-navy-border)" }}>
+          ⌘K
+        </kbd>
+      </button>
+
       {/* ── Navigation (groupée par espace) ── */}
-      <nav className="mt-4 flex flex-col gap-3 overflow-y-auto">
+      <nav className="mt-3 flex flex-col gap-3 overflow-y-auto">
         {groupes.map((groupe) => (
           <div key={groupe.titre || "accueil"} className="flex flex-col gap-0.5">
             {groupe.titre && (

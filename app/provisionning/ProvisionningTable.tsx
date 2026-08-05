@@ -673,10 +673,12 @@ export function ProvisionningTable({
 }) {
   const data = useMemo(() => lignes, [lignes]);
   const [selection, setSelection] = useState<string[]>([]);
-  // Clients repliés (par raison sociale). Replier masque les lignes du client, la bande reste.
-  const [replies, setReplies] = useState<Set<string>>(new Set());
+  // Clients dépliés (par raison sociale). Par défaut tout est replié: on n'affiche que les
+  // bandes clients — le DOM reste léger (des centaines de lignes interactives hydratées d'un
+  // coup rendaient la page très lente) et on ouvre uniquement le client qu'on travaille.
+  const [deplies, setDeplies] = useState<Set<string>>(new Set());
   const basculerRepli = (raisonSociale: string) => {
-    setReplies((prev) => {
+    setDeplies((prev) => {
       const n = new Set(prev);
       if (n.has(raisonSociale)) n.delete(raisonSociale);
       else n.add(raisonSociale);
@@ -732,8 +734,21 @@ export function ProvisionningTable({
     );
   }
 
+  const toutDeplie = deplies.size >= groupes.size && groupes.size > 0;
+
   return (
     <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {groupes.size} client{groupes.size > 1 ? "s" : ""} · cliquez une bande pour ouvrir
+        </span>
+        <button
+          onClick={() => setDeplies(toutDeplie ? new Set() : new Set(groupes.keys()))}
+          className="rounded-lg border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          {toutDeplie ? "Tout replier" : "Tout déplier"}
+        </button>
+      </div>
       <BarreActionsMasse selection={selection} onDone={() => setSelection([])} />
       <div
         className="overflow-x-auto rounded-[18px] border shadow-sm"
@@ -770,22 +785,24 @@ export function ProvisionningTable({
               ).length;
               return (
                 <Fragment key={raisonSociale}>
-                  <TableRow className="border-l-2 border-l-primary bg-muted/60 hover:bg-muted/60">
-                    <TableCell colSpan={columns.length} className="py-1.5">
+                  <TableRow
+                    className="cursor-pointer border-l-2 border-l-primary bg-muted/60 hover:bg-muted"
+                    onClick={() => basculerRepli(raisonSociale)}
+                  >
+                    <TableCell colSpan={columns.length} className="py-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="flex items-center gap-2">
-                          <button
-                            onClick={() => basculerRepli(raisonSociale)}
-                            className="grid size-5 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
-                            aria-label={replies.has(raisonSociale) ? "Déplier" : "Replier"}
+                          <span
+                            className="grid size-5 place-items-center rounded text-muted-foreground"
+                            aria-label={deplies.has(raisonSociale) ? "Replier" : "Déplier"}
                           >
                             <ChevronDown
                               className={cn(
                                 "size-4 transition-transform",
-                                replies.has(raisonSociale) && "-rotate-90"
+                                !deplies.has(raisonSociale) && "-rotate-90"
                               )}
                             />
-                          </button>
+                          </span>
                           <span className="text-sm font-semibold">{raisonSociale}</span>
                           {dateInterv ? (
                             <Badge className="border-transparent bg-primary/15 text-primary tabular-nums">
@@ -813,7 +830,7 @@ export function ProvisionningTable({
                             {nbFaites > 1 ? "s" : ""}
                           </Badge>
                         </span>
-                        <span className="flex items-center gap-2">
+                        <span className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                           {clientId && (
                             <EtapeMigrationSelect
                               clientId={clientId}
@@ -826,7 +843,7 @@ export function ProvisionningTable({
                       </div>
                     </TableCell>
                   </TableRow>
-                  {!replies.has(raisonSociale) &&
+                  {deplies.has(raisonSociale) &&
                     rowsDuClient.map((row) => (
                     <TableRow
                       key={row.id}
