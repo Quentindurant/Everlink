@@ -1,7 +1,13 @@
-import { fetchArticlesStock, statsStock } from "@/lib/repositories/stockRepository";
+import {
+  fetchAInstaller,
+  fetchArticlesStock,
+  listClientsPourStock,
+  statsStock,
+} from "@/lib/repositories/stockRepository";
 import { PageHero } from "@/components/PageHero";
 import { ImportStock } from "./ImportStock";
 import { StockTable } from "./StockTable";
+import { AInstaller } from "./AInstaller";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +20,11 @@ export default async function StagingPage({
   const filtreType = params.type ?? "";
   const filtreStatut = params.statut ?? "";
 
-  const [stats, articles] = await Promise.all([
+  const [stats, articles, aInstaller, clients] = await Promise.all([
     statsStock(),
     fetchArticlesStock({ type: filtreType || undefined, statut: filtreStatut || undefined }),
+    fetchAInstaller(),
+    listClientsPourStock(),
   ]);
 
   const compte = (s: string) => stats.parStatut.find((x) => x.statut === s)?.count ?? 0;
@@ -38,9 +46,12 @@ export default async function StagingPage({
 
       <ImportStock />
 
+      <AInstaller lignes={aInstaller} />
+
       <StockTable
         articles={articles}
         types={stats.types}
+        clients={clients}
         filtreType={filtreType}
         filtreStatut={filtreStatut}
       />

@@ -66,11 +66,26 @@ export async function avancerStatutAction(id: string): Promise<void> {
   revalidatePath("/staging");
 }
 
-export async function definirClientFinalAction(id: string, texte: string): Promise<void> {
+// Rattache un article à un client. Si le nom correspond exactement à une fiche client active,
+// on stocke l'ID (ce qui débloque les liens/intervention dans « À installer »); sinon on garde
+// juste le texte libre.
+export async function rattacherClientAction(id: string, nom: string): Promise<void> {
   if (!(await garde())) return;
+  const t = nom.trim();
+  if (!t) {
+    await prisma.articleStock.update({ where: { id }, data: { clientId: null, clientFinalTexte: null } });
+    revalidatePath("/staging");
+    return;
+  }
+  const client = await prisma.client.findFirst({
+    where: { archiveA: null, raisonSociale: { equals: t, mode: "insensitive" } },
+    select: { id: true },
+  });
   await prisma.articleStock.update({
     where: { id },
-    data: { clientFinalTexte: texte.trim() || null },
+    data: client
+      ? { clientId: client.id, clientFinalTexte: t }
+      : { clientId: null, clientFinalTexte: t },
   });
   revalidatePath("/staging");
 }

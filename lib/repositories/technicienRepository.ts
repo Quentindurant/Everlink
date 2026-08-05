@@ -33,6 +33,7 @@ export interface DossierAdv {
   mailPrevenanceLe: string | null;
   mailConfirmationLe: string | null;
   zohoPousseLe: string | null;
+  routeurClientReutilise: boolean;
 }
 
 // Tous les dossiers actifs avec leur état actionnable, pour le poste de travail ADV.
@@ -53,6 +54,7 @@ export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
       lienCommande: true,
       lienLivre: true,
       zohoLignePousseeLe: true,
+      routeurClientReutilise: true,
       mailEnvois: {
         where: { succes: true },
         orderBy: { creeLe: "desc" },
@@ -79,6 +81,7 @@ export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
     mailPrevenanceLe: d(c.mailEnvois.find((m) => m.type === "PREVENANCE")?.creeLe ?? null),
     mailConfirmationLe: d(c.mailEnvois.find((m) => m.type === "CONFIRMATION")?.creeLe ?? null),
     zohoPousseLe: d(c.zohoLignePousseeLe),
+    routeurClientReutilise: c.routeurClientReutilise,
   }));
 }
 

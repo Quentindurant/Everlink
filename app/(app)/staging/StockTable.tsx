@@ -20,7 +20,7 @@ import { LIBELLE_STATUT, STATUT_SUIVANT, STATUTS_STOCK } from "@/lib/domain/stoc
 import {
   ajouterRetourAction,
   avancerStatutAction,
-  definirClientFinalAction,
+  rattacherClientAction,
   supprimerArticleAction,
 } from "./actions";
 
@@ -32,10 +32,9 @@ const COULEUR_STATUT: Record<string, string> = {
   RETOUR: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
 };
 
-function LigneArticle({ a }: { a: ArticleStockLigne }) {
+function LigneArticle({ a, listeClients }: { a: ArticleStockLigne; listeClients: string }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [client, setClient] = useState(a.clientFinal ?? "");
   const suivant = STATUT_SUIVANT[a.statut];
 
   const agir = (fn: () => Promise<unknown>) =>
@@ -59,13 +58,13 @@ function LigneArticle({ a }: { a: ArticleStockLigne }) {
       <TableCell className="text-xs text-muted-foreground">{a.etatAppareil ?? "—"}</TableCell>
       <TableCell>
         <Input
-          defaultValue={client}
-          placeholder="client final…"
-          className="h-7 w-40 text-xs"
+          list={listeClients}
+          defaultValue={a.clientFinal ?? ""}
+          placeholder="client…"
+          className="h-7 w-44 text-xs"
           onBlur={(e) => {
             if (e.target.value !== (a.clientFinal ?? "")) {
-              setClient(e.target.value);
-              agir(() => definirClientFinalAction(a.id, e.target.value));
+              agir(() => rattacherClientAction(a.id, e.target.value));
             }
           }}
         />
@@ -136,15 +135,18 @@ function RetourForm() {
 export function StockTable({
   articles,
   types,
+  clients,
   filtreType,
   filtreStatut,
 }: {
   articles: ArticleStockLigne[];
   types: string[];
+  clients: { id: string; raisonSociale: string }[];
   filtreType: string;
   filtreStatut: string;
 }) {
   const router = useRouter();
+  const idListe = "clients-stock";
 
   const filtrer = (cle: "type" | "statut", valeur: string) => {
     const params = new URLSearchParams();
@@ -157,6 +159,12 @@ export function StockTable({
 
   return (
     <div className="flex flex-col gap-3">
+      <datalist id={idListe}>
+        {clients.map((c) => (
+          <option key={c.id} value={c.raisonSociale} />
+        ))}
+      </datalist>
+
       <RetourForm />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -200,7 +208,7 @@ export function StockTable({
                 </TableCell>
               </TableRow>
             ) : (
-              articles.map((a) => <LigneArticle key={a.id} a={a} />)
+              articles.map((a) => <LigneArticle key={a.id} a={a} listeClients={idListe} />)
             )}
           </TableBody>
         </Table>

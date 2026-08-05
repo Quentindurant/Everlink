@@ -37,6 +37,61 @@ export async function fetchArticlesStock(filtre: {
   }));
 }
 
+export interface AInstallerLigne {
+  id: string;
+  type: string;
+  numeroSerie: string;
+  statut: string;
+  clientId: string | null;
+  clientNom: string;
+  lienStatut: string | null; // "Non commandé" | "Commandé" | "Livré" | null (non rattaché)
+  dateIntervention: string | null;
+  technicienNom: string | null;
+}
+
+// Matériel envoyé/configuré en attente d'installation. Quand l'article est rattaché à une fiche
+// client, on remonte l'état du lien et l'intervention pour tout voir au même endroit.
+export async function fetchAInstaller(): Promise<AInstallerLigne[]> {
+  const articles = await prisma.articleStock.findMany({
+    where: { archiveA: null, statut: { in: ["CONFIGURE", "ENVOYE"] } },
+    include: {
+      client: {
+        select: {
+          raisonSociale: true,
+          lienCommande: true,
+          lienLivre: true,
+          dateIntervention: true,
+          technicien: { select: { nom: true } },
+        },
+      },
+    },
+    orderBy: [{ statut: "asc" }, { type: "asc" }],
+  });
+  return articles.map((a) => {
+    const c = a.client;
+    const lienStatut = c ? (c.lienLivre ? "Livré" : c.lienCommande ? "Commandé" : "Non commandé") : null;
+    return {
+      id: a.id,
+      type: a.type,
+      numeroSerie: a.numeroSerie,
+      statut: a.statut,
+      clientId: a.clientId,
+      clientNom: c?.raisonSociale ?? a.clientFinalTexte ?? "—",
+      lienStatut,
+      dateIntervention: c?.dateIntervention ? jour(c.dateIntervention) : null,
+      technicienNom: c?.technicien?.nom ?? null,
+    };
+  });
+}
+
+export async function listClientsPourStock(): Promise<{ id: string; raisonSociale: string }[]> {
+  return prisma.client.findMany({
+    where: { archiveA: null },
+    select: { id: true, raisonSociale: true },
+    orderBy: { raisonSociale: "asc" },
+  });
+}
+
 export interface StatsStock {
   parStatut: { statut: string; libelle: string; count: number }[];
   types: string[];

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import {
   affecterTechnicien,
   creerTechnicien,
@@ -29,6 +30,17 @@ export async function affecterTechnicienAction(
   technicienId: string
 ): Promise<Resultat> {
   return garde(() => affecterTechnicien(clientId, technicienId || null));
+}
+
+// Marque (ou non) qu'on réutilise le routeur déjà présent chez le client, au lieu d'en envoyer
+// un depuis le stock.
+export async function setRouteurClientReutiliseAction(
+  clientId: string,
+  valeur: boolean
+): Promise<Resultat> {
+  return garde(async () => {
+    await prisma.client.update({ where: { id: clientId }, data: { routeurClientReutilise: valeur } });
+  });
 }
 
 export async function creerTechnicienAction(

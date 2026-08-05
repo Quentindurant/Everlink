@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, PhoneOutgoing, Search, Send, Sheet } from "lucide-react";
+import { Mail, PhoneOutgoing, Router, Search, Send, Sheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ import { noterTentativeContactAction } from "@/app/(app)/clients/actions";
 import { setCreneauInterventionAction } from "@/app/(app)/clients/[id]/mailActions";
 import { marquerLienCommandeAction, marquerLienLivreAction } from "@/app/(app)/clients/[id]/lienActions";
 import { pousserVersZohoAction } from "@/app/(app)/clients/[id]/zohoActions";
-import { affecterTechnicienAction } from "./actions";
+import { affecterTechnicienAction, setRouteurClientReutiliseAction } from "./actions";
 
 function LigneDossier({
   d,
@@ -172,6 +172,23 @@ function LigneDossier({
           {d.zohoPousseLe ? "poussé" : "pousser"}
         </button>
       </TableCell>
+
+      {/* Routeur client réutilisé (reset sur place, pas d'envoi depuis le stock) */}
+      <TableCell>
+        <button
+          onClick={() => agir(() => setRouteurClientReutiliseAction(d.clientId, !d.routeurClientReutilise))}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px]",
+            d.routeurClientReutilise
+              ? "border-transparent bg-purple-500/15 text-purple-700 dark:text-purple-400"
+              : "text-muted-foreground hover:bg-muted"
+          )}
+          title="Réutilisation du routeur déjà présent chez le client (reset sur place)"
+        >
+          <Router className="size-3" />
+          {d.routeurClientReutilise ? "réutilisé" : "—"}
+        </button>
+      </TableCell>
     </TableRow>
   );
 }
@@ -206,7 +223,7 @@ export function GestionDossiers({
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow className="hover:bg-transparent">
-              {["Client", "Étape", "Contact", "Intervention", "Technicien", "Lien", "Mails", "Zoho"].map((h) => (
+              {["Client", "Étape", "Contact", "Intervention", "Technicien", "Lien", "Mails", "Zoho", "Routeur"].map((h) => (
                 <TableHead key={h} className="h-9 text-xs font-semibold whitespace-nowrap text-muted-foreground">
                   {h}
                 </TableHead>
@@ -216,7 +233,7 @@ export function GestionDossiers({
           <TableBody>
             {visibles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">
                   Aucun dossier.
                 </TableCell>
               </TableRow>
