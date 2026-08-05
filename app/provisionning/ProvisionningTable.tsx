@@ -761,7 +761,7 @@ export function ProvisionningTable({
         }}
       >
         <Table>
-          <TableHeader className="sticky top-0 z-10 bg-card">
+          <TableHeader className="sticky top-0 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header) => (

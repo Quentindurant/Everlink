@@ -142,7 +142,7 @@ export function ExportPreviewTables({
       <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
         <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
           <Table>
-            <TableHeader className="sticky top-0 z-10 bg-card">
+            <TableHeader className="sticky top-0 z-10">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="h-9 w-10 text-xs font-semibold text-muted-foreground">
                   #
@@ -234,7 +234,7 @@ export function ExportPreviewTables({
           </div>
           <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
             <Table>
-              <TableHeader className="sticky top-0 z-10 bg-card">
+              <TableHeader className="sticky top-0 z-10">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="h-9 w-10 text-xs font-semibold text-muted-foreground">#</TableHead>
                   {(reseauEntetes ?? entetes).map((h) => (

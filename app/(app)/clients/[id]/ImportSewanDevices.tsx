@@ -151,7 +151,7 @@ export function ImportSewanDevices({ clientId }: { clientId: string }) {
           </div>
           <div className="max-h-96 overflow-auto rounded-xl border">
             <Table>
-              <TableHeader className="sticky top-0 z-10 bg-card">
+              <TableHeader className="sticky top-0 z-10">
                 <TableRow className="hover:bg-transparent">
                   {["Modèle", "MAC / IPUI", "Utilisateur Sewan", "État"].map((h) => (
                     <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>

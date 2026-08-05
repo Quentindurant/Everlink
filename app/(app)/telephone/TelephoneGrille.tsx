@@ -128,7 +128,7 @@ export function TelephoneGrille({ grille }: { grille: Grille }) {
   return (
     <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
       <Table>
-        <TableHeader className="sticky top-0 z-10 bg-card">
+        <TableHeader className="sticky top-0 z-10">
           <TableRow className="hover:bg-transparent">
             <TableHead className="h-9 text-xs font-semibold whitespace-nowrap text-muted-foreground">
               Utilisateur

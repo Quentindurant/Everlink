@@ -5,7 +5,7 @@ import type {
 } from "@/lib/domain/sync/provisionning";
 import type { ClientSyncRow } from "@/lib/domain/sync/clients";
 import type { TelephoneUtilisateurRow } from "@/lib/domain/sync/telephone";
-import type { SdaSourceRow } from "@/lib/domain/exports/sda";
+import { motifExclusionNumero, type SdaSourceRow } from "@/lib/domain/exports/sda";
 import type { MacSourceRow } from "@/lib/domain/exports/mac";
 import { ETAPE_TERMINALE } from "@/lib/domain/migration/etapes";
 
@@ -200,6 +200,7 @@ export async function fetchTelephoneData(): Promise<{
 // L'export SDA est la liste des numéros à porter: tout numéro actif et non exclu en fait partie,
 // qu'il porte un équipement/MAC ou non. Un numéro SVI ou groupe d'appels (sans utilisateur ni
 // MAC) doit être porté au même titre qu'un poste. Le lien à la MAC ne concerne que l'export MAC.
+// Les mobiles (06/07) et les numéros de SIM sont écartés automatiquement (motifExclusionNumero).
 export async function fetchSdaData(scope: ExportScope = {}): Promise<SdaSourceRow[]> {
   const clientWhere = await clientScopeWhere(scope);
   const numeros = await prisma.numero.findMany({
@@ -212,11 +213,13 @@ export async function fetchSdaData(scope: ExportScope = {}): Promise<SdaSourceRo
     orderBy: [{ client: { raisonSociale: "asc" } }, { ordre: "asc" }, { id: "asc" }],
   });
 
-  return numeros.map((n) => ({
-    clientRaisonSociale: n.client.raisonSociale,
-    numeroBrut: n.numeroBrut,
-    ordre: n.ordre,
-  }));
+  return numeros
+    .filter((n) => motifExclusionNumero(n.numeroBrut) === null)
+    .map((n) => ({
+      clientRaisonSociale: n.client.raisonSociale,
+      numeroBrut: n.numeroBrut,
+      ordre: n.ordre,
+    }));
 }
 
 export async function fetchMacData(scope: ExportScope = {}): Promise<MacSourceRow[]> {
@@ -256,22 +259,23 @@ export async function fetchMacData(scope: ExportScope = {}): Promise<MacSourceRo
   }));
 }
 
-// Lignes écartées de l'export SDA avec motif. Depuis que le SDA sort tous les numéros à porter,
-// le seul motif d'écart est l'exclusion manuelle (l'absence de MAC/utilisateur n'écarte plus:
-// les numéros SVI/groupe d'appels partent bien en portabilité).
+// Lignes écartées de l'export SDA avec motif: exclusion manuelle, numéro mobile ou numéro de
+// SIM (les deux derniers sont détectés automatiquement, voir motifExclusionNumero).
 export async function fetchSdaEcarts(scope: ExportScope = {}): Promise<ExportEcart[]> {
   const clientWhere = await clientScopeWhere(scope);
   const numeros = await prisma.numero.findMany({
-    where: { archiveA: null, exclureExport: true, client: clientWhere },
+    where: { archiveA: null, client: clientWhere },
     include: { client: { select: { raisonSociale: true } } },
     orderBy: [{ client: { raisonSociale: "asc" } }, { ordre: "asc" }, { id: "asc" }],
   });
 
-  return numeros.map((n) => ({
-    raisonSociale: n.client.raisonSociale,
-    valeur: n.numeroBrut,
-    motif: "exclusion manuelle",
-  }));
+  return numeros
+    .map((n) => ({
+      raisonSociale: n.client.raisonSociale,
+      valeur: n.numeroBrut,
+      motif: n.exclureExport ? "exclusion manuelle" : motifExclusionNumero(n.numeroBrut),
+    }))
+    .filter((e): e is ExportEcart => e.motif !== null);
 }
 
 // Lignes écartées de l'export MAC avec motif (SPEC §3.4).

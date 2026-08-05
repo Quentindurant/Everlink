@@ -43,7 +43,9 @@ function extraireInterne(brut: string): string {
 // Un utilisateur avec deux postes a une cellule "Model1 (MAC1), Model2 (MAC2)" (ou sans MAC).
 // On sépare sur la virgule (les MAC utilisent ":" et ne contiennent pas de virgule) puis on
 // extrait modèle + MAC de chaque poste.
-function extraireEquipements(brut: string): EquipementSewan[] {
+// Les IPUI DECT sortent suffixés de la marque ("0291EE3460 - YEALINK", tiret ou tiret demi-
+// cadratin selon l'export) : on garde l'identifiant seul, comme le parseur équipements.
+export function extraireEquipements(brut: string): EquipementSewan[] {
   const t = brut.trim();
   if (!t) return [];
   return t
@@ -52,7 +54,9 @@ function extraireEquipements(brut: string): EquipementSewan[] {
     .filter(Boolean)
     .map((part) => {
       const m = part.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
-      return m ? { modele: m[1].trim(), mac: m[2].trim() } : { modele: part, mac: null };
+      return m
+        ? { modele: m[1].trim(), mac: m[2].split(/\s+[-–]\s+/)[0].trim() }
+        : { modele: part, mac: null };
     });
 }
 

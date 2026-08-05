@@ -23,8 +23,8 @@ export function parseSewanDevices(csv: string): { rows: SewanDeviceRow[]; ignore
   for (const ligne of lignes.slice(1)) {
     const c = champs(ligne);
     const modele = c[0] ?? "";
-    // "0291EE3460 - YEALINK" → "0291EE3460"
-    const mac = (c[1] ?? "").split(" - ")[0].trim();
+    // "0291EE3460 - YEALINK" → "0291EE3460" (tiret ou tiret demi-cadratin selon l'export)
+    const mac = (c[1] ?? "").split(/\s+[-–]\s+/)[0].trim();
     if (!mac) {
       ignores++;
       continue;

@@ -43,7 +43,8 @@
   --ev-text-muted: oklch(0.6 0.012 240);
 
   /* Tableaux */
-  --ev-th: oklch(0.55 0.015 240);
+  --ev-th: oklch(0.5 0.02 245);
+  --ev-thead: oklch(0.977 0.005 250);
   --ev-row-border: oklch(0.945 0.004 240);
   --ev-row-hover: oklch(0.975 0.004 240);
 

@@ -155,7 +155,7 @@ export function ClientsTable({
   return (
     <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
       <Table>
-        <TableHeader className="sticky top-0 z-10 bg-card">
+        <TableHeader className="sticky top-0 z-10">
           <TableRow className="hover:bg-transparent">
             {[
               "Raison sociale",

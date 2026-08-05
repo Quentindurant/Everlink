@@ -110,7 +110,7 @@ export function ImportStock() {
           </div>
           <div className="max-h-96 overflow-auto rounded-xl border">
             <Table>
-              <TableHeader className="sticky top-0 z-10 bg-card">
+              <TableHeader className="sticky top-0 z-10">
                 <TableRow className="hover:bg-transparent">
                   {["Type", "N° série", "Réception", "État", "Client final", ""].map((h, i) => (
                     <TableHead key={i} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>

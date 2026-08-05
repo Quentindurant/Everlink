@@ -65,4 +65,18 @@ describe("parseSewanUsers", () => {
       { modele: "Polycom RealPresence Trio 8300", mac: "64:16:7F:4E:6B:37" },
     ]);
   });
+
+  test("IPUI DECT suffixé de la marque → identifiant seul (tiret ou demi-cadratin)", () => {
+    const csv = [
+      HEADER,
+      '"DECT";"UN";"\'+33134080001 (Pack)";"\'451";"Yealink W59R (0291EE3BBA - YEALINK), Yealink T53 (80:5E:0C:C7:39:51)";"Pack";"d@x";"*";"";"\'";"\'";"";',
+      '"DECT";"DEUX";"\'+33134080002 (Pack)";"\'452";"Yealink W59R (0291EE3460 – YEALINK)";"Pack";"e@x";"*";"";"\'";"\'";"";',
+    ].join("\n");
+    const { rows } = parseSewanUsers(csv);
+    expect(rows[0].equipements).toEqual([
+      { modele: "Yealink W59R", mac: "0291EE3BBA" },
+      { modele: "Yealink T53", mac: "80:5E:0C:C7:39:51" },
+    ]);
+    expect(rows[1].equipements).toEqual([{ modele: "Yealink W59R", mac: "0291EE3460" }]);
+  });
 });
