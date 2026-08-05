@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { EtapeMigrationLite } from "@/lib/domain/migration/etapes";
+import { pastelBg, pastelFg } from "./pastel";
 
 // Stepper horizontal du parcours. Les étapes bloquantes sont sorties de la ligne nominale
 // (affichées à part) pour ne pas rompre l'ordre de progression.
@@ -27,19 +28,24 @@ export function EtapeMigrationStepper({
             <div key={etape.id} className="flex items-center gap-1">
               <div
                 className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors",
-                  active && "text-white",
-                  passee && "text-white/90",
+                  "ev-badge transition-colors",
+                  active && "font-bold",
                   !active && !passee && "bg-muted text-muted-foreground"
                 )}
-                style={active || passee ? { background: etape.couleur } : undefined}
+                style={
+                  active || passee
+                    ? { background: pastelBg(etape.couleur), color: pastelFg(etape.couleur) }
+                    : undefined
+                }
               >
                 {passee ? (
                   <Check className="size-3" />
                 ) : (
                   <span
-                    className="size-1.5 rounded-full"
-                    style={{ background: active ? "#fff" : etape.couleur }}
+                    className="ev-badge-dot"
+                    style={{
+                      background: active ? etape.couleur : "var(--pal-gray-dot)",
+                    }}
                   />
                 )}
                 {etape.libelle}
@@ -53,9 +59,10 @@ export function EtapeMigrationStepper({
       </div>
       {estBloque && courante && (
         <div
-          className="inline-flex w-fit items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-white"
-          style={{ background: courante.couleur }}
+          className="ev-badge w-fit font-bold"
+          style={{ background: pastelBg(courante.couleur), color: pastelFg(courante.couleur) }}
         >
+          <span className="ev-badge-dot" style={{ background: courante.couleur }} />
           ⚠ {courante.libelle}
         </div>
       )}

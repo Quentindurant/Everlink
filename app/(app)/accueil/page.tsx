@@ -38,7 +38,7 @@ function Carte({
       href={href}
       className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-xs transition-colors hover:bg-muted/50"
     >
-      <span className="grid size-10 shrink-0 place-items-center rounded-lg" style={{ background: `${couleur}1a`, color: couleur }}>
+      <span className="grid size-10 shrink-0 place-items-center rounded-lg" style={{ background: `color-mix(in oklab, ${couleur} 10%, white)`, color: couleur }}>
         {icone}
       </span>
       <div>
@@ -68,10 +68,10 @@ export default async function AccueilPage() {
 
       {/* Cartes d'accès rapide */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Carte icone={<Link2 className="size-5" />} valeur={data.liensACommander} label="liens à commander" couleur="#1f6bff" href="/techniciens" />
-        <Carte icone={<PackageCheck className="size-5" />} valeur={data.stock.enStock} label="routeurs en stock" couleur="#00b8cc" href="/staging" />
-        <Carte icone={<Truck className="size-5" />} valeur={data.stock.aEnvoyer} label="à configurer/envoyer" couleur="#8a5bff" href="/staging" />
-        <Carte icone={<CalendarClock className="size-5" />} valeur={data.stock.aInstaller} label="routeurs à installer" couleur="#16b57f" href="/staging" />
+        <Carte icone={<Link2 className="size-5" />} valeur={data.liensACommander} label="liens à commander" couleur="var(--ev-blue)" href="/techniciens" />
+        <Carte icone={<PackageCheck className="size-5" />} valeur={data.stock.enStock} label="routeurs en stock" couleur="var(--ev-cyan)" href="/staging" />
+        <Carte icone={<Truck className="size-5" />} valeur={data.stock.aEnvoyer} label="à configurer/envoyer" couleur="var(--ev-purple)" href="/staging" />
+        <Carte icone={<CalendarClock className="size-5" />} valeur={data.stock.aInstaller} label="routeurs à installer" couleur="var(--ev-green)" href="/staging" />
       </div>
 
       {/* Interventions à venir */}

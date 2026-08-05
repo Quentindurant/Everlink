@@ -42,15 +42,15 @@ export default async function ImportMondayPage() {
 
       {estAdmin ? (
         <div
-          className="flex flex-wrap items-center gap-4 rounded-2xl border-2 border-dashed p-5.5"
+          className="flex flex-wrap items-center gap-4 rounded-[10px] border-2 border-dashed p-5.5"
           style={{
             background: "var(--ev-card)",
-            borderColor: "#cdd8ea",
+            borderColor: "var(--ev-sel-border)",
           }}
         >
           <span
-            className="grid size-12 shrink-0 place-items-center rounded-2xl font-mono text-sm font-semibold"
-            style={{ background: "#eaf0ff", color: "var(--ev-blue)" }}
+            className="grid size-12 shrink-0 place-items-center rounded-[10px] font-mono text-sm font-semibold"
+            style={{ background: "var(--ev-nav-active-bg)", color: "var(--ev-nav-active-fg)" }}
           >
             xls
           </span>
@@ -118,23 +118,25 @@ export default async function ImportMondayPage() {
                         <div className="flex flex-wrap gap-1.5">
                           {(rapport.crees ?? 0) > 0 && (
                             <span
-                              className="rounded-lg px-2.5 py-1 text-[11px] font-semibold text-white"
-                              style={{ background: "var(--ev-green)" }}
+                              className="ev-badge"
+                              style={{ background: "var(--pal-green-bg)", color: "var(--pal-green-fg)" }}
                             >
+                              <span className="ev-badge-dot" style={{ background: "var(--pal-green-dot)" }} />
                               {rapport.crees} créés
                             </span>
                           )}
-                          <span className="rounded-lg px-2.5 py-1 text-[11px] font-medium" style={{ background: "var(--ev-surface)", color: "var(--ev-body-muted)" }}>
+                          <span className="ev-badge" style={{ background: "var(--pal-gray-bg)", color: "var(--pal-gray-fg)" }}>
                             {rapport.misAJour ?? 0} mis à jour
                           </span>
-                          <span className="rounded-lg px-2.5 py-1 text-[11px] font-medium" style={{ background: "var(--ev-surface)", color: "var(--ev-body-muted)" }}>
+                          <span className="ev-badge" style={{ background: "var(--pal-gray-bg)", color: "var(--pal-gray-fg)" }}>
                             {rapport.ignores ?? 0} ignorés
                           </span>
                           {rapport.modelesCrees && rapport.modelesCrees.length > 0 && (
                             <span
-                              className="rounded-lg px-2.5 py-1 text-[11px] font-semibold text-white"
-                              style={{ background: "var(--ev-purple)" }}
+                              className="ev-badge"
+                              style={{ background: "var(--pal-violet-bg)", color: "var(--pal-violet-fg)" }}
                             >
+                              <span className="ev-badge-dot" style={{ background: "var(--pal-violet-dot)" }} />
                               {rapport.modelesCrees.length} modèles
                             </span>
                           )}
@@ -143,8 +145,8 @@ export default async function ImportMondayPage() {
                       <TableCell>
                         {run.succes ? (
                           <span
-                            className="rounded-full px-2.5 py-1 text-[11px] font-bold"
-                            style={{ background: "#eafaf3", color: "#0e7a56" }}
+                            className="ev-badge font-bold"
+                            style={{ background: "var(--pal-green-bg)", color: "var(--pal-green-fg)" }}
                           >
                             OK
                           </span>

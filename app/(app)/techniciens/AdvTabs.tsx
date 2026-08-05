@@ -101,11 +101,15 @@ export function AdvTabs({
                 {overview.parEtape.map((e) => (
                   <span
                     key={e.libelle}
-                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-white"
-                    style={{ background: e.couleur }}
+                    className="ev-badge"
+                    style={{
+                      background: `color-mix(in oklab, ${e.couleur} 14%, white)`,
+                      color: `color-mix(in oklab, ${e.couleur} 58%, oklch(0.3 0.015 240))`,
+                    }}
                   >
+                    <span className="ev-badge-dot" style={{ background: e.couleur }} />
                     {e.libelle}
-                    <span className="rounded bg-black/20 px-1 tabular-nums">{e.count}</span>
+                    <span className="rounded bg-black/10 px-1 font-mono tabular-nums">{e.count}</span>
                   </span>
                 ))}
               </div>

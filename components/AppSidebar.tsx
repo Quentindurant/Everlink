@@ -7,27 +7,27 @@ import { cn } from "@/lib/utils";
 const NAV_GROUPES = [
   {
     titre: "",
-    items: [{ href: "/accueil", label: "Accueil", dot: "#1f6bff" }],
+    items: [{ href: "/accueil", label: "Accueil" }],
   },
   {
     titre: "Migration Téléphone",
     items: [
-      { href: "/", label: "Provisionning", dot: "#1f6bff" },
-      { href: "/clients", label: "Clients", dot: "#8a5bff" },
-      { href: "/telephone", label: "Téléphone", dot: "#00b8cc" },
-      { href: "/lots", label: "Lots", dot: "#16b57f" },
-      { href: "/import-monday", label: "Import Monday", dot: "#1f6bff" },
-      { href: "/import-sda", label: "Export SDA", dot: "#ffb020" },
-      { href: "/import-mac", label: "Export MAC", dot: "#ffb020" },
+      { href: "/", label: "Provisionning" },
+      { href: "/clients", label: "Clients" },
+      { href: "/telephone", label: "Téléphone" },
+      { href: "/lots", label: "Lots" },
+      { href: "/import-monday", label: "Import Monday" },
+      { href: "/import-sda", label: "Export SDA" },
+      { href: "/import-mac", label: "Export MAC" },
     ],
   },
   {
     titre: "ADV",
-    items: [{ href: "/techniciens", label: "Pilotage dossiers", dot: "#16b57f" }],
+    items: [{ href: "/techniciens", label: "Pilotage dossiers" }],
   },
   {
     titre: "Staging",
-    items: [{ href: "/staging", label: "Stock & routeurs", dot: "#00b8cc" }],
+    items: [{ href: "/staging", label: "Stock & routeurs" }],
   },
 ];
 
@@ -60,213 +60,154 @@ export function AppSidebar({
   const groupes = role === "ADMIN"
     ? [
         ...NAV_GROUPES,
-        { titre: "Admin", items: [{ href: "/parametres", label: "Paramètres", dot: "#7a8699" }] },
+        { titre: "Admin", items: [{ href: "/parametres", label: "Paramètres" }] },
       ]
     : NAV_GROUPES;
 
   return (
     <aside
-      className="sticky top-0 flex h-screen w-[262px] shrink-0 flex-col"
+      className="sticky top-0 flex h-screen w-[232px] shrink-0 flex-col border-r"
       style={{
-        background: "var(--ev-navy)",
-        padding: "20px 14px 16px",
+        background: "var(--ev-sidebar-bg)",
+        borderColor: "var(--ev-sidebar-border)",
       }}
     >
       {/* ── Logo ── */}
-      <div className="flex items-center gap-2.5 px-1.5">
-        <span
-          className="grid size-[38px] shrink-0 place-items-center rounded-xl font-mono text-[13px] font-bold"
-          style={{
-            background: "var(--ev-blue)",
-            color: "#fff",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          GC
-        </span>
-        <div>
-          <div
-            className="text-[15px] font-[800] tracking-[.06em]"
-            style={{ color: "#fff" }}
-          >
-            EVERLINK
-          </div>
-          <div
-            className="mt-0.5 font-mono text-[9px] tracking-[.14em]"
-            style={{ color: "var(--ev-text-muted)" }}
-          >
-            GC DEVELOPPEMENT
-          </div>
-        </div>
-      </div>
-
-      {/* ── Widget Chantier en cours ── */}
-      <div
-        className="mt-4.5 rounded-2xl border p-3.5"
-        style={{
-          background: "var(--ev-navy-light)",
-          borderColor: "var(--ev-navy-border)",
-        }}
-      >
-        <div className="flex items-center justify-between">
+      <div className="px-4 pt-[18px] pb-3.5">
+        <div className="flex items-center gap-2">
           <span
-            className="font-mono text-[9px] tracking-[.14em]"
-            style={{ color: "var(--ev-text-tertiary)" }}
+            className="grid size-6 shrink-0 place-items-center rounded-md font-mono text-[11px] font-bold text-white"
+            style={{ background: "var(--ev-blue)", letterSpacing: "-0.02em" }}
           >
-            CHANTIER EN COURS
+            GC
           </span>
-          <span
-            className="ev-pulse size-1.5 rounded-full"
-            style={{ background: "var(--ev-green)" }}
-          />
+          <span className="text-[15px] font-bold tracking-[.04em]" style={{ color: "var(--ev-body)" }}>
+            EVERLINK
+          </span>
         </div>
-        <div className="mt-2 flex items-center gap-1.5 text-sm font-bold text-white">
-          SEWAN{" "}
-          <span className="font-mono" style={{ color: "var(--ev-cyan)" }}>
-            &rarr;
-          </span>{" "}
-          UNYC
+        <div className="mt-[7px] text-[10.5px]" style={{ color: "var(--ev-text-tertiary)" }}>
+          Migration opérateur · GC Développement
         </div>
-        {progression && (
-          <>
-            <div className="mt-3 h-[7px] overflow-hidden rounded-sm" style={{ background: "var(--ev-navy-border)" }}>
-              <div
-                className="h-full rounded-sm"
-                style={{ background: "var(--ev-blue)", width: `${progression.pct}%` }}
-              />
-            </div>
-            <div
-              className="mt-2 font-mono text-[10px]"
-              style={{ color: "var(--ev-text-tertiary)" }}
-            >
-              {progression.faites} / {progression.total} basculés &middot; {progression.pct}%
-            </div>
-          </>
-        )}
       </div>
-
-      {/* ── Recherche globale ── */}
-      <button
-        onClick={() => window.dispatchEvent(new CustomEvent("ouvrir-palette"))}
-        className="mt-4 flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors"
-        style={{
-          background: "var(--ev-navy-light)",
-          borderColor: "var(--ev-navy-border)",
-          color: "var(--ev-text-muted)",
-        }}
-      >
-        <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-        <span className="flex-1 text-left text-[13px]">Rechercher…</span>
-        <kbd className="rounded border px-1 py-0.5 font-mono text-[9px]" style={{ borderColor: "var(--ev-navy-border)" }}>
-          ⌘K
-        </kbd>
-      </button>
 
       {/* ── Navigation (groupée par espace) ── */}
-      <nav className="mt-3 flex flex-col gap-3 overflow-y-auto">
+      <nav className="flex-1 overflow-y-auto px-2.5 pt-1 pb-2.5">
         {groupes.map((groupe) => (
-          <div key={groupe.titre || "accueil"} className="flex flex-col gap-0.5">
+          <div key={groupe.titre || "accueil"} className="mb-3">
             {groupe.titre && (
-              <span
-                className="mb-0.5 px-2.5 font-mono text-[9px] tracking-[.14em]"
-                style={{ color: "var(--ev-text-tertiary)" }}
+              <div
+                className="px-2.5 pt-1.5 pb-1 text-[10px] font-bold uppercase tracking-[.09em]"
+                style={{ color: "var(--ev-text-muted)" }}
               >
-                {groupe.titre.toUpperCase()}
-              </span>
+                {groupe.titre}
+              </div>
             )}
-            {groupe.items.map((item) => {
-              const active = estActif(item.href);
-              const badge = badges[item.href];
-              const isAlert = badge === "!";
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "group flex items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-sm transition-colors",
-                    active ? "font-bold" : "font-medium"
-                  )}
-                  style={{
-                    background: active ? "var(--ev-navy-active)" : "transparent",
-                    color: active ? "#fff" : "#93a6c2",
-                    boxShadow: active ? `inset 3px 0 0 ${item.dot}` : "none",
-                  }}
-                  onMouseOver={(e) => {
-                    if (!active) {
-                      e.currentTarget.style.background = "var(--ev-navy-hover)";
-                      e.currentTarget.style.color = "#fff";
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (!active) {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = "#93a6c2";
-                    }
-                  }}
-                >
-                  <span
-                    className="size-[9px] shrink-0 rounded-sm"
-                    style={{ background: item.dot, opacity: active ? 1 : 0.55 }}
-                  />
-                  <span className="flex-1 truncate">{item.label}</span>
-                  {badge !== undefined && (
-                    <span
-                      className="rounded-[7px] px-1.5 py-0.5 font-mono text-[10px] font-bold"
-                      style={{
-                        background: isAlert ? "var(--ev-red)" : "var(--ev-navy-border)",
-                        color: isAlert ? "#fff" : "#8ba0bf",
-                      }}
-                    >
-                      {badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
+            <div className="flex flex-col gap-px">
+              {groupe.items.map((item) => {
+                const active = estActif(item.href);
+                const badge = badges[item.href];
+                const isAlert = badge === "!";
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-2 rounded-[7px] px-2.5 py-1.5 text-[13px] transition-colors",
+                      active ? "font-semibold" : "font-normal"
+                    )}
+                    style={{
+                      background: active ? "var(--ev-nav-active-bg)" : "transparent",
+                      color: active ? "var(--ev-nav-active-fg)" : "var(--ev-nav-fg)",
+                    }}
+                    onMouseOver={(e) => {
+                      if (!active) e.currentTarget.style.background = "var(--ev-nav-hover)";
+                    }}
+                    onMouseOut={(e) => {
+                      if (!active) e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <span className="flex-1 truncate">{item.label}</span>
+                    {badge !== undefined && (
+                      <span
+                        className="rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold"
+                        style={{
+                          background: isAlert ? "var(--pal-red-bg)" : "var(--pal-gray-bg)",
+                          color: isAlert ? "var(--pal-red-fg)" : "var(--pal-gray-fg)",
+                        }}
+                      >
+                        {badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         ))}
       </nav>
 
+      {/* ── Widget progression du chantier ── */}
+      {progression && (
+        <div className="border-t px-3.5 py-3" style={{ borderColor: "var(--ev-card-border-light)" }}>
+          <div className="mb-1.5 flex items-baseline justify-between">
+            <span className="text-[11.5px] font-bold" style={{ color: "var(--ev-body)" }}>
+              SEWAN → UNYC
+            </span>
+            <span
+              className="font-mono text-[11.5px] font-bold"
+              style={{ color: "var(--ev-accent-text)" }}
+            >
+              {progression.pct} %
+            </span>
+          </div>
+          <div
+            className="mb-1.5 h-[5px] overflow-hidden rounded-full"
+            style={{ background: "oklch(0.93 0.008 240)" }}
+          >
+            <div
+              className="h-full rounded-full"
+              style={{ background: "var(--ev-blue)", width: `${progression.pct}%` }}
+            />
+          </div>
+          <div className="text-[11px]" style={{ color: "var(--ev-text-tertiary)" }}>
+            {progression.faites} / {progression.total} numéros basculés
+          </div>
+        </div>
+      )}
+
       {/* ── User footer ── */}
       <div
-        className="mt-auto border-t pt-3.5"
-        style={{ borderColor: "#1a2740" }}
+        className="flex items-center gap-2 border-t px-3.5 py-[11px]"
+        style={{ borderColor: "var(--ev-card-border-light)" }}
       >
-        <div className="flex items-center gap-2 px-1">
-          <span
-            className="grid size-[26px] shrink-0 place-items-center rounded-[9px] font-mono text-[10px] font-semibold"
-            style={{
-              background: "var(--ev-navy-border)",
-              color: "#9fb4d4",
-            }}
+        <span
+          className="grid size-7 shrink-0 place-items-center rounded-full text-[12px] font-bold"
+          style={{ background: "var(--ev-nav-active-bg)", color: "var(--ev-nav-active-fg)" }}
+        >
+          {monogram(email)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div
+            className="truncate text-[11.5px] font-semibold"
+            style={{ color: "var(--ev-body)" }}
+            title={email}
           >
-            {monogram(email)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <div
-              className="truncate text-xs"
-              style={{ color: "#cddaeb" }}
-              title={email}
-            >
-              {email}
-            </div>
+            {email}
           </div>
-          <form action={onLogout}>
-            <button
-              type="submit"
-              className="font-mono text-xs transition-colors hover:cursor-pointer"
-              style={{ color: "var(--ev-red)" }}
-              onMouseOver={(e) => (e.currentTarget.style.color = "#ff6b60")}
-              onMouseOut={(e) => (e.currentTarget.style.color = "var(--ev-red)")}
-              title="Se déconnecter"
-            >
-              [&rarr;
-            </button>
-          </form>
+          <div className="text-[10.5px]" style={{ color: "var(--ev-text-tertiary)" }}>
+            {role}
+          </div>
         </div>
+        <form action={onLogout}>
+          <button
+            type="submit"
+            className="font-mono text-xs transition-colors hover:cursor-pointer"
+            style={{ color: "var(--ev-red)" }}
+            title="Se déconnecter"
+          >
+            [&rarr;
+          </button>
+        </form>
       </div>
     </aside>
   );

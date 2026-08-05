@@ -4,9 +4,9 @@ import { useTransition } from "react";
 import { cn } from "@/lib/utils";
 import type { EtapeMigrationLite } from "@/lib/domain/migration/etapes";
 import { setEtapeMigrationAction } from "@/app/(app)/clients/actions";
+import { pastelBg, pastelFg } from "./pastel";
 
-// Sélecteur d'étape sous forme de pastille colorée cliquable. Le fond prend la couleur de
-// l'étape courante pour rester "impactant au regard" même en mode compact (grille).
+// Sélecteur d'étape sous forme de pastille pastel cliquable (design system v2).
 export function EtapeMigrationSelect({
   clientId,
   etapeCouranteId,
@@ -29,10 +29,14 @@ export function EtapeMigrationSelect({
         })
       }
       className={cn(
-        "rounded-lg border-0 px-2.5 py-1 text-[11px] font-semibold outline-none transition-opacity focus:ring-2 focus:ring-ring/40 disabled:opacity-50",
-        courante ? "text-white" : "border border-dashed text-muted-foreground"
+        "rounded-full border-0 px-2.5 py-1 text-[11px] font-semibold outline-none transition-opacity focus:ring-2 focus:ring-ring/40 disabled:opacity-50",
+        !courante && "border border-dashed text-muted-foreground"
       )}
-      style={courante ? { background: courante.couleur } : undefined}
+      style={
+        courante
+          ? { background: pastelBg(courante.couleur), color: pastelFg(courante.couleur) }
+          : undefined
+      }
     >
       {!etapeCouranteId && <option value="">Sans étape</option>}
       {etapes.map((etape) => (

@@ -385,9 +385,13 @@ export function SectionEtapesMigration({ etapes }: { etapes: EtapeMigrationLigne
                       className="size-6 cursor-pointer rounded border"
                     />
                     <span
-                      className="rounded-lg px-2 py-0.5 text-[11px] font-semibold text-white"
-                      style={{ background: e.couleur }}
+                      className="ev-badge"
+                      style={{
+                        background: `color-mix(in oklab, ${e.couleur} 14%, white)`,
+                        color: `color-mix(in oklab, ${e.couleur} 58%, oklch(0.3 0.015 240))`,
+                      }}
                     >
+                      <span className="ev-badge-dot" style={{ background: e.couleur }} />
                       aperçu
                     </span>
                   </span>

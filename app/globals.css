@@ -4,118 +4,127 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ── Everlink v2 Design Tokens ── */
+/* ── Everlink Design Tokens — thème clair (Design system review v2) ── */
 :root {
-  /* Navy palette */
-  --ev-navy: #0b1220;
-  --ev-navy-light: #121d31;
-  --ev-navy-border: #1c2b45;
-  --ev-navy-active: #152340;
-  --ev-navy-hover: #131f34;
+  /* Surfaces */
+  --ev-surface: oklch(0.975 0.004 250);
+  --ev-card: #ffffff;
+  --ev-card-border: oklch(0.92 0.006 240);
+  --ev-card-border-light: oklch(0.945 0.004 240);
+  --ev-card-border-hover: oklch(0.82 0.03 255);
+
+  /* Sidebar & navigation */
+  --ev-sidebar-bg: oklch(0.98 0.004 255);
+  --ev-sidebar-border: oklch(0.915 0.006 240);
+  --ev-nav-active-bg: oklch(0.93 0.045 255);
+  --ev-nav-active-fg: oklch(0.35 0.1 255);
+  --ev-nav-fg: oklch(0.4 0.012 240);
+  --ev-nav-hover: oklch(0.945 0.008 230);
 
   /* Accent colors */
-  --ev-blue: #1f6bff;
-  --ev-blue-dark: #0f4fd6;
-  --ev-purple: #8a5bff;
-  --ev-cyan: #00b8cc;
-  --ev-green: #16b57f;
-  --ev-amber: #ffb020;
-  --ev-red: #f04438;
-  --ev-slate: #7a8699;
+  --ev-blue: oklch(0.52 0.12 255);
+  --ev-blue-dark: oklch(0.42 0.12 255);
+  --ev-purple: oklch(0.6 0.13 290);
+  --ev-cyan: oklch(0.62 0.11 215);
+  --ev-green: oklch(0.62 0.14 150);
+  --ev-amber: oklch(0.72 0.14 78);
+  --ev-red: oklch(0.62 0.19 25);
+  --ev-slate: oklch(0.65 0.02 240);
+  --ev-accent-text: oklch(0.45 0.11 255);
 
-  /* Text on dark backgrounds */
-  --ev-text-primary: #ffffff;
-  --ev-text-secondary: #8ba0bf;
-  --ev-text-tertiary: #6b82a3;
-  --ev-text-muted: #5f7594;
+  /* Texte */
+  --ev-body: oklch(0.24 0.012 240);
+  --ev-body-secondary: oklch(0.35 0.012 240);
+  --ev-body-muted: oklch(0.45 0.012 240);
+  --ev-body-placeholder: oklch(0.65 0.01 240);
+  --ev-text-primary: oklch(0.24 0.012 240);
+  --ev-text-secondary: oklch(0.35 0.012 240);
+  --ev-text-tertiary: oklch(0.55 0.015 240);
+  --ev-text-muted: oklch(0.6 0.012 240);
 
-  /* Surface */
-  --ev-surface: #eef1f6;
-  --ev-card: #ffffff;
-  --ev-card-border: #e3e8ef;
-  --ev-card-border-light: #eef1f6;
+  /* Tableaux */
+  --ev-th: oklch(0.55 0.015 240);
+  --ev-row-border: oklch(0.945 0.004 240);
+  --ev-row-hover: oklch(0.975 0.004 240);
 
-  /* Text on light backgrounds */
-  --ev-body: #101828;
-  --ev-body-secondary: #344054;
-  --ev-body-muted: #667085;
-  --ev-body-placeholder: #98a2b3;
+  /* Contrôles */
+  --ev-input-border: oklch(0.9 0.006 240);
+  --ev-input-bg: oklch(0.975 0.003 240);
+  --ev-btn-border: oklch(0.88 0.008 240);
+  --ev-btn-hover: oklch(0.965 0.005 240);
+
+  /* Barre de sélection */
+  --ev-sel-bg: oklch(0.94 0.04 255);
+  --ev-sel-border: oklch(0.85 0.06 255);
+  --ev-sel-fg: oklch(0.35 0.1 255);
+
+  /* Palette badges (pastel: bg / fg / dot) */
+  --pal-gray-bg: oklch(0.955 0.004 240);
+  --pal-gray-fg: oklch(0.44 0.015 240);
+  --pal-gray-dot: oklch(0.65 0.02 240);
+  --pal-blue-bg: oklch(0.945 0.035 235);
+  --pal-blue-fg: oklch(0.42 0.1 235);
+  --pal-blue-dot: oklch(0.55 0.13 235);
+  --pal-cyan-bg: oklch(0.95 0.04 215);
+  --pal-cyan-fg: oklch(0.42 0.09 255);
+  --pal-cyan-dot: oklch(0.62 0.11 215);
+  --pal-violet-bg: oklch(0.95 0.035 290);
+  --pal-violet-fg: oklch(0.44 0.1 290);
+  --pal-violet-dot: oklch(0.6 0.13 290);
+  --pal-amber-bg: oklch(0.955 0.05 85);
+  --pal-amber-fg: oklch(0.5 0.11 70);
+  --pal-amber-dot: oklch(0.72 0.14 78);
+  --pal-red-bg: oklch(0.945 0.035 25);
+  --pal-red-fg: oklch(0.5 0.15 25);
+  --pal-red-dot: oklch(0.62 0.19 25);
+  --pal-green-bg: oklch(0.95 0.045 150);
+  --pal-green-fg: oklch(0.43 0.1 150);
+  --pal-green-dot: oklch(0.62 0.14 150);
+  --pal-teal-bg: oklch(0.95 0.04 180);
+  --pal-teal-fg: oklch(0.42 0.09 180);
+  --pal-teal-dot: oklch(0.6 0.11 180);
 
   /* shadcn variables */
-  --background: oklch(0.95 0.005 250);
-  --foreground: oklch(0.145 0.01 250);
+  --background: oklch(0.975 0.004 250);
+  --foreground: oklch(0.24 0.012 240);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0.01 250);
+  --card-foreground: oklch(0.24 0.012 240);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0.01 250);
-  --primary: oklch(0.52 0.22 260);
+  --popover-foreground: oklch(0.24 0.012 240);
+  --primary: oklch(0.52 0.12 255);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.95 0.005 250);
-  --secondary-foreground: oklch(0.205 0.01 250);
-  --muted: oklch(0.95 0.005 250);
-  --muted-foreground: oklch(0.50 0.01 250);
-  --accent: oklch(0.95 0.005 250);
-  --accent-foreground: oklch(0.205 0.01 250);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.90 0.005 250);
-  --input: oklch(0.90 0.005 250);
-  --ring: oklch(0.52 0.22 260);
-  --chart-1: oklch(0.52 0.22 260);
-  --chart-2: oklch(0.65 0.22 310);
-  --chart-3: oklch(0.70 0.15 195);
-  --chart-4: oklch(0.68 0.18 160);
-  --chart-5: oklch(0.73 0.15 75);
-  --radius: 0.75rem;
-  --sidebar: oklch(0.12 0.02 250);
-  --sidebar-foreground: oklch(0.80 0.02 250);
-  --sidebar-primary: oklch(0.52 0.22 260);
+  --secondary: oklch(0.965 0.005 240);
+  --secondary-foreground: oklch(0.35 0.012 240);
+  --muted: oklch(0.965 0.005 240);
+  --muted-foreground: oklch(0.45 0.012 240);
+  --accent: oklch(0.945 0.008 230);
+  --accent-foreground: oklch(0.24 0.012 240);
+  --destructive: oklch(0.62 0.19 25);
+  --border: oklch(0.92 0.006 240);
+  --input: oklch(0.9 0.006 240);
+  --ring: oklch(0.52 0.12 255);
+  --chart-1: oklch(0.55 0.13 235);
+  --chart-2: oklch(0.6 0.13 290);
+  --chart-3: oklch(0.62 0.11 215);
+  --chart-4: oklch(0.62 0.14 150);
+  --chart-5: oklch(0.72 0.14 78);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.98 0.004 255);
+  --sidebar-foreground: oklch(0.4 0.012 240);
+  --sidebar-primary: oklch(0.52 0.12 255);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.18 0.02 250);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.22 0.02 250);
-  --sidebar-ring: oklch(0.52 0.22 260);
-}
-
-.dark {
-  --background: oklch(0.12 0.02 250);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.16 0.02 250);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.16 0.02 250);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.60 0.22 260);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.22 0.02 250);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.22 0.02 250);
-  --muted-foreground: oklch(0.65 0.01 250);
-  --accent: oklch(0.22 0.02 250);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.52 0.22 260);
-  --chart-1: oklch(0.60 0.22 260);
-  --chart-2: oklch(0.65 0.22 310);
-  --chart-3: oklch(0.70 0.15 195);
-  --chart-4: oklch(0.68 0.18 160);
-  --chart-5: oklch(0.73 0.15 75);
-  --sidebar: oklch(0.12 0.02 250);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.60 0.22 260);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.22 0.02 250);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.52 0.22 260);
+  --sidebar-accent: oklch(0.93 0.045 255);
+  --sidebar-accent-foreground: oklch(0.35 0.1 255);
+  --sidebar-border: oklch(0.915 0.006 240);
+  --sidebar-ring: oklch(0.52 0.12 255);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-archivo);
-  --font-mono: var(--font-jetbrains);
-  --font-heading: var(--font-archivo);
+  --font-sans: var(--font-instrument);
+  --font-mono: var(--font-space-mono);
+  --font-heading: var(--font-instrument);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -154,19 +163,15 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 
   /* Everlink accent colors for Tailwind */
-  --color-ev-blue: #1f6bff;
-  --color-ev-blue-dark: #0f4fd6;
-  --color-ev-purple: #8a5bff;
-  --color-ev-cyan: #00b8cc;
-  --color-ev-green: #16b57f;
-  --color-ev-amber: #ffb020;
-  --color-ev-red: #f04438;
-  --color-ev-slate: #7a8699;
-  --color-ev-navy: #0b1220;
-  --color-ev-navy-light: #121d31;
-  --color-ev-navy-border: #1c2b45;
-  --color-ev-navy-active: #152340;
-  --color-ev-surface: #eef1f6;
+  --color-ev-blue: var(--ev-blue);
+  --color-ev-blue-dark: var(--ev-blue-dark);
+  --color-ev-purple: var(--ev-purple);
+  --color-ev-cyan: var(--ev-cyan);
+  --color-ev-green: var(--ev-green);
+  --color-ev-amber: var(--ev-amber);
+  --color-ev-red: var(--ev-red);
+  --color-ev-slate: var(--ev-slate);
+  --color-ev-surface: var(--ev-surface);
 }
 
 @layer base {
@@ -181,6 +186,25 @@
   html {
     @apply font-sans;
   }
+}
+
+/* ── Badge de statut (pill façon template) ── */
+.ev-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ev-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  flex: none;
 }
 
 /* ── Everlink Animations ── */

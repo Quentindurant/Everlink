@@ -1,6 +1,7 @@
 import type { EtapeMigrationLite } from "@/lib/domain/migration/etapes";
+import { pastelBg, pastelFg } from "./pastel";
 
-// Pastille pleine à la couleur de l'étape. Texte blanc, lisible sur toutes les couleurs du seed.
+// Pastille pastel façon design system v2: fond doux, texte foncé teinté, point saturé.
 export function EtapeMigrationBadge({
   etape,
   className = "",
@@ -11,7 +12,7 @@ export function EtapeMigrationBadge({
   if (!etape) {
     return (
       <span
-        className={`inline-flex items-center rounded-lg border border-dashed px-2 py-0.5 text-[11px] font-medium text-muted-foreground ${className}`}
+        className={`ev-badge border border-dashed text-muted-foreground ${className}`}
       >
         Sans étape
       </span>
@@ -19,9 +20,10 @@ export function EtapeMigrationBadge({
   }
   return (
     <span
-      className={`inline-flex items-center rounded-lg px-2.5 py-0.5 text-[11px] font-semibold text-white ${className}`}
-      style={{ background: etape.couleur }}
+      className={`ev-badge ${className}`}
+      style={{ background: pastelBg(etape.couleur), color: pastelFg(etape.couleur) }}
     >
+      <span className="ev-badge-dot" style={{ background: etape.couleur }} />
       {etape.libelle}
     </span>
   );
