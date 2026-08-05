@@ -50,16 +50,12 @@ export async function fetchProvisionningLignes(
   // the filtered `numeros` query below would let a lot/client/search filter silently flip a
   // duplicate's status from ERREUR to OK just because the other half of the duplicate got
   // filtered out of view. This query is deliberately independent of `filtres`.
-  const tousNumerosActifs = await prisma.numero.findMany({
+  // Ces deux lectures sont indépendantes: on les lance en parallèle pour n'avoir qu'un seul
+  // aller-retour (la base est distante, chaque round-trip coûte de la latence).
+  const promesseTousNumeros = prisma.numero.findMany({
     where: { archiveA: null, client: { archiveA: null } },
     select: { clientId: true, numeroNormalise: true, numerosCourts: true },
   });
-  const numerosNormalisesActifs = tousNumerosActifs.map((n) => n.numeroNormalise);
-  const numerosCourtsParClient = new Map<string, string[]>();
-  for (const n of tousNumerosActifs) {
-    const liste = numerosCourtsParClient.get(n.clientId) ?? [];
-    numerosCourtsParClient.set(n.clientId, [...liste, ...n.numerosCourts]);
-  }
 
   const numeros = await prisma.numero.findMany({
     where: {
@@ -116,6 +112,14 @@ export async function fetchProvisionningLignes(
       { id: "asc" },
     ],
   });
+
+  const tousNumerosActifs = await promesseTousNumeros;
+  const numerosNormalisesActifs = tousNumerosActifs.map((n) => n.numeroNormalise);
+  const numerosCourtsParClient = new Map<string, string[]>();
+  for (const n of tousNumerosActifs) {
+    const liste = numerosCourtsParClient.get(n.clientId) ?? [];
+    numerosCourtsParClient.set(n.clientId, [...liste, ...n.numerosCourts]);
+  }
 
   const utilisateurIds = numeros
     .map((n) => n.utilisateurId)
