@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { PackageCheck, ScanLine, Send } from "lucide-react";
+import { PackageCheck, ScanLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,23 +82,12 @@ export function ExpeditionStaging({
   };
 
   return (
-    <section
-      className="overflow-hidden rounded-[10px] border bg-white"
-      style={{ borderColor: "var(--ev-card-border)" }}
-    >
+    <div>
       <datalist id={idListe}>
         {clients.map((c) => (
           <option key={c.id} value={c.raisonSociale} />
         ))}
       </datalist>
-
-      <div
-        className="flex items-center gap-2 border-b px-4 py-3 text-[13px] font-bold"
-        style={{ borderColor: "var(--ev-card-border-light)" }}
-      >
-        <Send className="size-4" style={{ color: "var(--ev-accent-text)" }} />
-        Nouvelle expédition
-      </div>
 
       {/* En-tête du colis : saisi une seule fois pour tout le lot */}
       <div className="flex flex-wrap items-end gap-3 px-4 py-3">
@@ -150,8 +139,8 @@ export function ExpeditionStaging({
             value={scan}
             onChange={(e) => setScan(e.target.value)}
             onKeyDown={onScan}
-            placeholder="Douchette : scanner un N° de série pour cocher…"
-            className="h-8 w-80 pl-8 font-mono text-sm"
+            placeholder="Scanner un N° de série…"
+            className="h-8 w-64 pl-8 font-mono text-sm"
           />
         </div>
         <select
@@ -179,7 +168,7 @@ export function ExpeditionStaging({
       <div className="max-h-[42vh] overflow-auto">
         {visibles.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            Aucun matériel en stock à expédier.
+            Aucun matériel en stock.
           </p>
         ) : (
           <table className="w-full border-collapse text-[13px]">
@@ -226,6 +215,6 @@ export function ExpeditionStaging({
           </table>
         )}
       </div>
-    </section>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { CheckCircle2, PackagePlus, Upload } from "lucide-react";
+import { CheckCircle2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,6 @@ import type { StockPreviewRow, ImportStockResultat } from "@/lib/repositories/im
 import { previsualiserStockAction, validerStockAction } from "./actions";
 
 export function ImportStock() {
-  const [ouvert, setOuvert] = useState(false);
   const [rows, setRows] = useState<StockPreviewRow[] | null>(null);
   const [ignores, setIgnores] = useState(0);
   const [applique, setApplique] = useState<ImportStockResultat | null>(null);
@@ -52,24 +51,10 @@ export function ImportStock() {
     });
   };
 
-  if (!ouvert) {
-    return (
-      <Button variant="outline" size="sm" onClick={() => setOuvert(true)}>
-        <PackagePlus data-icon="inline-start" />
-        Importer le stock (.xlsx)
-      </Button>
-    );
-  }
-
   const nouveaux = rows?.filter((r) => !r.dejaPresent).length ?? 0;
 
   return (
-    <div className="flex w-full flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold">Import stock matériel (un onglet par type)</span>
-        <Button variant="ghost" size="xs" onClick={() => setOuvert(false)}>Fermer</Button>
-      </div>
-
+    <div className="flex w-full flex-col gap-3 p-4">
       <form action={previsualiser} className="flex flex-wrap items-center gap-3">
         <input
           ref={inputRef}

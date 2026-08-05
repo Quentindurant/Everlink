@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -17,65 +16,53 @@ const COULEUR_LIEN: Record<string, string> = {
   "Non commandé": "bg-muted text-muted-foreground",
 };
 
+// Contenu de la section « À installer » : table nue, le titre est porté par la section.
 export function AInstaller({ lignes }: { lignes: AInstallerLigne[] }) {
-  if (lignes.length === 0) return null;
-
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <h2 className="text-sm font-semibold tracking-tight uppercase text-muted-foreground">
-          À installer
-        </h2>
-        <Badge variant="outline" className="tabular-nums">{lignes.length}</Badge>
-        <span className="text-xs text-muted-foreground">
-          matériel configuré / envoyé, avec l&apos;état du lien et l&apos;intervention
-        </span>
-      </div>
-      <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              {["Client", "Matériel", "Statut", "Lien", "Intervention", "Technicien"].map((h) => (
-                <TableHead key={h} className="text-xs font-semibold whitespace-nowrap text-muted-foreground">{h}</TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {lignes.map((l) => (
-              <TableRow key={l.id}>
-                <TableCell className="font-medium whitespace-nowrap">
-                  {l.clientId ? (
-                    <Link href={`/clients/${l.clientId}`} className="hover:underline">{l.clientNom}</Link>
-                  ) : (
-                    <span>{l.clientNom}</span>
-                  )}
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-xs">
-                  {l.type} <span className="font-mono text-muted-foreground">{l.numeroSerie}</span>
-                </TableCell>
-                <TableCell>
-                  <span className="rounded-lg bg-[var(--pal-amber-bg)] px-2 py-0.5 text-[11px] font-semibold text-[color:var(--pal-amber-fg)]">
-                    {LIBELLE_STATUT[l.statut] ?? l.statut}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  {l.lienStatut ? (
-                    <span className={`rounded-lg px-2 py-0.5 text-[11px] font-semibold ${COULEUR_LIEN[l.lienStatut] ?? ""}`}>
-                      {l.lienStatut}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">non rattaché</span>
-                  )}
-                </TableCell>
-                <TableCell className="tabular-nums text-xs">
-                  {l.dateIntervention ? new Date(l.dateIntervention).toLocaleDateString("fr-FR") : "—"}
-                </TableCell>
-                <TableCell className="text-xs">{l.technicienNom ?? "—"}</TableCell>
-              </TableRow>
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            {["Client", "Matériel", "Statut", "Lien", "Intervention", "Technicien"].map((h) => (
+              <TableHead key={h} className="whitespace-nowrap">{h}</TableHead>
             ))}
-          </TableBody>
-        </Table>
-      </div>
-    </section>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {lignes.map((l) => (
+            <TableRow key={l.id}>
+              <TableCell className="font-medium whitespace-nowrap">
+                {l.clientId ? (
+                  <Link href={`/clients/${l.clientId}`} className="hover:underline">{l.clientNom}</Link>
+                ) : (
+                  <span>{l.clientNom}</span>
+                )}
+              </TableCell>
+              <TableCell className="whitespace-nowrap text-xs">
+                {l.type} <span className="font-mono text-muted-foreground">{l.numeroSerie}</span>
+              </TableCell>
+              <TableCell>
+                <span className="rounded-lg bg-[var(--pal-amber-bg)] px-2 py-0.5 text-[11px] font-semibold text-[color:var(--pal-amber-fg)]">
+                  {LIBELLE_STATUT[l.statut] ?? l.statut}
+                </span>
+              </TableCell>
+              <TableCell>
+                {l.lienStatut ? (
+                  <span className={`rounded-lg px-2 py-0.5 text-[11px] font-semibold ${COULEUR_LIEN[l.lienStatut] ?? ""}`}>
+                    {l.lienStatut}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                )}
+              </TableCell>
+              <TableCell className="tabular-nums text-xs">
+                {l.dateIntervention ? new Date(l.dateIntervention).toLocaleDateString("fr-FR") : "—"}
+              </TableCell>
+              <TableCell className="text-xs">{l.technicienNom ?? "—"}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

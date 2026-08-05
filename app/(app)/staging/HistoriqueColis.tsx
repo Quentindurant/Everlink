@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ScrollText } from "lucide-react";
+import { Check } from "lucide-react";
 import { SuiviColisBadge } from "@/components/SuiviColisBadge";
 import type { ColisExpedie } from "@/lib/repositories/stockRepository";
 import { avancerStatutAction } from "./actions";
@@ -34,21 +34,7 @@ function ArticlePuce({ id, numeroSerie, type, statut }: { id: string; numeroSeri
 // Historique des expéditions, un bloc par colis (numéro de suivi), façon HighStock.
 export function HistoriqueColis({ colis }: { colis: ColisExpedie[] }) {
   return (
-    <section
-      className="overflow-hidden rounded-[10px] border bg-white"
-      style={{ borderColor: "var(--ev-card-border)" }}
-    >
-      <div
-        className="flex items-center gap-2 border-b px-4 py-3 text-[13px] font-bold"
-        style={{ borderColor: "var(--ev-card-border-light)" }}
-      >
-        <ScrollText className="size-4 text-muted-foreground" />
-        Historique des expéditions
-        <span className="font-mono text-[11.5px] font-normal text-muted-foreground">
-          {colis.length}
-        </span>
-      </div>
-
+    <div>
       {colis.length === 0 ? (
         <p className="px-4 py-8 text-center text-sm text-muted-foreground">
           Aucune expédition pour l&apos;instant.
@@ -86,6 +72,6 @@ export function HistoriqueColis({ colis }: { colis: ColisExpedie[] }) {
           ))}
         </div>
       )}
-    </section>
+    </div>
   );
 }

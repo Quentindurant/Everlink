@@ -1,3 +1,4 @@
+import { CalendarClock, PackagePlus, ScrollText, Send, Undo2 } from "lucide-react";
 import {
   fetchAExpedier,
   fetchAInstaller,
@@ -11,6 +12,7 @@ import { AInstaller } from "./AInstaller";
 import { ExpeditionStaging } from "./ExpeditionStaging";
 import { RetourForm } from "./RetourForm";
 import { HistoriqueColis } from "./HistoriqueColis";
+import { SectionStaging } from "./SectionStaging";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,7 @@ export default async function StagingPage() {
   const compte = (s: string) => stats.parStatut.find((x) => x.statut === s)?.count ?? 0;
 
   return (
-    <main className="flex flex-1 flex-col gap-3.5 p-5 pb-15">
+    <main className="flex flex-1 flex-col gap-5 p-5 pb-15">
       <PageHero
         accentColor="var(--ev-cyan)"
         label="Staging"
@@ -39,15 +41,50 @@ export default async function StagingPage() {
         ]}
       />
 
-      <ImportStock />
+      <SectionStaging
+        couleur="var(--ev-blue)"
+        icone={<PackagePlus className="size-4" />}
+        titre="Réception matériel"
+      >
+        <ImportStock />
+      </SectionStaging>
 
-      <AInstaller lignes={aInstaller} />
+      <SectionStaging
+        couleur="var(--ev-amber)"
+        icone={<Send className="size-4" />}
+        titre="Expédition de matériel"
+        compteur={aExpedier.length}
+      >
+        <ExpeditionStaging articles={aExpedier} clients={clients} types={stats.types} />
+      </SectionStaging>
 
-      <ExpeditionStaging articles={aExpedier} clients={clients} types={stats.types} />
+      {aInstaller.length > 0 && (
+        <SectionStaging
+          couleur="var(--ev-cyan)"
+          icone={<CalendarClock className="size-4" />}
+          titre="À installer"
+          compteur={aInstaller.length}
+        >
+          <AInstaller lignes={aInstaller} />
+        </SectionStaging>
+      )}
 
-      <RetourForm />
+      <SectionStaging
+        couleur="var(--ev-purple)"
+        icone={<Undo2 className="size-4" />}
+        titre="Retour routeur client"
+      >
+        <RetourForm />
+      </SectionStaging>
 
-      <HistoriqueColis colis={historique} />
+      <SectionStaging
+        couleur="var(--ev-slate)"
+        icone={<ScrollText className="size-4" />}
+        titre="Historique des expéditions"
+        compteur={historique.length}
+      >
+        <HistoriqueColis colis={historique} />
+      </SectionStaging>
     </main>
   );
 }

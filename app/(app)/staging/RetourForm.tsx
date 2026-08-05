@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ajouterRetourAction } from "./actions";
@@ -30,18 +29,11 @@ export function RetourForm() {
   };
 
   return (
-    <div
-      className="flex flex-wrap items-end gap-2 rounded-[10px] border bg-white p-3"
-      style={{ borderColor: "var(--ev-card-border)" }}
-    >
-      <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-        <Undo2 className="size-4" />
-        Routeur récupéré chez le client
-      </div>
-      <Input value={type} onChange={(e) => setType(e.target.value)} placeholder="type / modèle" className="h-8 w-40 text-sm" />
-      <Input value={serie} onChange={(e) => setSerie(e.target.value)} placeholder="n° série" className="h-8 w-44 text-sm" />
-      <Input value={client} onChange={(e) => setClient(e.target.value)} placeholder="client" className="h-8 w-40 text-sm" />
-      <Button size="sm" onClick={enregistrer} disabled={isPending || !serie.trim()}>
+    <div className="flex flex-wrap items-center gap-2 p-4">
+      <Input value={type} onChange={(e) => setType(e.target.value)} placeholder="type / modèle" className="h-9 w-44 text-sm" />
+      <Input value={serie} onChange={(e) => setSerie(e.target.value)} placeholder="n° série" className="h-9 w-48 font-mono text-sm" />
+      <Input value={client} onChange={(e) => setClient(e.target.value)} placeholder="client" className="h-9 w-44 text-sm" />
+      <Button onClick={enregistrer} disabled={isPending || !serie.trim()}>
         {isPending ? "…" : "Enregistrer le retour"}
       </Button>
       {erreur && <span className="text-sm text-destructive">{erreur}</span>}
