@@ -34,6 +34,10 @@ export async function fetchArticlesStock(filtre: {
     dateReception: jour(a.dateReception),
     dateEnvoi: jour(a.dateEnvoi),
     commentaire: a.commentaire,
+    transporteur: a.transporteur,
+    numeroSuivi: a.numeroSuivi,
+    suiviStatut: a.suiviStatut,
+    suiviLibelle: a.suiviLibelle,
   }));
 }
 

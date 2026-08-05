@@ -12,6 +12,8 @@ import {
   type StockPreviewRow,
 } from "@/lib/repositories/importStockRepository";
 import { STATUT_SUIVANT } from "@/lib/repositories/stockRepository";
+import { numeroSuiviValide } from "@/lib/domain/tracking/laposte";
+import { suivreColis } from "@/lib/tracking/laPosteClient";
 
 async function garde() {
   const session = await auth();
@@ -64,6 +66,36 @@ export async function avancerStatutAction(id: string): Promise<void> {
     },
   });
   revalidatePath("/staging");
+}
+
+// Expédie un article : le passe en « Envoyé », enregistre le transporteur (défaut Chronopost)
+// et le numéro de suivi, puis tente un premier relevé d'état (le cron rafraîchira ensuite).
+export async function expedierAvecSuiviAction(
+  id: string,
+  transporteur: string,
+  numeroSuivi: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  const num = numeroSuivi.trim();
+  if (num && !numeroSuiviValide(num)) {
+    return { success: false, error: "Numéro de suivi invalide (11 à 15 caractères)." };
+  }
+  const etat = num ? await suivreColis(num) : null;
+  await prisma.articleStock.update({
+    where: { id },
+    data: {
+      statut: "ENVOYE",
+      dateEnvoi: new Date(),
+      transporteur: transporteur.trim() || "Chronopost",
+      numeroSuivi: num || null,
+      suiviStatut: etat?.statut ?? null,
+      suiviLibelle: etat?.libelle ?? null,
+      suiviLivreLe: etat?.livreLe ? new Date(etat.livreLe) : null,
+      suiviMajLe: num ? new Date() : null,
+    },
+  });
+  revalidatePath("/staging");
+  return { success: true };
 }
 
 // Rattache un article à un client. Si le nom correspond exactement à une fiche client active,

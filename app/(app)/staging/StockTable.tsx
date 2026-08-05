@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Trash2, Undo2 } from "lucide-react";
+import { ArrowRight, ScanLine, Send, Trash2, Undo2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,11 +14,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SuiviColisBadge } from "@/components/SuiviColisBadge";
 import type { ArticleStockLigne } from "@/lib/domain/stock/statuts";
 import { LIBELLE_STATUT, STATUT_SUIVANT, STATUTS_STOCK } from "@/lib/domain/stock/statuts";
 import {
   ajouterRetourAction,
   avancerStatutAction,
+  expedierAvecSuiviAction,
   rattacherClientAction,
   supprimerArticleAction,
 } from "./actions";
@@ -32,10 +33,24 @@ const COULEUR_STATUT: Record<string, string> = {
   RETOUR: "bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]",
 };
 
-function LigneArticle({ a, listeClients }: { a: ArticleStockLigne; listeClients: string }) {
+function LigneArticle({
+  a,
+  listeClients,
+  surbrillance,
+}: {
+  a: ArticleStockLigne;
+  listeClients: string;
+  surbrillance: boolean;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [expedition, setExpedition] = useState(false);
+  const [transporteur, setTransporteur] = useState("Chronopost");
+  const [numeroSuivi, setNumeroSuivi] = useState("");
+  const [erreur, setErreur] = useState<string | null>(null);
   const suivant = STATUT_SUIVANT[a.statut];
+  // L'expédition avec suivi remplace le passage direct « Envoyé » quand on part de configuré.
+  const peutExpedier = a.statut === "CONFIGURE" || a.statut === "EN_STOCK";
 
   const agir = (fn: () => Promise<unknown>) =>
     startTransition(async () => {
@@ -43,8 +58,22 @@ function LigneArticle({ a, listeClients }: { a: ArticleStockLigne; listeClients:
       router.refresh();
     });
 
+  const expedier = () => {
+    setErreur(null);
+    startTransition(async () => {
+      const r = await expedierAvecSuiviAction(a.id, transporteur, numeroSuivi);
+      if (r.success) {
+        setExpedition(false);
+        setNumeroSuivi("");
+        router.refresh();
+      } else setErreur(r.error ?? "Échec.");
+    });
+  };
+
   return (
-    <TableRow className={cn(isPending && "opacity-50")}>
+    <TableRow
+      className={cn(isPending && "opacity-50", surbrillance && "bg-[var(--pal-blue-bg)]/40")}
+    >
       <TableCell className="whitespace-nowrap text-xs">{a.type}</TableCell>
       <TableCell className="font-mono text-[13px]">{a.numeroSerie}</TableCell>
       <TableCell>
@@ -55,13 +84,12 @@ function LigneArticle({ a, listeClients }: { a: ArticleStockLigne; listeClients:
           <span className="ml-1 text-[10px] text-muted-foreground">récupéré</span>
         )}
       </TableCell>
-      <TableCell className="text-xs text-muted-foreground">{a.etatAppareil ?? "—"}</TableCell>
       <TableCell>
         <Input
           list={listeClients}
           defaultValue={a.clientFinal ?? ""}
           placeholder="client…"
-          className="h-7 w-44 text-xs"
+          className="h-7 w-40 text-xs"
           onBlur={(e) => {
             if (e.target.value !== (a.clientFinal ?? "")) {
               agir(() => rattacherClientAction(a.id, e.target.value));
@@ -70,25 +98,75 @@ function LigneArticle({ a, listeClients }: { a: ArticleStockLigne; listeClients:
         />
       </TableCell>
       <TableCell>
-        <div className="flex items-center gap-1">
-          {suivant && (
+        <SuiviColisBadge
+          statut={a.suiviStatut}
+          libelle={a.suiviLibelle}
+          numeroSuivi={a.numeroSuivi}
+          transporteur={a.transporteur}
+        />
+      </TableCell>
+      <TableCell>
+        {expedition ? (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1">
+              <Input
+                value={transporteur}
+                onChange={(e) => setTransporteur(e.target.value)}
+                placeholder="transporteur"
+                className="h-7 w-28 text-xs"
+              />
+              <Input
+                value={numeroSuivi}
+                onChange={(e) => setNumeroSuivi(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && expedier()}
+                placeholder="scan N° suivi…"
+                autoFocus
+                className="h-7 w-36 font-mono text-xs"
+              />
+              <Button size="xs" onClick={expedier} disabled={isPending}>
+                Envoyer
+              </Button>
+              <button
+                onClick={() => setExpedition(false)}
+                className="rounded p-1 text-muted-foreground hover:bg-muted"
+                title="Annuler"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+            {erreur && <span className="text-[11px] text-destructive">{erreur}</span>}
+          </div>
+        ) : (
+          <div className="flex items-center gap-1">
+            {peutExpedier && (
+              <button
+                onClick={() => setExpedition(true)}
+                className="inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] font-medium text-[color:var(--ev-accent-text)] hover:bg-muted"
+                title="Expédier avec numéro de suivi"
+              >
+                <Send className="size-3" />
+                Expédier
+              </button>
+            )}
+            {suivant && !peutExpedier && (
+              <button
+                onClick={() => agir(() => avancerStatutAction(a.id))}
+                className="inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] font-medium hover:bg-muted"
+                title={`Passer à « ${LIBELLE_STATUT[suivant]} »`}
+              >
+                {LIBELLE_STATUT[suivant]}
+                <ArrowRight className="size-3" />
+              </button>
+            )}
             <button
-              onClick={() => agir(() => avancerStatutAction(a.id))}
-              className="inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] font-medium hover:bg-muted"
-              title={`Passer à « ${LIBELLE_STATUT[suivant]} »`}
+              onClick={() => agir(() => supprimerArticleAction(a.id))}
+              className="rounded-lg border p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              title="Archiver"
             >
-              {LIBELLE_STATUT[suivant]}
-              <ArrowRight className="size-3" />
+              <Trash2 className="size-3" />
             </button>
-          )}
-          <button
-            onClick={() => agir(() => supprimerArticleAction(a.id))}
-            className="rounded-lg border p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-            title="Archiver"
-          >
-            <Trash2 className="size-3" />
-          </button>
-        </div>
+          </div>
+        )}
       </TableCell>
     </TableRow>
   );
@@ -147,6 +225,8 @@ export function StockTable({
 }) {
   const router = useRouter();
   const idListe = "clients-stock";
+  const [scan, setScan] = useState("");
+  const scanRef = useRef<HTMLInputElement | null>(null);
 
   const filtrer = (cle: "type" | "statut", valeur: string) => {
     const params = new URLSearchParams();
@@ -156,6 +236,17 @@ export function StockTable({
     if (statut) params.set("statut", statut);
     router.push(`/staging${params.toString() ? `?${params}` : ""}`);
   };
+
+  // Scan douchette : la douchette tape le N° série (souvent avec un Enter final). On filtre la
+  // table sur ce numéro, sans re-render serveur, pour retrouver l'article à expédier.
+  const scanNorm = scan.trim().toLowerCase();
+  const visibles = scanNorm
+    ? articles.filter(
+        (a) =>
+          a.numeroSerie.toLowerCase().includes(scanNorm) ||
+          (a.clientFinal ?? "").toLowerCase().includes(scanNorm)
+      )
+    : articles;
 
   return (
     <div className="flex flex-col gap-3">
@@ -168,6 +259,17 @@ export function StockTable({
       <RetourForm />
 
       <div className="flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <ScanLine className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            ref={scanRef}
+            value={scan}
+            onChange={(e) => setScan(e.target.value)}
+            onKeyDown={(e) => e.key === "Escape" && setScan("")}
+            placeholder="Scanner ou filtrer un N° de série…"
+            className="h-8 w-72 pl-8 font-mono text-sm"
+          />
+        </div>
         <select
           value={filtreType}
           onChange={(e) => filtrer("type", e.target.value)}
@@ -188,27 +290,38 @@ export function StockTable({
             <option key={s} value={s}>{LIBELLE_STATUT[s]}</option>
           ))}
         </select>
-        <span className="text-xs text-muted-foreground tabular-nums">{articles.length} articles</span>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {visibles.length} / {articles.length} articles
+        </span>
       </div>
 
       <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              {["Type", "N° série", "Statut", "État", "Client final", "Action"].map((h) => (
-                <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
+              {["Type", "N° série", "Statut", "Client final", "Colis", "Action"].map((h) => (
+                <TableHead key={h}>{h}</TableHead>
               ))}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {articles.length === 0 ? (
+            {visibles.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                  Aucun article. Importez le fichier de stock ci-dessus.
+                  {scanNorm
+                    ? "Aucun article ne correspond au scan."
+                    : "Aucun article. Importez le fichier de stock ci-dessus."}
                 </TableCell>
               </TableRow>
             ) : (
-              articles.map((a) => <LigneArticle key={a.id} a={a} listeClients={idListe} />)
+              visibles.map((a) => (
+                <LigneArticle
+                  key={a.id}
+                  a={a}
+                  listeClients={idListe}
+                  surbrillance={!!scanNorm && a.numeroSerie.toLowerCase() === scanNorm}
+                />
+              ))
             )}
           </TableBody>
         </Table>

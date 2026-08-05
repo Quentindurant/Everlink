@@ -32,4 +32,8 @@ export interface ArticleStockLigne {
   dateReception: string | null;
   dateEnvoi: string | null;
   commentaire: string | null;
+  transporteur: string | null;
+  numeroSuivi: string | null;
+  suiviStatut: string | null;
+  suiviLibelle: string | null;
 }
