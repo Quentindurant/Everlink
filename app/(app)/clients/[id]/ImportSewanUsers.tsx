@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { CheckCircle2, FileUp, Upload } from "lucide-react";
+import { FileUp, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ImportModal } from "@/components/ImportModal";
 import type { SewanUserRow } from "@/lib/domain/import/sewanUsers";
 import type { ImportSewanResultat } from "@/lib/repositories/importSewanRepository";
 import { previsualiserSewanAction, validerSewanAction } from "./sewanActions";
@@ -66,51 +67,84 @@ export function ImportSewanUsers({ clientId }: { clientId: string }) {
     });
   };
 
-  if (!ouvert) {
-    return (
+  const fermer = () => {
+    setOuvert(false);
+    setRows(null);
+    setApplique(null);
+    setErreur(null);
+  };
+  const etapeLabel = applique
+    ? "Étape 3/3 — rapport"
+    : rows
+      ? "Étape 2/3 — aperçu et validation"
+      : "Étape 1/3 — dépôt du fichier";
+
+  return (
+    <>
       <Button variant="outline" size="sm" onClick={() => setOuvert(true)}>
         <FileUp data-icon="inline-start" />
         Importer des utilisateurs (CSV Sewan)
       </Button>
-    );
-  }
-
-  return (
-    <div className="flex w-full flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold">Import utilisateurs — export Sewan (.csv)</span>
-        <Button variant="ghost" size="xs" onClick={() => setOuvert(false)}>Fermer</Button>
-      </div>
-
-      <form action={previsualiser} className="flex flex-wrap items-center gap-3">
-        <input
-          ref={inputRef}
-          type="file"
-          name="fichier"
-          accept=".csv,text/csv"
-          required
-          className="text-sm file:mr-3 file:rounded-lg file:border file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-medium"
-        />
-        <Button size="sm" type="submit" disabled={isPending}>
-          <Upload data-icon="inline-start" />
-          {isPending ? "Analyse…" : "Prévisualiser"}
-        </Button>
-        {erreur && <span className="text-sm text-destructive">{erreur}</span>}
-      </form>
+      <ImportModal
+        open={ouvert}
+        onClose={fermer}
+        titre="Importer des utilisateurs (CSV Sewan)"
+        etapeLabel={etapeLabel}
+      >
+        <div className="flex flex-col gap-3 p-5">
+      {!rows && !applique && (
+        <form action={previsualiser} className="flex flex-col gap-3">
+          <label
+            className="block cursor-pointer rounded-xl border-2 border-dashed px-5 py-10 text-center transition-colors"
+            style={{ borderColor: "var(--ev-sel-border)", background: "oklch(0.985 0.004 255)" }}
+          >
+            <div className="mb-1.5 text-[13.5px] font-semibold">Déposez le fichier ici</div>
+            <div className="mb-3.5 text-xs" style={{ color: "var(--ev-text-tertiary)" }}>
+              CSV Sewan — export « Utilisateurs »
+            </div>
+            <input
+              ref={inputRef}
+              type="file"
+              name="fichier"
+              accept=".csv,text/csv"
+              required
+              className="mx-auto block text-sm file:mr-3 file:rounded-[7px] file:border-0 file:bg-primary file:px-3.5 file:py-1.5 file:text-sm file:font-semibold file:text-white"
+            />
+          </label>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" type="button" onClick={fermer}>Annuler</Button>
+            <Button size="sm" type="submit" disabled={isPending}>
+              <Upload data-icon="inline-start" />
+              {isPending ? "Analyse…" : "Prévisualiser"}
+            </Button>
+          </div>
+          {erreur && <span className="text-sm text-destructive">{erreur}</span>}
+        </form>
+      )}
 
       {applique && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[color:var(--pal-green-dot)] bg-[var(--pal-green-bg)] p-3 text-sm">
-          <CheckCircle2 className="size-4 text-emerald-600" />
-          <span className="font-medium">Import terminé :</span>
-          <Badge variant="outline">{applique.utilisateurs} utilisateurs</Badge>
-          <Badge variant="outline">{applique.numeros} numéros</Badge>
-          <Badge variant="outline">{applique.equipements} équipements</Badge>
-          {applique.doublons > 0 && <Badge variant="outline">{applique.doublons} doublons ignorés</Badge>}
-          {applique.modelesCrees.length > 0 && (
-            <Badge className="border-transparent bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]">
-              {applique.modelesCrees.length} modèle(s) créé(s) : {applique.modelesCrees.join(", ")}
-            </Badge>
-          )}
+        <div className="px-1 py-4 text-center">
+          <div
+            className="mx-auto mb-3.5 flex size-11 items-center justify-center rounded-full text-xl font-bold"
+            style={{ background: "var(--pal-green-bg)", color: "var(--pal-green-fg)" }}
+          >
+            ✓
+          </div>
+          <div className="mb-3.5 text-sm font-bold">Import terminé</div>
+          <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
+            <Badge variant="outline">{applique.utilisateurs} utilisateurs</Badge>
+            <Badge variant="outline">{applique.numeros} numéros</Badge>
+            <Badge variant="outline">{applique.equipements} équipements</Badge>
+            {applique.doublons > 0 && <Badge variant="outline">{applique.doublons} doublons ignorés</Badge>}
+            {applique.modelesCrees.length > 0 && (
+              <Badge className="border-transparent bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]">
+                {applique.modelesCrees.length} modèle(s) créé(s) : {applique.modelesCrees.join(", ")}
+              </Badge>
+            )}
+          </div>
+          <div className="mt-5">
+            <Button size="sm" onClick={fermer}>Fermer</Button>
+          </div>
         </div>
       )}
 
@@ -154,13 +188,16 @@ export function ImportSewanUsers({ clientId }: { clientId: string }) {
               </TableBody>
             </Table>
           </div>
-          <div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={fermer}>Annuler</Button>
             <Button onClick={valider} disabled={isPending}>
               {isPending ? "Import…" : `Importer ${rows.length} utilisateurs`}
             </Button>
           </div>
         </>
       )}
-    </div>
+        </div>
+      </ImportModal>
+    </>
   );
 }
