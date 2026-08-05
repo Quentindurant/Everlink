@@ -616,8 +616,6 @@ function buildColumns(
         row.original.utilisateurNom ?? ""
       ),
   },
-  { header: "Hébergeur source", accessorKey: "hebergeurSource" },
-  { header: "Hébergeur cible", accessorKey: "hebergeurCible" },
   {
     header: "Bascule des numéros",
     id: "statutBascule",

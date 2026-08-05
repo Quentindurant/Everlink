@@ -4,7 +4,6 @@ import { Fragment, useTransition } from "react";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -38,6 +37,8 @@ function CelluleStatut({
   // Valeur historique désactivée: on la garde dans les options, marquée obsolète (SPEC §8).
   const options = valeurs.includes(statut) ? valeurs : [statut, ...valeurs];
 
+  // Pastille colorée par état : le regard scanne la grille sans lire chaque cellule.
+  // "À faire" reste volontairement discret (c'est l'état par défaut, il ne doit pas crier).
   return (
     <select
       value={statut}
@@ -49,10 +50,13 @@ function CelluleStatut({
         });
       }}
       className={cn(
-        "w-full rounded-md border border-transparent bg-transparent px-1 py-0.5 text-sm transition-colors outline-none hover:border-input focus:border-ring focus:ring-2 focus:ring-ring/40 disabled:opacity-50",
-        statut === "Fait" && "font-medium text-[color:var(--pal-green-fg)]",
-        statut === "En cours" && "text-[color:var(--pal-amber-fg)]",
-        statut === "Sans objet" && "text-muted-foreground"
+        "w-full cursor-pointer appearance-none rounded-full border border-transparent px-2.5 py-1 text-xs font-semibold transition-colors outline-none focus:border-ring focus:ring-2 focus:ring-ring/40 disabled:opacity-50",
+        statut === "Fait" &&
+          "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]",
+        statut === "En cours" &&
+          "bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]",
+        statut === "Sans objet" && "text-muted-foreground/60 hover:border-input",
+        statut === "À faire" && "font-normal text-muted-foreground hover:border-input"
       )}
     >
       {options.map((v) => (
@@ -130,13 +134,14 @@ export function TelephoneGrille({ grille }: { grille: Grille }) {
       <Table>
         <TableHeader className="sticky top-0 z-10">
           <TableRow className="hover:bg-transparent">
-            <TableHead className="h-9 text-xs font-semibold whitespace-nowrap text-muted-foreground">
+            <TableHead className="h-auto py-2 whitespace-nowrap align-bottom">
               Utilisateur
             </TableHead>
             {etapes.map((e) => (
               <TableHead
                 key={e.id}
-                className="h-9 min-w-32 text-xs font-semibold text-muted-foreground"
+                className="h-auto max-w-40 min-w-28 py-2 leading-[1.3] whitespace-normal align-bottom"
+                title={e.libelle}
               >
                 {e.libelle}
               </TableHead>
@@ -155,26 +160,38 @@ export function TelephoneGrille({ grille }: { grille: Grille }) {
             const pct = total > 0 ? Math.round((faits / total) * 100) : 0;
             return (
               <Fragment key={raisonSociale}>
-                <TableRow className="border-l-2 border-l-primary bg-muted/60 hover:bg-muted/60">
-                  <TableCell colSpan={nbColonnes} className="py-1.5">
+                <TableRow className="bg-[var(--ev-thead)] hover:bg-[var(--ev-thead)]">
+                  <TableCell colSpan={nbColonnes} className="py-2">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center gap-2.5">
                         <Link
                           href={`/clients/${clientId}`}
-                          className="text-sm font-semibold hover:underline"
+                          className="text-[13.5px] font-bold hover:underline"
                         >
                           {raisonSociale}
                         </Link>
-                        <Badge
-                          variant="outline"
+                        <span
+                          className="h-[5px] w-24 overflow-hidden rounded-full"
+                          style={{ background: "oklch(0.92 0.008 240)" }}
+                        >
+                          <span
+                            className="block h-full rounded-full"
+                            style={{
+                              background: pct === 100 ? "var(--pal-green-dot)" : "var(--ev-blue)",
+                              width: `${pct}%`,
+                            }}
+                          />
+                        </span>
+                        <span
                           className={cn(
-                            "tabular-nums",
-                            pct === 100 &&
-                              "border-transparent bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]"
+                            "font-mono text-[11.5px] font-bold tabular-nums",
+                            pct === 100
+                              ? "text-[color:var(--pal-green-fg)]"
+                              : "text-[color:var(--ev-accent-text)]"
                           )}
                         >
-                          {pct}% fait
-                        </Badge>
+                          {pct} %
+                        </span>
                         <span className="text-xs text-muted-foreground tabular-nums">
                           {rows.length} utilisateur{rows.length > 1 ? "s" : ""}
                         </span>
@@ -183,10 +200,27 @@ export function TelephoneGrille({ grille }: { grille: Grille }) {
                     </div>
                   </TableCell>
                 </TableRow>
-                {rows.map((u) => (
-                  <TableRow key={u.utilisateurId}>
+                {rows.map((u) => {
+                  const faitsUser = etapes.filter((e) => u.statuts[e.id] === "Fait").length;
+                  return (
+                  <TableRow
+                    key={u.utilisateurId}
+                    className={cn(faitsUser === etapes.length && "bg-[var(--pal-green-bg)]/30")}
+                  >
                     <TableCell className="font-medium whitespace-nowrap">
-                      {u.utilisateurNom}
+                      <span className="flex items-baseline gap-2">
+                        {u.utilisateurNom}
+                        <span
+                          className={cn(
+                            "font-mono text-[10.5px] tabular-nums",
+                            faitsUser === etapes.length
+                              ? "font-bold text-[color:var(--pal-green-fg)]"
+                              : "text-muted-foreground"
+                          )}
+                        >
+                          {faitsUser}/{etapes.length}
+                        </span>
+                      </span>
                     </TableCell>
                     {etapes.map((e) => (
                       <TableCell key={e.id} className="py-1">
@@ -200,7 +234,8 @@ export function TelephoneGrille({ grille }: { grille: Grille }) {
                       </TableCell>
                     ))}
                   </TableRow>
-                ))}
+                  );
+                })}
               </Fragment>
             );
           })}
