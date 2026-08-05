@@ -37,11 +37,14 @@ Ces trois xlsx servent de golden files pour les tests (section 11).
   nom d'affichage "Everlink", région `eu-west-3`. `output: "standalone"` dans `next.config.ts`.
   Variables d'environnement posées via `bunx @prisma/cli@latest project env add`, jamais de `.env` committé.
   Migrations: `bunx prisma migrate deploy` contre la base du projet, jamais automatique au déploiement.
-- Tâches planifiées: pas de conteneur worker. Endpoint `POST /api/cron/sheets-sync` protégé par un
-  header `X-Cron-Secret`, appelé par un scheduler externe (à définir — la crontab VPS n'existe plus
-  avec Prisma Compute).
+- Tâches planifiées: pas de conteneur worker. Endpoints protégés par un header `X-Cron-Secret`,
+  appelés par un scheduler externe (crontab VPS):
+  - `POST /api/cron/sheets-sync` — synchronisation Google Sheets.
+  - `POST /api/cron/tracking-sync` — rafraîchit l'état des colis en cours via l'API La Poste
+    Suivi v2 (Chronopost). Fréquence conseillée: toutes les 2 heures. Ne fait rien si
+    `API_KEY_LAPOSTE` est absente.
 - Variables d'environnement: `DATABASE_URL`, `AUTH_SECRET`, `CRON_SECRET`, `GOOGLE_SERVICE_ACCOUNT_JSON`,
-  `GOOGLE_SHEET_ID`. Fournir un `.env.example`.
+  `GOOGLE_SHEET_ID`, `API_KEY_LAPOSTE` (suivi colis, même clé que le CRM Synapse). Fournir un `.env.example`.
 
 ## 2. Modèle de données
 
