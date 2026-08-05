@@ -1,28 +1,24 @@
 import {
+  fetchAExpedier,
   fetchAInstaller,
-  fetchArticlesStock,
+  fetchHistoriqueColis,
   listClientsPourStock,
   statsStock,
 } from "@/lib/repositories/stockRepository";
 import { PageHero } from "@/components/PageHero";
 import { ImportStock } from "./ImportStock";
-import { StockTable } from "./StockTable";
 import { AInstaller } from "./AInstaller";
+import { ExpeditionStaging } from "./ExpeditionStaging";
+import { RetourForm } from "./RetourForm";
+import { HistoriqueColis } from "./HistoriqueColis";
 
 export const dynamic = "force-dynamic";
 
-export default async function StagingPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | undefined>>;
-}) {
-  const params = await searchParams;
-  const filtreType = params.type ?? "";
-  const filtreStatut = params.statut ?? "";
-
-  const [stats, articles, aInstaller, clients] = await Promise.all([
+export default async function StagingPage() {
+  const [stats, aExpedier, historique, aInstaller, clients] = await Promise.all([
     statsStock(),
-    fetchArticlesStock({ type: filtreType || undefined, statut: filtreStatut || undefined }),
+    fetchAExpedier(),
+    fetchHistoriqueColis(),
     fetchAInstaller(),
     listClientsPourStock(),
   ]);
@@ -30,12 +26,11 @@ export default async function StagingPage({
   const compte = (s: string) => stats.parStatut.find((x) => x.statut === s)?.count ?? 0;
 
   return (
-    <main className="flex flex-1 flex-col gap-4 p-5 pb-15">
+    <main className="flex flex-1 flex-col gap-3.5 p-5 pb-15">
       <PageHero
         accentColor="var(--ev-cyan)"
         label="Staging"
-        title="Stock<br />& routeurs"
-        description="Roulement du matériel : reçu → configuré → envoyé → installé. Le routeur récupéré chez le client est enregistré en retour."
+        title="Stock & routeurs"
         kpis={[
           { value: compte("EN_STOCK"), label: "en stock" },
           { value: compte("CONFIGURE"), label: "configurés", color: "var(--ev-blue)" },
@@ -48,13 +43,11 @@ export default async function StagingPage({
 
       <AInstaller lignes={aInstaller} />
 
-      <StockTable
-        articles={articles}
-        types={stats.types}
-        clients={clients}
-        filtreType={filtreType}
-        filtreStatut={filtreStatut}
-      />
+      <ExpeditionStaging articles={aExpedier} clients={clients} types={stats.types} />
+
+      <RetourForm />
+
+      <HistoriqueColis colis={historique} />
     </main>
   );
 }

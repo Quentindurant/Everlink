@@ -96,6 +96,74 @@ export async function listClientsPourStock(): Promise<{ id: string; raisonSocial
   });
 }
 
+// Articles disponibles à l'expédition : en stock ou configurés, non archivés, non retour.
+export async function fetchAExpedier(): Promise<ArticleStockLigne[]> {
+  const articles = await prisma.articleStock.findMany({
+    where: { archiveA: null, statut: { in: ["EN_STOCK", "CONFIGURE"] } },
+    include: { client: { select: { raisonSociale: true } } },
+    orderBy: [{ type: "asc" }, { numeroSerie: "asc" }],
+  });
+  return articles.map((a) => ({
+    id: a.id,
+    type: a.type,
+    numeroSerie: a.numeroSerie,
+    statut: a.statut,
+    origine: a.origine,
+    etatAppareil: a.etatAppareil,
+    clientFinal: a.client?.raisonSociale ?? a.clientFinalTexte,
+    dateReception: jour(a.dateReception),
+    dateEnvoi: jour(a.dateEnvoi),
+    commentaire: a.commentaire,
+    transporteur: a.transporteur,
+    numeroSuivi: a.numeroSuivi,
+    suiviStatut: a.suiviStatut,
+    suiviLibelle: a.suiviLibelle,
+  }));
+}
+
+// Un colis expédié = un groupe d'articles partageant le même numéro de suivi (ou un article
+// envoyé sans numéro). Sert à l'historique des expéditions, façon HighStock.
+export interface ColisExpedie {
+  cle: string; // numeroSuivi, ou id de l'article si pas de suivi
+  transporteur: string | null;
+  numeroSuivi: string | null;
+  suiviStatut: string | null;
+  suiviLibelle: string | null;
+  clientFinal: string | null;
+  dateEnvoi: string | null;
+  articles: { id: string; type: string; numeroSerie: string; statut: string }[];
+}
+
+export async function fetchHistoriqueColis(): Promise<ColisExpedie[]> {
+  const articles = await prisma.articleStock.findMany({
+    where: { archiveA: null, statut: { in: ["ENVOYE", "INSTALLE"] } },
+    include: { client: { select: { raisonSociale: true } } },
+    orderBy: [{ dateEnvoi: "desc" }, { creeLe: "desc" }],
+  });
+
+  const parCle = new Map<string, ColisExpedie>();
+  for (const a of articles) {
+    const cle = a.numeroSuivi ?? `nolabel-${a.id}`;
+    const colis = parCle.get(cle);
+    const ligne = { id: a.id, type: a.type, numeroSerie: a.numeroSerie, statut: a.statut };
+    if (colis) {
+      colis.articles.push(ligne);
+    } else {
+      parCle.set(cle, {
+        cle,
+        transporteur: a.transporteur,
+        numeroSuivi: a.numeroSuivi,
+        suiviStatut: a.suiviStatut,
+        suiviLibelle: a.suiviLibelle,
+        clientFinal: a.client?.raisonSociale ?? a.clientFinalTexte,
+        dateEnvoi: jour(a.dateEnvoi),
+        articles: [ligne],
+      });
+    }
+  }
+  return [...parCle.values()];
+}
+
 export interface StatsStock {
   parStatut: { statut: string; libelle: string; count: number }[];
   types: string[];

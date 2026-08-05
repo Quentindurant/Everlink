@@ -98,6 +98,47 @@ export async function expedierAvecSuiviAction(
   return { success: true };
 }
 
+// Expédie un lot d'articles dans un même colis : tous passent en « Envoyé » avec le même
+// transporteur, numéro de suivi et client destinataire. Un premier état de suivi est relevé.
+export async function expedierLotAction(
+  ids: string[],
+  transporteur: string,
+  numeroSuivi: string,
+  clientNom: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  if (ids.length === 0) return { success: false, error: "Aucun article sélectionné." };
+  const num = numeroSuivi.trim();
+  if (num && !numeroSuiviValide(num)) {
+    return { success: false, error: "Numéro de suivi invalide (11 à 15 caractères)." };
+  }
+  const nom = clientNom.trim();
+  const client = nom
+    ? await prisma.client.findFirst({
+        where: { archiveA: null, raisonSociale: { equals: nom, mode: "insensitive" } },
+        select: { id: true },
+      })
+    : null;
+  const etat = num ? await suivreColis(num) : null;
+  await prisma.articleStock.updateMany({
+    where: { id: { in: ids } },
+    data: {
+      statut: "ENVOYE",
+      dateEnvoi: new Date(),
+      transporteur: transporteur.trim() || "Chronopost",
+      numeroSuivi: num || null,
+      clientId: client?.id ?? null,
+      clientFinalTexte: nom || null,
+      suiviStatut: etat?.statut ?? null,
+      suiviLibelle: etat?.libelle ?? null,
+      suiviLivreLe: etat?.livreLe ? new Date(etat.livreLe) : null,
+      suiviMajLe: num ? new Date() : null,
+    },
+  });
+  revalidatePath("/staging");
+  return { success: true };
+}
+
 // Rattache un article à un client. Si le nom correspond exactement à une fiche client active,
 // on stocke l'ID (ce qui débloque les liens/intervention dans « À installer »); sinon on garde
 // juste le texte libre.
