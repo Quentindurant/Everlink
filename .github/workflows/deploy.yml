@@ -51,3 +51,7 @@ jobs:
             # passé en argument. Le vhost nginx everlink.quentindurant.com proxifie dessus.
             pm2 reload everlink || pm2 start npm --name everlink -- start -- -p 3005
             pm2 save
+
+            # Installe/rafraîchit le cron de suivi des colis (idempotent, ne touche pas les
+            # autres lignes crontab). Le secret est lu du .env, jamais imprimé.
+            bash scripts/install-crons.sh .env 3005
