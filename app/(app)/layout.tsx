@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { toucherPresence } from "@/lib/activite";
 import { AppSidebar } from "@/components/AppSidebar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { logoutAction } from "./actions";
@@ -10,6 +11,7 @@ export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await auth();
+  if (session?.user?.email) await toucherPresence(session.user.email);
 
   // Progression réelle des bascules sur les numéros actifs, pour le widget de la sidebar.
   const [total, faites] = await Promise.all([

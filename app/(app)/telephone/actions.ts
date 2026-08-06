@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { journaliser } from "@/lib/activite";
 import { setEtapeClient, setSuiviEtape } from "@/lib/repositories/telephoneRepository";
 
 export async function setSuiviEtapeAction(
@@ -13,6 +14,7 @@ export async function setSuiviEtapeAction(
   if (!session?.user) return { success: false, error: "Non authentifié." };
   try {
     await setSuiviEtape(utilisateurId, etapeId, statut, session.user.email ?? null);
+    await journaliser("Utilisateur", utilisateurId, "Suivi téléphonie", statut);
   } catch {
     return { success: false, error: "Échec de la sauvegarde." };
   }
@@ -29,6 +31,7 @@ export async function setEtapeClientAction(
   if (!session?.user) return { success: false, error: "Non authentifié." };
   try {
     await setEtapeClient(clientId, etapeId, statut, session.user.email ?? null);
+    await journaliser("Client", clientId, "Suivi téléphonie (toute une étape)", statut);
   } catch {
     return { success: false, error: "Échec de l'action." };
   }

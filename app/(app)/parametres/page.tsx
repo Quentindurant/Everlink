@@ -9,6 +9,8 @@ import {
   fetchSyncRuns,
 } from "@/lib/repositories/parametresRepository";
 import { fetchModelesMailParam } from "@/lib/repositories/mailRepository";
+import { fetchActiviteEquipe } from "@/lib/repositories/activiteRepository";
+import { SectionActivite } from "./SectionActivite";
 import {
   SectionComptes,
   SectionControle,
@@ -27,7 +29,7 @@ export default async function ParametresPage() {
   const session = await auth();
   if (session?.user?.role !== "ADMIN") redirect("/");
 
-  const [modeles, listes, etapes, etapesMigration, modelesMail, comptes, syncRuns] =
+  const [modeles, listes, etapes, etapesMigration, modelesMail, comptes, syncRuns, activite] =
     await Promise.all([
       fetchModeles(),
       fetchListesValeurs(),
@@ -36,6 +38,7 @@ export default async function ParametresPage() {
       fetchModelesMailParam(),
       fetchComptes(),
       fetchSyncRuns(),
+      fetchActiviteEquipe(),
     ]);
 
   const nbAQualifier = modeles.filter((m) => !m.eligibleExport && m.nbEquipements === 0).length;
@@ -56,6 +59,7 @@ export default async function ParametresPage() {
           },
         ]}
       />
+      <SectionActivite activite={activite} />
       <SectionModeles modeles={modeles} />
       <SectionEtapesMigration etapes={etapesMigration} />
       <SectionModelesMail modeles={modelesMail} />

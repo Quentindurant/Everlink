@@ -25,6 +25,8 @@ model UtilisateurApp {
   motDePasse   String
   role         RoleApp        @default(OPERATEUR)
   actif        Boolean        @default(true)
+  // Présence: rafraîchie (throttle 60 s) à chaque navigation authentifiée. "En ligne" < 5 min.
+  derniereActiviteLe DateTime?
   creeLe       DateTime       @default(now())
   majLe        DateTime       @updatedAt
   importRuns   ImportRun[]

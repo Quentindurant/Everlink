@@ -14,6 +14,7 @@ import {
 import { STATUT_SUIVANT } from "@/lib/repositories/stockRepository";
 import { numeroSuiviValide } from "@/lib/domain/tracking/laposte";
 import { suivreColis } from "@/lib/tracking/laPosteClient";
+import { journaliser } from "@/lib/activite";
 
 async function garde() {
   const session = await auth();
@@ -135,6 +136,7 @@ export async function expedierLotAction(
       suiviMajLe: num ? new Date() : null,
     },
   });
+  await journaliser("ArticleStock", ids[0], "Expédition", `${ids.length} article(s)${num ? ` · ${num}` : ""}`);
   revalidatePath("/staging", "layout");
   return { success: true };
 }
@@ -179,7 +181,7 @@ export async function ajouterArticleAction(
   if (existant) {
     return { success: false, error: `${serie} déjà présent (${existant.statut}).` };
   }
-  await prisma.articleStock.create({
+  const cree = await prisma.articleStock.create({
     data: {
       type: type.trim() || "Routeur 4G seul",
       numeroSerie: serie,
@@ -187,6 +189,7 @@ export async function ajouterArticleAction(
       dateReception: new Date(),
     },
   });
+  await journaliser("ArticleStock", cree.id, "Réception matériel", serie);
   revalidatePath("/staging", "layout");
   return { success: true };
 }

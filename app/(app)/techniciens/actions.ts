@@ -11,6 +11,7 @@ import {
 } from "@/lib/repositories/technicienRepository";
 import { numeroSuiviValide } from "@/lib/domain/tracking/laposte";
 import { suivreColis } from "@/lib/tracking/laPosteClient";
+import { journaliser } from "@/lib/activite";
 
 type Resultat = { success: boolean; error?: string };
 
@@ -31,7 +32,10 @@ export async function affecterTechnicienAction(
   clientId: string,
   technicienId: string
 ): Promise<Resultat> {
-  return garde(() => affecterTechnicien(clientId, technicienId || null));
+  return garde(async () => {
+    await affecterTechnicien(clientId, technicienId || null);
+    await journaliser("Client", clientId, "Affectation technicien");
+  });
 }
 
 // Met à jour un champ du suivi ADV (colonnes du TABLEAU SUIVI COMMANDES pilotées depuis
@@ -50,6 +54,7 @@ export async function updateSuiviAdvAction(
           ? { dateImperative: v ? new Date(v) : null }
           : { [champ]: v || null },
     });
+    if (champ === "statutSuivi") await journaliser("Client", clientId, "Statut ADV", v || undefined);
   });
 }
 
@@ -91,6 +96,7 @@ export async function setColisSuiviAction(
         colisSuiviMajLe: new Date(),
       },
     });
+    await journaliser("Client", clientId, "Suivi colis", num);
   });
 }
 

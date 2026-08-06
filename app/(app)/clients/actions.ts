@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { journaliser } from "@/lib/activite";
 import {
   noterTentativeContact,
   passerBloque,
@@ -28,11 +29,17 @@ export async function setEtapeMigrationAction(
   clientId: string,
   etapeMigrationId: string
 ): Promise<Resultat> {
-  return garde(() => setEtapeMigration(clientId, etapeMigrationId));
+  return garde(async () => {
+    await setEtapeMigration(clientId, etapeMigrationId);
+    await journaliser("Client", clientId, "Étape migration");
+  });
 }
 
 export async function noterTentativeContactAction(clientId: string): Promise<Resultat> {
-  return garde(() => noterTentativeContact(clientId));
+  return garde(async () => {
+    await noterTentativeContact(clientId);
+    await journaliser("Client", clientId, "Tentative de contact");
+  });
 }
 
 export async function passerBloqueAction(clientId: string): Promise<Resultat> {

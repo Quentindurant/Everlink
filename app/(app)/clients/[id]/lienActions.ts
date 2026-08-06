@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { journaliser } from "@/lib/activite";
 import {
   marquerLienCommande,
   marquerLienLivre,
@@ -25,11 +26,17 @@ async function garde(fn: (email: string) => Promise<void>): Promise<Resultat> {
 }
 
 export async function marquerLienCommandeAction(clientId: string): Promise<Resultat> {
-  return garde((email) => marquerLienCommande(clientId, email));
+  return garde(async (email) => {
+    await marquerLienCommande(clientId, email);
+    await journaliser("Client", clientId, "Lien commandé");
+  });
 }
 
 export async function marquerLienLivreAction(clientId: string): Promise<Resultat> {
-  return garde(() => marquerLienLivre(clientId));
+  return garde(async () => {
+    await marquerLienLivre(clientId);
+    await journaliser("Client", clientId, "Lien livré");
+  });
 }
 
 export async function reinitialiserLienAction(clientId: string): Promise<Resultat> {

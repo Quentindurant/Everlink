@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ajouterLigneSheet } from "@/lib/zoho/zohoClient";
+import { journaliser } from "@/lib/activite";
 import {
   extraireCodePostal,
   prefixeSemaine,
@@ -103,6 +104,7 @@ export async function pousserVersZohoAction(
     where: { id: clientId },
     data: { zohoLignePousseeLe: new Date() },
   });
+  await journaliser("Client", clientId, "Poussé vers Zoho");
   revalidatePath(`/clients/${clientId}`);
   return { success: true };
 }
