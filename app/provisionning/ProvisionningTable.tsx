@@ -72,7 +72,7 @@ function EditableCell({
   valeurInitiale,
   onSave,
   mono = false,
-  placeholder = "Saisir…",
+  placeholder = "",
 }: {
   valeurInitiale: string;
   onSave: (valeur: string) => Promise<{ success: boolean; error?: string }>;
@@ -96,8 +96,6 @@ function EditableCell({
     });
   };
 
-  const estVide = valeur === "";
-
   return (
     <div>
       <input
@@ -108,12 +106,9 @@ function EditableCell({
         onKeyDown={(e) => e.key === "Enter" && enregistrer()}
         disabled={isPending}
         className={cn(
-          "w-full min-w-24 rounded-md border px-1.5 py-0.5 text-sm transition-colors outline-none placeholder:text-muted-foreground/50 focus:border-ring focus:ring-2 focus:ring-ring/40 disabled:opacity-50",
-          // Champ vide: bordure pointillée visible pour signaler qu'il est éditable.
-          // Champ rempli: bordure transparente qui apparaît au survol, pour ne pas alourdir.
-          estVide
-            ? "border-dashed border-input bg-muted/30"
-            : "border-transparent bg-transparent hover:border-input",
+          "w-full min-w-24 rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-sm transition-colors outline-none placeholder:text-muted-foreground/50 hover:border-input focus:border-ring focus:ring-2 focus:ring-ring/40 disabled:opacity-50",
+          // Éditable partout, mais discret: la bordure n'apparaît qu'au survol pour ne pas
+          // remplir la grille de cadres vides.
           mono && "font-mono text-[13px] tabular-nums"
         )}
       />
@@ -288,9 +283,18 @@ function ControleCell({ ligne }: { ligne: ProvisionningLigne }) {
   if (!ligne.controleNiveau) return null;
   const numeroId = ligne.numeroId;
 
-  const badge = (
-    <Badge className={NIVEAU_CLASSES[ligne.controleNiveau]}>{ligne.controleNiveau}</Badge>
-  );
+  // Un contrôle OK est l'état nominal: point vert discret, pas un badge sur chaque ligne.
+  // Seuls les avertissements et erreurs méritent un badge qui attire l'œil.
+  const badge =
+    ligne.controleNiveau === "OK" ? (
+      <span
+        className="mx-1.5 inline-block size-2 rounded-full"
+        style={{ background: "var(--pal-green-dot)" }}
+        title={ligne.controleDetail ?? "Contrôle OK"}
+      />
+    ) : (
+      <Badge className={NIVEAU_CLASSES[ligne.controleNiveau]}>{ligne.controleNiveau}</Badge>
+    );
   const trigger = ligne.controleDetail ? (
     <Tooltip>
       <TooltipTrigger render={badge} />
@@ -528,7 +532,6 @@ function buildColumns(
         />
       ) : null,
   },
-  { header: "Client (raison sociale)", accessorKey: "clientRaisonSociale" },
   {
     header: "Numéro à porter",
     id: "numeroBrut",

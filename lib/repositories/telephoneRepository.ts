@@ -7,6 +7,9 @@ export interface TelephoneUtilisateurLigne {
   clientRaisonSociale: string;
   // etapeId -> statut ("À faire" implicite si absent)
   statuts: Record<string, string>;
+  // Infos du poste, copiables par les techniciens pendant la configuration.
+  numeros: { brut: string; courts: string[] }[];
+  equipements: { mac: string; modele: string | null }[];
 }
 
 export interface TelephoneGrille {
@@ -46,6 +49,16 @@ export async function fetchTelephoneGrille(filtres: {
       include: {
         client: { select: { id: true, raisonSociale: true, dateIntervention: true } },
         suivis: { where: { etape: { actif: true } } },
+        numeros: {
+          where: { archiveA: null },
+          orderBy: { ordre: "asc" },
+          select: { numeroBrut: true, numerosCourts: true },
+        },
+        equipements: {
+          where: { archiveA: null },
+          orderBy: { ordre: "asc" },
+          select: { macBrut: true, modele: { select: { libelle: true } } },
+        },
       },
       // Même ordre que le Provisionning: interventions planifiées les plus proches d'abord.
       orderBy: [
@@ -66,6 +79,10 @@ export async function fetchTelephoneGrille(filtres: {
       clientId: u.client.id,
       clientRaisonSociale: u.client.raisonSociale,
       statuts: Object.fromEntries(u.suivis.map((s) => [s.etapeId, s.statut])),
+      numeros: u.numeros.map((n) => ({ brut: n.numeroBrut, courts: n.numerosCourts })),
+      equipements: u.equipements
+        .filter((e) => e.macBrut)
+        .map((e) => ({ mac: e.macBrut, modele: e.modele?.libelle ?? null })),
     })),
   };
 }

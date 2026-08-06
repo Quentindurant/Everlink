@@ -1,8 +1,8 @@
 "use client";
 
-import { Fragment, useTransition } from "react";
+import { Fragment, useState, useTransition } from "react";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,6 +66,32 @@ function CelluleStatut({
         </option>
       ))}
     </select>
+  );
+}
+
+// Info du poste copiable en un clic (numéro, court, MAC) : le technicien colle directement
+// dans l'interface de configuration. Feedback ✓ une seconde.
+function CopiePuce({ valeur, titre }: { valeur: string; titre?: string }) {
+  const [copie, setCopie] = useState(false);
+  return (
+    <button
+      onClick={async (e) => {
+        e.stopPropagation();
+        await navigator.clipboard.writeText(valeur);
+        setCopie(true);
+        setTimeout(() => setCopie(false), 1000);
+      }}
+      title={titre ? `${titre} — cliquer pour copier` : "Cliquer pour copier"}
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[11px] transition-colors hover:cursor-pointer",
+        copie
+          ? "border-transparent bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]"
+          : "border-[color:var(--ev-card-border)] text-[color:var(--ev-body-secondary)] hover:bg-muted"
+      )}
+    >
+      {copie ? <Check className="size-2.5" /> : <Copy className="size-2.5 opacity-50" />}
+      {valeur}
+    </button>
   );
 }
 
@@ -207,8 +233,8 @@ export function TelephoneGrille({ grille }: { grille: Grille }) {
                     key={u.utilisateurId}
                     className={cn(faitsUser === etapes.length && "bg-[var(--pal-green-bg)]/30")}
                   >
-                    <TableCell className="font-medium whitespace-nowrap">
-                      <span className="flex items-baseline gap-2">
+                    <TableCell className="whitespace-nowrap">
+                      <span className="flex items-baseline gap-2 font-medium">
                         {u.utilisateurNom}
                         <span
                           className={cn(
@@ -221,6 +247,21 @@ export function TelephoneGrille({ grille }: { grille: Grille }) {
                           {faitsUser}/{etapes.length}
                         </span>
                       </span>
+                      {(u.numeros.length > 0 || u.equipements.length > 0) && (
+                        <span className="mt-1 flex flex-wrap items-center gap-1">
+                          {u.numeros.map((n) => (
+                            <Fragment key={n.brut}>
+                              <CopiePuce valeur={n.brut} titre="Numéro" />
+                              {n.courts.map((c) => (
+                                <CopiePuce key={c} valeur={c} titre="Court" />
+                              ))}
+                            </Fragment>
+                          ))}
+                          {u.equipements.map((e) => (
+                            <CopiePuce key={e.mac} valeur={e.mac} titre={e.modele ?? "MAC"} />
+                          ))}
+                        </span>
+                      )}
                     </TableCell>
                     {etapes.map((e) => (
                       <TableCell key={e.id} className="py-1">
