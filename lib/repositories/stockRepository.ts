@@ -96,10 +96,15 @@ export async function listClientsPourStock(): Promise<{ id: string; raisonSocial
   });
 }
 
-// Articles disponibles à l'expédition : en stock ou configurés, non archivés, non retour.
-export async function fetchAExpedier(): Promise<ArticleStockLigne[]> {
+// Matériel présent physiquement au staging (pas encore expédié) : le périmètre du CRUD
+// de la page Réception. Les retours clients en font partie.
+export async function fetchStockActif(): Promise<ArticleStockLigne[]> {
+  return fetchArticlesParStatuts(["EN_STOCK", "CONFIGURE", "RETOUR"]);
+}
+
+async function fetchArticlesParStatuts(statuts: string[]): Promise<ArticleStockLigne[]> {
   const articles = await prisma.articleStock.findMany({
-    where: { archiveA: null, statut: { in: ["EN_STOCK", "CONFIGURE"] } },
+    where: { archiveA: null, statut: { in: statuts } },
     include: { client: { select: { raisonSociale: true } } },
     orderBy: [{ type: "asc" }, { numeroSerie: "asc" }],
   });
@@ -119,6 +124,11 @@ export async function fetchAExpedier(): Promise<ArticleStockLigne[]> {
     suiviStatut: a.suiviStatut,
     suiviLibelle: a.suiviLibelle,
   }));
+}
+
+// Articles disponibles à l'expédition : en stock ou configurés, non archivés, non retour.
+export async function fetchAExpedier(): Promise<ArticleStockLigne[]> {
+  return fetchArticlesParStatuts(["EN_STOCK", "CONFIGURE"]);
 }
 
 // Un colis expédié = un groupe d'articles partageant le même numéro de suivi (ou un article

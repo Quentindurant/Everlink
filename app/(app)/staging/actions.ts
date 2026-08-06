@@ -163,6 +163,51 @@ export async function rattacherClientAction(id: string, nom: string): Promise<vo
   revalidatePath("/staging", "layout");
 }
 
+// Ajoute un article saisi à la main (ou à la douchette) : entre en stock daté du jour.
+// Un article actif portant le même numéro de série est refusé (pas de doublon silencieux).
+export async function ajouterArticleAction(
+  type: string,
+  numeroSerie: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  const serie = numeroSerie.trim();
+  if (!serie) return { success: false, error: "Numéro de série requis." };
+  const existant = await prisma.articleStock.findFirst({
+    where: { archiveA: null, numeroSerie: { equals: serie, mode: "insensitive" } },
+    select: { statut: true },
+  });
+  if (existant) {
+    return { success: false, error: `${serie} déjà présent (${existant.statut}).` };
+  }
+  await prisma.articleStock.create({
+    data: {
+      type: type.trim() || "Routeur 4G seul",
+      numeroSerie: serie,
+      statut: "EN_STOCK",
+      dateReception: new Date(),
+    },
+  });
+  revalidatePath("/staging", "layout");
+  return { success: true };
+}
+
+// Édite un champ d'un article (type, numéro de série ou commentaire).
+export async function updateArticleAction(
+  id: string,
+  champ: "type" | "numeroSerie" | "commentaire",
+  valeur: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  const v = valeur.trim();
+  if (champ !== "commentaire" && !v) return { success: false, error: "Valeur requise." };
+  await prisma.articleStock.update({
+    where: { id },
+    data: { [champ]: champ === "commentaire" ? v || null : v },
+  });
+  revalidatePath("/staging", "layout");
+  return { success: true };
+}
+
 // Enregistre le routeur récupéré chez le client le jour de l'installation (origine CLIENT).
 export async function ajouterRetourAction(
   type: string,
