@@ -100,14 +100,15 @@ function SelectStatutSuivi({
     <select
       value={statut ?? ""}
       onChange={(e) => onDone(() => updateSuiviAdvAction(clientId, "statutSuivi", e.target.value))}
-      className="cursor-pointer appearance-none rounded-full border border-transparent px-2.5 py-1 text-[11px] font-bold tracking-wide outline-none focus:border-ring focus:ring-2 focus:ring-ring/40"
+      className="cursor-pointer appearance-none rounded-full border px-3 py-1 text-[11.5px] font-bold tracking-wide outline-none focus:ring-2 focus:ring-ring/40"
       style={
         couleur
           ? {
-              background: `color-mix(in oklab, ${couleur} 30%, white)`,
-              color: `color-mix(in oklab, ${couleur} 62%, black)`,
+              background: `color-mix(in oklab, ${couleur} 38%, white)`,
+              color: `color-mix(in oklab, ${couleur} 65%, black)`,
+              borderColor: `color-mix(in oklab, ${couleur} 55%, white)`,
             }
-          : { color: "var(--ev-body-placeholder)" }
+          : { color: "var(--ev-body-placeholder)", borderColor: "var(--ev-card-border)" }
       }
     >
       <option value="">— statut —</option>
@@ -179,8 +180,24 @@ function LigneDossier({
     agir(() => setCreneauInterventionAction(d.clientId, date, creneau));
   };
 
+  // La ligne entière prend une teinte très légère de la couleur du statut ADV, comme le code
+  // couleur du tableau de suivi : l'état du dossier se lit d'un balayage, sans lire le texte.
+  const couleurLigne = d.statutSuivi ? couleurStatutSuivi(d.statutSuivi) : null;
+  // Intervention imminente (aujourd'hui ou demain) : la date passe en bleu gras.
+  const imminent =
+    !!d.dateIso &&
+    new Date(d.dateIso).getTime() - new Date(new Date().toDateString()).getTime() <
+      2 * 86400000;
+
   return (
-    <TableRow className={cn(isPending && "opacity-50")}>
+    <TableRow
+      className={cn(isPending && "opacity-50")}
+      style={
+        couleurLigne
+          ? { background: `color-mix(in oklab, ${couleurLigne} 7%, white)` }
+          : undefined
+      }
+    >
       {/* Client */}
       <TableCell className="font-medium whitespace-nowrap">
         <Link href={`/clients/${d.clientId}`} className="hover:underline">
@@ -223,13 +240,18 @@ function LigneDossier({
       <TableCell>
         <button
           onClick={() => agir(() => noterTentativeContactAction(d.clientId))}
-          className="inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-xs hover:bg-muted"
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors hover:cursor-pointer",
+            d.nbTentativesContact >= 3
+              ? "border-transparent bg-[var(--pal-red-bg)] font-bold text-[color:var(--pal-red-fg)]"
+              : d.nbTentativesContact > 0
+                ? "border-transparent bg-[var(--pal-amber-bg)] font-semibold text-[color:var(--pal-amber-fg)]"
+                : "text-muted-foreground hover:bg-muted"
+          )}
           title={d.dernierContactLe ? `dernière le ${d.dernierContactLe}` : "noter une tentative"}
         >
           <PhoneOutgoing className="size-3" />
-          <span className={cn("tabular-nums", d.nbTentativesContact >= 3 && "font-bold text-destructive")}>
-            {d.nbTentativesContact}
-          </span>
+          <span className="tabular-nums">{d.nbTentativesContact}</span>
         </button>
       </TableCell>
 
@@ -241,7 +263,10 @@ function LigneDossier({
             value={date}
             onChange={(e) => setDate(e.target.value)}
             onBlur={sauverPlanif}
-            className="rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[13px] outline-none hover:border-input focus:border-ring"
+            className={cn(
+              "rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[13px] outline-none hover:border-input focus:border-ring",
+              imminent && "font-bold text-[color:var(--ev-accent-text)]"
+            )}
           />
           <input
             value={creneau}
