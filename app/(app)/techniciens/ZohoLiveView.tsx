@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { ArrowDownToLine, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { LigneZoho } from "@/lib/zoho/zohoClient";
-import { rafraichirZohoAction } from "./zohoViewActions";
+import type { ZohoPullResultat } from "@/lib/zoho/syncDepuisSheet";
+import { rafraichirZohoAction, synchroniserDepuisZohoAction } from "./zohoViewActions";
 
 // Couleurs des statuts d'installation (approx. de la feuille).
 function classeStatut(s: string): string {
@@ -31,12 +33,23 @@ function classeStatut(s: string): string {
 const RAFRAICHIR_MS = 30_000;
 
 export function ZohoLiveView() {
+  const router = useRouter();
   const [lignes, setLignes] = useState<LigneZoho[]>([]);
   const [onglet, setOnglet] = useState("");
   const [configure, setConfigure] = useState(true);
   const [majIlYa, setMajIlYa] = useState(0);
   const [chargement, setChargement] = useState(false);
+  const [syncEnCours, setSyncEnCours] = useState(false);
+  const [rapport, setRapport] = useState<ZohoPullResultat | null>(null);
   const dernierMaj = useRef(Date.now());
+
+  const synchroniser = async () => {
+    setSyncEnCours(true);
+    const r = await synchroniserDepuisZohoAction();
+    setRapport(r);
+    setSyncEnCours(false);
+    router.refresh();
+  };
 
   const charger = useCallback(async () => {
     setChargement(true);
@@ -68,11 +81,43 @@ export function ZohoLiveView() {
         <span className="text-xs text-muted-foreground tabular-nums">
           {configure ? `${lignes.length} lignes · maj il y a ${majIlYa}s` : "Zoho non configuré"}
         </span>
-        <Button variant="ghost" size="xs" onClick={charger} disabled={chargement} className="ml-auto">
-          <RefreshCw data-icon="inline-start" className={chargement ? "animate-spin" : ""} />
-          Rafraîchir
-        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="outline" size="xs" onClick={synchroniser} disabled={syncEnCours || !configure}>
+            <ArrowDownToLine data-icon="inline-start" className={syncEnCours ? "animate-pulse" : ""} />
+            {syncEnCours ? "Synchronisation…" : "Synchroniser vers l'app"}
+          </Button>
+          <Button variant="ghost" size="xs" onClick={charger} disabled={chargement}>
+            <RefreshCw data-icon="inline-start" className={chargement ? "animate-spin" : ""} />
+            Rafraîchir
+          </Button>
+        </div>
       </div>
+
+      {rapport && (
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border px-3 py-2 text-[12.5px]",
+            rapport.succes
+              ? "border-[color:var(--pal-green-dot)] bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]"
+              : "border-[color:var(--pal-amber-dot)] bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]"
+          )}
+        >
+          {rapport.succes ? (
+            <>
+              <span className="font-semibold">Sync {rapport.onglet} :</span>
+              <span>{rapport.rapproches} dossier(s) rapproché(s)</span>
+              <span>· {rapport.misAJour} mis à jour</span>
+              {rapport.lignesInconnues.length > 0 && (
+                <span title={rapport.lignesInconnues.join(", ")}>
+                  · {rapport.lignesInconnues.length} ligne(s) sans dossier (survoler pour voir)
+                </span>
+              )}
+            </>
+          ) : (
+            <span>{rapport.message}</span>
+          )}
+        </div>
+      )}
 
       {!configure ? (
         <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">

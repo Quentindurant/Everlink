@@ -27,10 +27,12 @@ if [ -z "$SECRET" ]; then
   exit 0
 fi
 
-# Rafraîchit l'état des colis (La Poste/Chronopost) toutes les 2 heures.
-LINE="0 */2 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/tracking-sync >/dev/null 2>&1 ${TAG}"
+# Rafraîchit l'état des colis (La Poste/Chronopost) toutes les 2 heures, et synchronise le
+# Zoho Sheet vers l'app (statut/planif des dossiers) toutes les 2 heures, décalé de 30 min.
+LINE_TRACKING="0 */2 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/tracking-sync >/dev/null 2>&1 ${TAG}"
+LINE_ZOHO="30 */2 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/zoho-pull >/dev/null 2>&1 ${TAG}"
 
-# Réécrit le crontab : toutes les lignes sauf les nôtres, plus la nôtre à jour. Le secret
-# n'est jamais imprimé (pas d'echo de $LINE) pour ne pas fuiter dans les logs du déploiement.
-{ crontab -l 2>/dev/null | grep -vF "$TAG" || true; printf '%s\n' "$LINE"; } | crontab -
-echo "install-crons: cron tracking-sync installé (toutes les 2h, port ${PORT})."
+# Réécrit le crontab : toutes les lignes sauf les nôtres, plus les nôtres à jour. Le secret
+# n'est jamais imprimé (pas d'echo des lignes) pour ne pas fuiter dans les logs du déploiement.
+{ crontab -l 2>/dev/null | grep -vF "$TAG" || true; printf '%s\n' "$LINE_TRACKING" "$LINE_ZOHO"; } | crontab -
+echo "install-crons: crons tracking-sync et zoho-pull installés (toutes les 2h, port ${PORT})."

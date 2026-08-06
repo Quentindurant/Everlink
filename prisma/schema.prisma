@@ -110,6 +110,9 @@ model Client {
 
   // Horodatage du dernier push d'une ligne vers le Zoho Sheet de suivi (pour éviter les doublons).
   zohoLignePousseeLe DateTime?
+  // Nom exact de la ligne appariée dans le Zoho Sheet (les ADV renomment librement, ex.
+  // "S31- ART PHOTO LAB"). Mémorisé au premier rapprochement pour des syncs fiables.
+  zohoNomSheet String?
 
   // Suivi de la commande du lien opérateur par l'ADV (scénarios avec lien).
   lienCommande        Boolean   @default(false)
