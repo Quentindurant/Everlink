@@ -142,6 +142,79 @@ export async function expedierLotAction(
   return { success: true };
 }
 
+// Annule une expédition faite par erreur : les articles reviennent « En stock », l'envoi et
+// le suivi sont effacés. Le rattachement client est conservé (l'erreur porte sur le colis,
+// pas sur le dossier).
+export async function annulerExpeditionAction(ids: string[]): Promise<void> {
+  if (!(await garde())) return;
+  if (ids.length === 0) return;
+  await prisma.articleStock.updateMany({
+    where: { id: { in: ids }, statut: "ENVOYE" },
+    data: {
+      statut: "EN_STOCK",
+      dateEnvoi: null,
+      transporteur: null,
+      numeroSuivi: null,
+      suiviStatut: null,
+      suiviLibelle: null,
+      suiviLivreLe: null,
+      suiviMajLe: null,
+    },
+  });
+  await journaliser("ArticleStock", ids[0], "Annulation expédition", `${ids.length} article(s)`);
+  revalidatePath("/staging", "layout");
+}
+
+// Corrige un colis déjà expédié : transporteur, numéro de suivi et destinataire, sur tous
+// les articles du colis. Le suivi est relevé à nouveau avec le numéro corrigé.
+export async function corrigerColisAction(
+  ids: string[],
+  transporteur: string,
+  numeroSuivi: string,
+  clientNom: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  if (ids.length === 0) return { success: false, error: "Aucun article." };
+  const num = numeroSuivi.trim();
+  if (num && !numeroSuiviValide(num)) {
+    return { success: false, error: "Numéro de suivi invalide (11 à 15 caractères)." };
+  }
+  const nom = clientNom.trim();
+  const client = nom
+    ? await prisma.client.findFirst({
+        where: { archiveA: null, raisonSociale: { equals: nom, mode: "insensitive" } },
+        select: { id: true },
+      })
+    : null;
+  const etat = num ? await suivreColis(num) : null;
+  await prisma.articleStock.updateMany({
+    where: { id: { in: ids } },
+    data: {
+      transporteur: transporteur.trim() || "Chronopost",
+      numeroSuivi: num || null,
+      clientId: client?.id ?? null,
+      clientFinalTexte: nom || null,
+      suiviStatut: etat?.statut ?? null,
+      suiviLibelle: etat?.libelle ?? null,
+      suiviLivreLe: etat?.livreLe ? new Date(etat.livreLe) : null,
+      suiviMajLe: num ? new Date() : null,
+    },
+  });
+  await journaliser("ArticleStock", ids[0], "Correction colis", `${ids.length} article(s)${num ? ` · ${num}` : ""}`);
+  revalidatePath("/staging", "layout");
+  return { success: true };
+}
+
+// Annule un marquage « installé » cliqué par erreur : l'article redevient « Envoyé ».
+export async function annulerInstallationAction(id: string): Promise<void> {
+  if (!(await garde())) return;
+  await prisma.articleStock.updateMany({
+    where: { id, statut: "INSTALLE" },
+    data: { statut: "ENVOYE", dateInstallation: null },
+  });
+  revalidatePath("/staging", "layout");
+}
+
 // Rattache un article à un client. Si le nom correspond exactement à une fiche client active,
 // on stocke l'ID (ce qui débloque les liens/intervention dans « À installer »); sinon on garde
 // juste le texte libre.
