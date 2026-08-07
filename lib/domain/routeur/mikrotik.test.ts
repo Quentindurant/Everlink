@@ -9,7 +9,8 @@ const cheminReel = join(import.meta.dir, "../../../docs/MikroTik_HAP-AC2_IP-2607
 const rscReel = existsSync(cheminReel) ? readFileSync(cheminReel, "utf8") : null;
 
 describe.if(rscReel !== null)("parseMikrotikRsc — export réel", () => {
-  const c = parseMikrotikRsc(rscReel as string);
+  // describe.if n'empêche pas l'exécution de ce callback : parse conditionnel obligatoire.
+  const c = parseMikrotikRsc(rscReel ?? "");
 
   test("LAN et passerelle", () => {
     expect(c.lanAdresse).toBe("192.168.0.1/24");
