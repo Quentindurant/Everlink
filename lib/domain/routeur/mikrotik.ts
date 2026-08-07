@@ -37,6 +37,9 @@ export interface ConfigRouteurExtraite {
   wanType: string | null; // "pppoe"
   wanUtilisateur: string | null;
   wanVlanId: string | null;
+  // IP publique du lien Sewan, quand le fichier la trahit (certificat HTTPS du CPE).
+  // Référence seulement: le lien est remplacé, elle ne sert pas à la config UNYC.
+  ipPubliqueAncienne: string | null;
   comptes: CompteExtrait[]; // admin + comptes partenaires (everpass…)
   adminMotDePasse: string | null;
 }
@@ -105,6 +108,7 @@ export function parseMikrotikRsc(texte: string): ConfigRouteurExtraite {
     wanType: null,
     wanUtilisateur: null,
     wanVlanId: null,
+    ipPubliqueAncienne: null,
     comptes: [],
     adminMotDePasse: null,
   };
@@ -188,6 +192,11 @@ export function parseMikrotikRsc(texte: string): ConfigRouteurExtraite {
       }
     } else if (contexte === "/system identity" && a.name) {
       config.identite = a.name;
+    } else if (contexte === "/certificate" && a["common-name"]) {
+      // Le certificat HTTPS du CPE porte parfois l'IP publique du lien en common-name.
+      if (/^\d{1,3}(\.\d{1,3}){3}$/.test(a["common-name"])) {
+        config.ipPubliqueAncienne = a["common-name"];
+      }
     }
   }
 

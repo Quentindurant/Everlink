@@ -57,39 +57,23 @@ function reglesNatFusionnees(nat: NatExtrait[]) {
 export function VueUnyc({ d }: { d: ConfigRouteurExtraite }) {
   const [lanIp, lanMasque] = (d.lanAdresse ?? "").split("/");
   const [plageDebut, plageFin] = (d.dhcpPlage ?? "").split("-");
-  const [dnsPrimaire, dnsSecondaire] = d.dnsServeurs;
   const nat = reglesNatFusionnees(d.nat);
 
   return (
     <div className="grid gap-3 lg:grid-cols-2">
-      {/* WAN — écran "Configuration WANs" */}
-      {(d.wanType || d.wanVlanId || d.wanUtilisateur) && (
-        <Section titre="WAN">
-          <div className="flex flex-wrap gap-x-5 gap-y-2">
-            {d.wanType && <Champ etiquette="Type de connexion" valeur={d.wanType.toUpperCase()} />}
-            <Champ etiquette="ID VLAN WAN" valeur={d.wanVlanId} />
-            <Champ etiquette="Identifiant PPPoE" valeur={d.wanUtilisateur} />
-          </div>
-        </Section>
-      )}
-
-      {/* LAN — écran "Configuration LANs" (Réseau puis Options IPv4) */}
+      {/* LAN — écran "Configuration LANs" (Réseau puis Options IPv4). Les DNS et le bail
+          restent aux valeurs par défaut côté UNYC : pas affichés pour ne pas brouiller. */}
       <Section titre="LAN — Réseau · Options IPv4">
         <div className="flex flex-wrap gap-x-5 gap-y-2">
           <Champ etiquette="Adresse IP" valeur={lanIp || null} />
           <Champ etiquette="Masque de sous-réseau" valeur={lanMasque ? `/${lanMasque}` : null} />
-          <Champ etiquette="DNS primaire" valeur={dnsPrimaire ?? null} />
-          <Champ etiquette="DNS secondaire" valeur={dnsSecondaire ?? null} />
-          <Champ
-            etiquette="Durée du bail"
-            valeur={d.dhcpBailSecondes ? String(d.dhcpBailSecondes) : null}
-          />
           <Champ etiquette="Adresse IP de départ" valeur={plageDebut || null} />
           <Champ etiquette="Adresse IP de fin" valeur={plageFin || null} />
         </div>
-        {d.dhcpBailSecondes && (
-          <div className="mt-1.5 text-[10.5px] text-muted-foreground">
-            bail en secondes ({Math.round(d.dhcpBailSecondes / 3600)} h) · DHCP serveur activé
+        {d.ipPubliqueAncienne && (
+          <div className="mt-2 flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
+            Ancienne IP publique (lien Sewan remplacé, référence seulement)
+            <CopiePuce valeur={d.ipPubliqueAncienne} titre="Ancienne IP publique" />
           </div>
         )}
       </Section>
@@ -109,33 +93,38 @@ export function VueUnyc({ d }: { d: ConfigRouteurExtraite }) {
         </Section>
       )}
 
-      {/* NAT — modal UNYC "Ajouter une règle de NAT" */}
-      {nat.length > 0 && (
-        <Section titre="NAT — Règles à recréer">
-          {nat.map((n, i) => (
-            <div
-              key={i}
-              className="mb-2 rounded-md border border-dashed p-2 last:mb-0"
-              style={{ borderColor: "var(--ev-card-border)" }}
-            >
-              <div className="flex flex-wrap gap-x-5 gap-y-2">
-                <Champ etiquette="Nom" valeur={n.commentaire ?? `Règle ${i + 1}`} />
-                <Champ etiquette="Protocole" valeur={n.protocoleLabel} />
-                <Champ etiquette="Port public" valeur={n.portsEntree} />
-                <Champ etiquette="IP privée" valeur={n.versAdresse} />
-                <Champ etiquette="Port privé" valeur={n.versPorts ?? n.portsEntree} />
+      {/* NAT / DMZ — toujours affiché : « aucun » est une information en soi (rien à recréer). */}
+      <Section titre="NAT · DMZ">
+        {nat.length === 0 && !d.dmz ? (
+          <span className="ev-badge bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]">
+            Aucune règle NAT ni DMZ sur ce routeur — rien à recréer
+          </span>
+        ) : (
+          <>
+            {d.dmz && (
+              <div className="mb-2 flex flex-wrap items-end gap-x-5 gap-y-2">
+                <span className="ev-badge bg-[var(--pal-red-bg)] text-[color:var(--pal-red-fg)]">DMZ</span>
+                <Champ etiquette="IP privée exposée" valeur={d.dmz} />
               </div>
-            </div>
-          ))}
-        </Section>
-      )}
-
-      {/* DMZ */}
-      {d.dmz && (
-        <Section titre="DMZ">
-          <Champ etiquette="IP privée exposée" valeur={d.dmz} />
-        </Section>
-      )}
+            )}
+            {nat.map((n, i) => (
+              <div
+                key={i}
+                className="mb-2 rounded-md border border-dashed p-2 last:mb-0"
+                style={{ borderColor: "var(--ev-card-border)" }}
+              >
+                <div className="flex flex-wrap gap-x-5 gap-y-2">
+                  <Champ etiquette="Nom" valeur={n.commentaire ?? `Règle ${i + 1}`} />
+                  <Champ etiquette="Protocole" valeur={n.protocoleLabel} />
+                  <Champ etiquette="Port public" valeur={n.portsEntree} />
+                  <Champ etiquette="IP privée" valeur={n.versAdresse} />
+                  <Champ etiquette="Port privé" valeur={n.versPorts ?? n.portsEntree} />
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </Section>
 
       {/* Accès à l'ancien routeur, pour vérification */}
       {(d.comptes ?? []).length > 0 && (

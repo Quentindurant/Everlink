@@ -121,4 +121,13 @@ add action=dst-nat chain=dstnat comment="DMZ serveur" to-addresses=192.168.0.100
     expect(c.lanAdresse).toBeNull();
     expect(c.wifi).toEqual([]);
   });
+
+  test("IP publique du lien via le certificat HTTPS du CPE", () => {
+    const rsc = `
+/certificate
+add name=unyc_cert common-name=unyc_cert key-usage=key-cert-sign,crl-sign
+add name=cert_unyc common-name=2.59.147.49
+`;
+    expect(parseMikrotikRsc(rsc).ipPubliqueAncienne).toBe("2.59.147.49");
+  });
 });
