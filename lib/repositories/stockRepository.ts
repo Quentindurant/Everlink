@@ -174,6 +174,93 @@ export async function fetchHistoriqueColis(): Promise<ColisExpedie[]> {
   return [...parCle.values()];
 }
 
+// Dossier de préparation d'un client au staging : son matériel à expédier, sa config
+// routeur, sa date d'intervention. Le staging travaille par client, pas par article isolé.
+export interface DossierStaging {
+  clientId: string | null; // null = articles rattachés par texte libre uniquement
+  clientNom: string;
+  dateInterventionIso: string | null;
+  scenario: string | null;
+  aConfigRouteur: boolean;
+  articles: ArticleStockLigne[];
+}
+
+export interface PreparationStaging {
+  dossiers: DossierStaging[];
+  nonRattaches: ArticleStockLigne[];
+  // Clients avec intervention à venir et scénario routeur, sans aucun matériel rattaché.
+  aPreparer: { clientId: string; clientNom: string; dateInterventionIso: string | null; scenario: string | null }[];
+}
+
+export async function fetchPreparationStaging(): Promise<PreparationStaging> {
+  const [articles, configs, clientsLien] = await Promise.all([
+    fetchArticlesParStatuts(["EN_STOCK", "CONFIGURE"]),
+    prisma.configRouteur.findMany({ select: { clientId: true, clientTexte: true } }),
+    prisma.client.findMany({
+      where: {
+        archiveA: null,
+        dateIntervention: { gte: new Date(new Date().toDateString()) },
+        scenario: { contains: "lien", mode: "insensitive" },
+      },
+      select: { id: true, raisonSociale: true, dateIntervention: true, scenario: true },
+      orderBy: { dateIntervention: "asc" },
+    }),
+  ]);
+
+  // Détails clients des articles rattachés (date d'intervention, scénario).
+  const nomsRattaches = [...new Set(articles.map((a) => a.clientFinal).filter(Boolean))] as string[];
+  const clientsRattaches = nomsRattaches.length
+    ? await prisma.client.findMany({
+        where: { archiveA: null, raisonSociale: { in: nomsRattaches } },
+        select: { id: true, raisonSociale: true, dateIntervention: true, scenario: true },
+      })
+    : [];
+  const parNom = new Map(clientsRattaches.map((c) => [c.raisonSociale, c]));
+  const configsParClient = new Set(configs.map((c) => c.clientId).filter(Boolean));
+  const configsParTexte = new Set(configs.map((c) => c.clientTexte).filter(Boolean));
+
+  const parClient = new Map<string, DossierStaging>();
+  const nonRattaches: ArticleStockLigne[] = [];
+  for (const a of articles) {
+    if (!a.clientFinal) {
+      nonRattaches.push(a);
+      continue;
+    }
+    const dossier = parClient.get(a.clientFinal);
+    if (dossier) {
+      dossier.articles.push(a);
+    } else {
+      const client = parNom.get(a.clientFinal);
+      parClient.set(a.clientFinal, {
+        clientId: client?.id ?? null,
+        clientNom: a.clientFinal,
+        dateInterventionIso: client?.dateIntervention?.toISOString().slice(0, 10) ?? null,
+        scenario: client?.scenario ?? null,
+        aConfigRouteur:
+          (client && configsParClient.has(client.id)) || configsParTexte.has(a.clientFinal),
+        articles: [a],
+      });
+    }
+  }
+
+  const dossiers = [...parClient.values()].sort((a, b) =>
+    (a.dateInterventionIso ?? "9999").localeCompare(b.dateInterventionIso ?? "9999")
+  );
+
+  const nomsAvecMateriel = new Set(parClient.keys());
+  const aPreparer = clientsLien
+    .filter((c) => !nomsAvecMateriel.has(c.raisonSociale))
+    .slice(0, 12)
+    .map((c) => ({
+      clientId: c.id,
+      clientNom: c.raisonSociale,
+      dateInterventionIso: c.dateIntervention?.toISOString().slice(0, 10) ?? null,
+      scenario: c.scenario,
+    }));
+
+  return { dossiers, nonRattaches, aPreparer };
+}
+
 // Configurations routeur importées (.rsc Sewan), pour l'écran Configuration du staging.
 export interface ConfigRouteurLigne {
   id: string;

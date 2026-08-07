@@ -1,5 +1,9 @@
 import { Send } from "lucide-react";
-import { fetchAExpedier, listClientsPourStock, statsStock } from "@/lib/repositories/stockRepository";
+import {
+  fetchPreparationStaging,
+  listClientsPourStock,
+  statsStock,
+} from "@/lib/repositories/stockRepository";
 import { PageHero } from "@/components/PageHero";
 import { ExpeditionStaging } from "../ExpeditionStaging";
 import { SectionStaging } from "../SectionStaging";
@@ -8,12 +12,14 @@ import { RetourStaging } from "../RetourStaging";
 export const dynamic = "force-dynamic";
 
 export default async function ExpeditionPage() {
-  const [stats, aExpedier, clients] = await Promise.all([
+  const [stats, preparation, clients] = await Promise.all([
     statsStock(),
-    fetchAExpedier(),
+    fetchPreparationStaging(),
     listClientsPourStock(),
   ]);
   const compte = (s: string) => stats.parStatut.find((x) => x.statut === s)?.count ?? 0;
+  const nbArticles =
+    preparation.dossiers.reduce((n, d) => n + d.articles.length, 0) + preparation.nonRattaches.length;
 
   return (
     <main className="flex flex-1 flex-col gap-5 p-5 pb-15">
@@ -22,7 +28,8 @@ export default async function ExpeditionPage() {
         label="Staging"
         title="Expédition"
         kpis={[
-          { value: aExpedier.length, label: "prêts à partir" },
+          { value: preparation.dossiers.length, label: "dossiers clients" },
+          { value: nbArticles, label: "articles prêts" },
           { value: compte("ENVOYE"), label: "envoyés", color: "var(--ev-amber)" },
         ]}
       />
@@ -32,10 +39,10 @@ export default async function ExpeditionPage() {
       <SectionStaging
         couleur="var(--ev-amber)"
         icone={<Send className="size-4" />}
-        titre="Nouvelle expédition"
-        compteur={aExpedier.length}
+        titre="Expédition par dossier client"
+        compteur={preparation.dossiers.length}
       >
-        <ExpeditionStaging articles={aExpedier} clients={clients} types={stats.types} />
+        <ExpeditionStaging preparation={preparation} clients={clients} />
       </SectionStaging>
     </main>
   );
