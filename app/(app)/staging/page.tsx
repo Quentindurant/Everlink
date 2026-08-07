@@ -1,6 +1,11 @@
 import Link from "next/link";
-import { PackagePlus, ScrollText, Send } from "lucide-react";
-import { fetchAExpedier, fetchHistoriqueColis, statsStock } from "@/lib/repositories/stockRepository";
+import { PackagePlus, Router, ScrollText, Send } from "lucide-react";
+import {
+  fetchAExpedier,
+  fetchConfigsRouteur,
+  fetchHistoriqueColis,
+  statsStock,
+} from "@/lib/repositories/stockRepository";
 import { PageHero } from "@/components/PageHero";
 
 export const dynamic = "force-dynamic";
@@ -59,10 +64,11 @@ function Tuile({
 }
 
 export default async function StagingPage() {
-  const [stats, aExpedier, historique] = await Promise.all([
+  const [stats, aExpedier, historique, configs] = await Promise.all([
     statsStock(),
     fetchAExpedier(),
     fetchHistoriqueColis(),
+    fetchConfigsRouteur(),
   ]);
 
   const compte = (s: string) => stats.parStatut.find((x) => x.statut === s)?.count ?? 0;
@@ -82,7 +88,7 @@ export default async function StagingPage() {
         ]}
       />
 
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <Tuile
           href="/staging/reception"
           couleur="var(--ev-blue)"
@@ -90,6 +96,14 @@ export default async function StagingPage() {
           titre="Réception"
           compteur={compte("EN_STOCK") + compte("CONFIGURE")}
           libelleCompteur="en stock"
+        />
+        <Tuile
+          href="/staging/configuration"
+          couleur="var(--ev-purple)"
+          icone={<Router className="size-6" />}
+          titre="Config routeur"
+          compteur={configs.length}
+          libelleCompteur="configurations"
         />
         <Tuile
           href="/staging/expedition"

@@ -174,6 +174,29 @@ export async function fetchHistoriqueColis(): Promise<ColisExpedie[]> {
   return [...parCle.values()];
 }
 
+// Configurations routeur importées (.rsc Sewan), pour l'écran Configuration du staging.
+export interface ConfigRouteurLigne {
+  id: string;
+  clientNom: string | null;
+  nomFichier: string;
+  donnees: unknown; // ConfigRouteurExtraite (lib/domain/routeur/mikrotik)
+  creeLe: string; // ISO
+}
+
+export async function fetchConfigsRouteur(): Promise<ConfigRouteurLigne[]> {
+  const configs = await prisma.configRouteur.findMany({
+    include: { client: { select: { raisonSociale: true } } },
+    orderBy: { creeLe: "desc" },
+  });
+  return configs.map((c) => ({
+    id: c.id,
+    clientNom: c.client?.raisonSociale ?? c.clientTexte,
+    nomFichier: c.nomFichier,
+    donnees: c.donnees,
+    creeLe: c.creeLe.toISOString(),
+  }));
+}
+
 export interface StatsStock {
   parStatut: { statut: string; libelle: string; count: number }[];
   types: string[];

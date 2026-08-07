@@ -1,8 +1,9 @@
 "use client";
 
-import { Fragment, useState, useTransition } from "react";
+import { Fragment, useTransition } from "react";
 import Link from "next/link";
-import { Check, ChevronDown, Copy } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import { CopiePuce } from "@/components/CopiePuce";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,32 +67,6 @@ function CelluleStatut({
         </option>
       ))}
     </select>
-  );
-}
-
-// Info du poste copiable en un clic (numéro, court, MAC) : le technicien colle directement
-// dans l'interface de configuration. Feedback ✓ une seconde.
-function CopiePuce({ valeur, titre }: { valeur: string; titre?: string }) {
-  const [copie, setCopie] = useState(false);
-  return (
-    <button
-      onClick={async (e) => {
-        e.stopPropagation();
-        await navigator.clipboard.writeText(valeur);
-        setCopie(true);
-        setTimeout(() => setCopie(false), 1000);
-      }}
-      title={titre ? `${titre} — cliquer pour copier` : "Cliquer pour copier"}
-      className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[11px] transition-colors hover:cursor-pointer",
-        copie
-          ? "border-transparent bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]"
-          : "border-[color:var(--ev-card-border)] text-[color:var(--ev-body-secondary)] hover:bg-muted"
-      )}
-    >
-      {copie ? <Check className="size-2.5" /> : <Copy className="size-2.5 opacity-50" />}
-      {valeur}
-    </button>
   );
 }
 

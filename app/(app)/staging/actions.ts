@@ -15,6 +15,7 @@ import { STATUT_SUIVANT } from "@/lib/repositories/stockRepository";
 import { numeroSuiviValide } from "@/lib/domain/tracking/laposte";
 import { suivreColis } from "@/lib/tracking/laPosteClient";
 import { journaliser } from "@/lib/activite";
+import { parseMikrotikRsc } from "@/lib/domain/routeur/mikrotik";
 
 async function garde() {
   const session = await auth();
@@ -230,6 +231,47 @@ export async function ajouterRetourAction(
   });
   revalidatePath("/staging", "layout");
   return { success: true };
+}
+
+// Importe l'export .rsc d'un routeur Sewan, le parse et le rattache à un client : le staging
+// retrouve LAN/DHCP, WiFi et NAT/DMZ pour reproduire la configuration côté UNYC.
+export async function importerConfigRouteurAction(
+  formData: FormData
+): Promise<{ success: boolean; error?: string }> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  const fichier = formData.get("fichier");
+  const clientNom = String(formData.get("client") ?? "").trim();
+  if (!(fichier instanceof File) || fichier.size === 0) {
+    return { success: false, error: "Aucun fichier fourni." };
+  }
+  const texte = await fichier.text();
+  const donnees = parseMikrotikRsc(texte);
+  if (!donnees.lanAdresse && donnees.wifi.length === 0 && donnees.nat.length === 0) {
+    return { success: false, error: "Rien d'exploitable dans ce fichier (.rsc MikroTik attendu)." };
+  }
+  const client = clientNom
+    ? await prisma.client.findFirst({
+        where: { archiveA: null, raisonSociale: { equals: clientNom, mode: "insensitive" } },
+        select: { id: true },
+      })
+    : null;
+  const cree = await prisma.configRouteur.create({
+    data: {
+      nomFichier: fichier.name,
+      clientId: client?.id ?? null,
+      clientTexte: clientNom || null,
+      donnees: JSON.parse(JSON.stringify(donnees)),
+    },
+  });
+  await journaliser("ConfigRouteur", cree.id, "Import config routeur", clientNom || fichier.name);
+  revalidatePath("/staging", "layout");
+  return { success: true };
+}
+
+export async function supprimerConfigRouteurAction(id: string): Promise<void> {
+  if (!(await garde())) return;
+  await prisma.configRouteur.delete({ where: { id } });
+  revalidatePath("/staging", "layout");
 }
 
 export async function supprimerArticleAction(id: string): Promise<void> {

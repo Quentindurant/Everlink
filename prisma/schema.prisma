@@ -133,6 +133,7 @@ model Client {
   equipements  Equipement[]
   mailEnvois   MailEnvoi[]
   articlesStock ArticleStock[]
+  configsRouteur ConfigRouteur[]
 
   // Le jour de l'installation, on a parfois réutilisé le routeur déjà présent chez le client
   // (reset) au lieu d'en envoyer un depuis notre stock.
@@ -207,6 +208,21 @@ model ArticleStock {
   @@index([clientId])
   @@index([numeroSerie])
   @@index([numeroSuivi])
+}
+
+// Configuration extraite d'un routeur Sewan (.rsc MikroTik), importée au staging pour
+// reproduire la config côté UNYC : LAN/DHCP, WiFi, NAT/DMZ, WAN, accès. `donnees` porte le
+// résultat du parseur (lib/domain/routeur/mikrotik).
+model ConfigRouteur {
+  id         String  @id @default(cuid())
+  client     Client? @relation(fields: [clientId], references: [id])
+  clientId   String?
+  clientTexte String?
+  nomFichier String
+  donnees    Json
+  creeLe     DateTime @default(now())
+
+  @@index([clientId])
 }
 
 // ---------------------------------------------------------------- Techniciens
