@@ -1,16 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseMikrotikRsc } from "./mikrotik";
 
-// Export réel d'un HAP-AC2 Sewan (docs/), la référence du besoin UNYC.
-const rscReel = readFileSync(
-  join(import.meta.dir, "../../../docs/MikroTik_HAP-AC2_IP-260713-161878.rsc"),
-  "utf8"
-);
+// Export réel d'un HAP-AC2 Sewan. Volontairement non versionné (il contient la clé WiFi et
+// le mot de passe admin d'un client) : la suite ne tourne que si le fichier est présent.
+const cheminReel = join(import.meta.dir, "../../../docs/MikroTik_HAP-AC2_IP-260713-161878.rsc");
+const rscReel = existsSync(cheminReel) ? readFileSync(cheminReel, "utf8") : null;
 
-describe("parseMikrotikRsc — export réel", () => {
-  const c = parseMikrotikRsc(rscReel);
+describe.if(rscReel !== null)("parseMikrotikRsc — export réel", () => {
+  const c = parseMikrotikRsc(rscReel as string);
 
   test("LAN et passerelle", () => {
     expect(c.lanAdresse).toBe("192.168.0.1/24");
