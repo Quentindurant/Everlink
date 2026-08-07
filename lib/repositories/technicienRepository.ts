@@ -40,6 +40,8 @@ export interface DossierAdv {
   materielRecu: string | null;
   numeroChrono: string | null;
   infosFacturation: string | null;
+  // Commentaire libre du dossier, partagé avec la fiche client.
+  commentaire: string | null;
   // Suivi du colis expédié au client (La Poste/Chronopost).
   colisTransporteur: string | null;
   colisNumeroSuivi: string | null;
@@ -71,6 +73,7 @@ export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
       materielRecu: true,
       numeroChrono: true,
       infosFacturation: true,
+      commentaire: true,
       colisTransporteur: true,
       colisNumeroSuivi: true,
       colisSuiviStatut: true,
@@ -107,6 +110,7 @@ export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
     materielRecu: c.materielRecu,
     numeroChrono: c.numeroChrono,
     infosFacturation: c.infosFacturation,
+    commentaire: c.commentaire,
     colisTransporteur: c.colisTransporteur,
     colisNumeroSuivi: c.colisNumeroSuivi,
     colisSuiviStatut: c.colisSuiviStatut,

@@ -131,7 +131,7 @@ function ChampSuivi({
   onDone,
 }: {
   clientId: string;
-  champ: "materielRecu" | "numeroChrono" | "infosFacturation";
+  champ: "materielRecu" | "numeroChrono" | "infosFacturation" | "commentaire";
   valeur: string | null;
   placeholder: string;
   largeur?: string;
@@ -367,6 +367,11 @@ function LigneDossier({
         <ChampSuivi clientId={d.clientId} champ="infosFacturation" valeur={d.infosFacturation} placeholder="factu…" largeur="w-24" onDone={agir} />
       </TableCell>
 
+      {/* Commentaire libre du dossier (partagé avec la fiche client) */}
+      <TableCell title={d.commentaire ?? undefined}>
+        <ChampSuivi clientId={d.clientId} champ="commentaire" valeur={d.commentaire} placeholder="commentaire…" largeur="w-44" onDone={agir} />
+      </TableCell>
+
       {/* Routeur client réutilisé (reset sur place, pas d'envoi depuis le stock) */}
       <TableCell>
         <button
@@ -417,7 +422,7 @@ export function GestionDossiers({
         <Table>
           <TableHeader className="sticky top-0 z-10">
             <TableRow className="hover:bg-transparent">
-              {["Client", "Statut ADV", "Impératif", "Étape", "Contact", "Intervention", "Technicien", "Lien", "Mails", "Zoho", "Colis", "Matériel reçu", "N° Chrono", "Facturation", "Routeur"].map((h) => (
+              {["Client", "Statut ADV", "Impératif", "Étape", "Contact", "Intervention", "Technicien", "Lien", "Mails", "Zoho", "Colis", "Matériel reçu", "N° Chrono", "Facturation", "Commentaire", "Routeur"].map((h) => (
                 <TableHead key={h} className="h-9 whitespace-nowrap">
                   {h}
                 </TableHead>
@@ -427,7 +432,7 @@ export function GestionDossiers({
           <TableBody>
             {visibles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={15} className="py-8 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={16} className="py-8 text-center text-sm text-muted-foreground">
                   Aucun dossier.
                 </TableCell>
               </TableRow>
@@ -443,7 +448,7 @@ export function GestionDossiers({
         Tout est éditable ici : statut ADV (code couleur du tableau de suivi), date impérative,
         étape, tentative de contact (+1 au clic), date/créneau, technicien, lien (clic = commandé
         puis livré), P/C = mails prévenance/confirmation, Zoho = ajouter la ligne au tableau,
-        matériel reçu, n° Chrono, infos facturation.
+        matériel reçu, n° Chrono, infos facturation, commentaire libre.
       </p>
     </div>
   );

@@ -42,7 +42,7 @@ export async function affecterTechnicienAction(
 // l'app). Chaîne vide = effacement (null en base).
 export async function updateSuiviAdvAction(
   clientId: string,
-  champ: "statutSuivi" | "materielRecu" | "numeroChrono" | "infosFacturation" | "dateImperative",
+  champ: "statutSuivi" | "materielRecu" | "numeroChrono" | "infosFacturation" | "dateImperative" | "commentaire",
   valeur: string
 ): Promise<Resultat> {
   return garde(async () => {
