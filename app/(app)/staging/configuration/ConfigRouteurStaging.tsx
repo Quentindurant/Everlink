@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CopiePuce } from "@/components/CopiePuce";
 import type { ConfigRouteurExtraite } from "@/lib/domain/routeur/mikrotik";
 import type { ConfigRouteurLigne } from "@/lib/repositories/stockRepository";
 import { importerConfigRouteurAction, supprimerConfigRouteurAction } from "../actions";
+import { VueUnyc } from "./VueUnyc";
 
 // Import du .rsc + affichage par client des infos à reproduire côté UNYC.
 export function ConfigRouteurStaging({
@@ -99,95 +99,8 @@ export function ConfigRouteurStaging({
                   </button>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-3">
-                  {/* LAN / DHCP */}
-                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--ev-card-border)" }}>
-                    <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wide" style={{ color: "var(--ev-th)" }}>
-                      LAN · DHCP
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {d.lanAdresse && <CopiePuce valeur={d.lanAdresse} titre="IP routeur / réseau" />}
-                      {d.dhcpPlage && <CopiePuce valeur={d.dhcpPlage} titre="Plage DHCP" />}
-                      {d.passerelle && <CopiePuce valeur={d.passerelle} titre="Passerelle" />}
-                      {d.dnsServeurs.map((s) => (
-                        <CopiePuce key={s} valeur={s} titre="DNS" />
-                      ))}
-                    </div>
-                    {d.dhcpBailSecondes && (
-                      <div className="mt-1.5 text-[11px] text-muted-foreground">
-                        bail {Math.round(d.dhcpBailSecondes / 3600)} h
-                      </div>
-                    )}
-                  </div>
-
-                  {/* WiFi */}
-                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--ev-card-border)" }}>
-                    <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wide" style={{ color: "var(--ev-th)" }}>
-                      WiFi
-                    </div>
-                    {d.wifi.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">aucun</span>
-                    ) : (
-                      d.wifi.map((w, i) => (
-                        <div key={i} className="mb-1 flex flex-wrap items-center gap-1">
-                          <CopiePuce valeur={w.ssid} titre="SSID" />
-                          {w.cle && <CopiePuce valeur={w.cle} titre="Clé WiFi" />}
-                          <span className="text-[10.5px] text-muted-foreground">
-                            {w.bande ?? ""} {w.securite ? `· ${w.securite}` : ""}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  {/* NAT / DMZ */}
-                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--ev-card-border)" }}>
-                    <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wide" style={{ color: "var(--ev-th)" }}>
-                      NAT · DMZ
-                    </div>
-                    {d.dmz && (
-                      <div className="mb-1 flex items-center gap-1">
-                        <span className="ev-badge bg-[var(--pal-red-bg)] text-[color:var(--pal-red-fg)]">DMZ</span>
-                        <CopiePuce valeur={d.dmz} titre="Adresse DMZ" />
-                      </div>
-                    )}
-                    {(() => {
-                      const redirections = d.nat.filter((n) => n.action === "dst-nat" && n.portsEntree);
-                      if (redirections.length === 0 && !d.dmz) {
-                        return <span className="text-xs text-muted-foreground">aucune redirection</span>;
-                      }
-                      return redirections.map((n, i) => (
-                        <div key={i} className="mb-1 flex flex-wrap items-center gap-1 text-[11px]">
-                          <CopiePuce valeur={`${n.portsEntree}`} titre={`Port entrant${n.protocole ? ` (${n.protocole})` : ""}`} />
-                          <span className="text-muted-foreground">→</span>
-                          <CopiePuce
-                            valeur={`${n.versAdresse ?? "?"}${n.versPorts ? `:${n.versPorts}` : ""}`}
-                            titre="Destination interne"
-                          />
-                          {n.commentaire && <span className="text-muted-foreground">{n.commentaire}</span>}
-                        </div>
-                      ));
-                    })()}
-                  </div>
-                </div>
-
-                {/* Accès & WAN, discret */}
-                <div className="mt-2 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
-                  {d.wanType && <span>WAN {d.wanType.toUpperCase()}{d.wanVlanId ? ` · VLAN ${d.wanVlanId}` : ""}</span>}
-                  {d.wanUtilisateur && <CopiePuce valeur={d.wanUtilisateur} titre="Identifiant PPPoE" />}
-                  {(d.comptes ?? []).map((cpt) => (
-                    <span key={cpt.nom} className="inline-flex items-center gap-1">
-                      <span>· {cpt.nom}</span>
-                      <CopiePuce valeur={cpt.motDePasse} titre={`Mot de passe ${cpt.nom}`} />
-                    </span>
-                  ))}
-                  {(d.comptes ?? []).length === 0 && d.adminMotDePasse && (
-                    <>
-                      <span>· admin</span>
-                      <CopiePuce valeur={d.adminMotDePasse} titre="Mot de passe admin routeur" />
-                    </>
-                  )}
-                </div>
+                {/* Sections calquées sur les écrans UNYC, champs copiables un par un. */}
+                <VueUnyc d={d} />
               </div>
             );
           })}
