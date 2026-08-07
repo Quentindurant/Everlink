@@ -268,6 +268,28 @@ export async function importerConfigRouteurAction(
   return { success: true };
 }
 
+// Corrige le client rattaché à une configuration déjà importée (erreur de saisie à l'import).
+// Même logique que l'import : ID si la raison sociale correspond à une fiche, texte sinon.
+export async function modifierClientConfigRouteurAction(
+  id: string,
+  nom: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  const t = nom.trim();
+  if (!t) return { success: false, error: "Nom de client requis." };
+  const client = await prisma.client.findFirst({
+    where: { archiveA: null, raisonSociale: { equals: t, mode: "insensitive" } },
+    select: { id: true },
+  });
+  await prisma.configRouteur.update({
+    where: { id },
+    data: { clientId: client?.id ?? null, clientTexte: t },
+  });
+  await journaliser("ConfigRouteur", id, "Modification client config routeur", t);
+  revalidatePath("/staging", "layout");
+  return { success: true };
+}
+
 export async function supprimerConfigRouteurAction(id: string): Promise<void> {
   if (!(await garde())) return;
   await prisma.configRouteur.delete({ where: { id } });
