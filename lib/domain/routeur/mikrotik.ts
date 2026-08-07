@@ -19,7 +19,13 @@ export interface NatExtrait {
   commentaire: string | null;
 }
 
+export interface CompteExtrait {
+  nom: string;
+  motDePasse: string;
+}
+
 export interface ConfigRouteurExtraite {
+  identite: string | null; // /system identity, ex. "ADNSFR_6810423"
   lanAdresse: string | null; // "192.168.0.1/24"
   dhcpPlage: string | null; // "192.168.0.2-192.168.0.254"
   dhcpBailSecondes: number | null;
@@ -31,7 +37,24 @@ export interface ConfigRouteurExtraite {
   wanType: string | null; // "pppoe"
   wanUtilisateur: string | null;
   wanVlanId: string | null;
+  comptes: CompteExtrait[]; // admin + comptes partenaires (everpass…)
   adminMotDePasse: string | null;
+}
+
+// Durée RouterOS → secondes : "86400", "1d", "24h", "1h30m", "10s"…
+export function parseDureeRouterOS(brut: string): number | null {
+  const t = brut.trim();
+  if (/^\d+$/.test(t)) return Number(t);
+  const re = /(\d+)([wdhms])/g;
+  const mult: Record<string, number> = { w: 604800, d: 86400, h: 3600, m: 60, s: 1 };
+  let total = 0;
+  let trouve = false;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(t)) !== null) {
+    total += Number(m[1]) * mult[m[2]];
+    trouve = true;
+  }
+  return trouve ? total : null;
 }
 
 // Recolle les continuations de ligne ("\" en fin de ligne, style RouterOS).
@@ -70,6 +93,7 @@ function attributs(ligne: string): Record<string, string> {
 
 export function parseMikrotikRsc(texte: string): ConfigRouteurExtraite {
   const config: ConfigRouteurExtraite = {
+    identite: null,
     lanAdresse: null,
     dhcpPlage: null,
     dhcpBailSecondes: null,
@@ -81,6 +105,7 @@ export function parseMikrotikRsc(texte: string): ConfigRouteurExtraite {
     wanType: null,
     wanUtilisateur: null,
     wanVlanId: null,
+    comptes: [],
     adminMotDePasse: null,
   };
 
@@ -107,9 +132,7 @@ export function parseMikrotikRsc(texte: string): ConfigRouteurExtraite {
     } else if (contexte === "/ip pool" && a.ranges) {
       config.dhcpPlage = a.ranges;
     } else if (contexte === "/ip dhcp-server" && a["lease-time"]) {
-      const brut = a["lease-time"];
-      const n = Number(brut);
-      config.dhcpBailSecondes = Number.isFinite(n) ? n : null;
+      config.dhcpBailSecondes = parseDureeRouterOS(a["lease-time"]);
     } else if (contexte === "/ip dhcp-server network") {
       if (a.gateway) config.passerelle = a.gateway;
       if (a["dns-server"]) config.dnsServeurs = a["dns-server"].split(",");
@@ -140,7 +163,8 @@ export function parseMikrotikRsc(texte: string): ConfigRouteurExtraite {
         protocole: a.protocol ?? null,
         portsEntree: a["dst-port"] ?? null,
         versAdresse: a["to-addresses"] ?? null,
-        versPorts: a["to-ports"] ?? null,
+        // Les deux graphies existent selon la version RouterOS / le générateur Sewan.
+        versPorts: a["to-ports"] ?? a["to-port"] ?? null,
         commentaire: a.comment ?? null,
       };
       config.nat.push(nat);
@@ -154,7 +178,16 @@ export function parseMikrotikRsc(texte: string): ConfigRouteurExtraite {
     } else if (contexte === "/interface vlan" && a["vlan-id"]) {
       config.wanVlanId = a["vlan-id"];
     } else if (contexte === "/user" && a.password) {
-      config.adminMotDePasse = a.password;
+      // "add name=everpass password=…" (compte nommé) ou "set admin password=…".
+      const nom = a.name ?? (/^set\s+admin\b/.test(commande) ? "admin" : null);
+      if (nom) {
+        const existant = config.comptes.find((c) => c.nom === nom);
+        if (existant) existant.motDePasse = a.password;
+        else config.comptes.push({ nom, motDePasse: a.password });
+        if (nom === "admin") config.adminMotDePasse = a.password;
+      }
+    } else if (contexte === "/system identity" && a.name) {
+      config.identite = a.name;
     }
   }
 

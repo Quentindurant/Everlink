@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseMikrotikRsc } from "./mikrotik";
+import { parseDureeRouterOS, parseMikrotikRsc } from "./mikrotik";
 
 // Export réel d'un HAP-AC2 Sewan. Volontairement non versionné (il contient la clé WiFi et
 // le mot de passe admin d'un client) : la suite ne tourne que si le fichier est présent.
@@ -46,6 +46,54 @@ describe.if(rscReel !== null)("parseMikrotikRsc — export réel", () => {
 
   test("mot de passe admin", () => {
     expect(c.adminMotDePasse).toBe("S0l@rstr@t0s");
+  });
+});
+
+// Second format réel : autoprov Sewan officiel (CPE filaire, "do { … }", deux comptes).
+const cheminAutoprov = join(import.meta.dir, "../../../docs/F6500F9E1BEE");
+const rscAutoprov = existsSync(cheminAutoprov) ? readFileSync(cheminAutoprov, "utf8") : null;
+
+describe.if(rscAutoprov !== null)("parseMikrotikRsc — autoprov Sewan (F6500F9E1BEE)", () => {
+  const c = parseMikrotikRsc(rscAutoprov ?? "");
+
+  test("identité du CPE", () => {
+    expect(c.identite).toBe("ADNSFR_6810423");
+  });
+
+  test("LAN, plage DHCP, bail au format 1d", () => {
+    expect(c.lanAdresse).toBe("172.16.10.254/24");
+    expect(c.dhcpPlage).toBe("172.16.10.10-172.16.10.200");
+    expect(c.dhcpBailSecondes).toBe(86400);
+    expect(c.passerelle).toBe("172.16.10.254");
+  });
+
+  test("NAT : quatre redirections IPBX en to-port + masquerade", () => {
+    const redirections = c.nat.filter((n) => n.action === "dst-nat");
+    expect(redirections).toHaveLength(4);
+    expect(redirections[0].versAdresse).toBe("172.16.10.199");
+    expect(redirections[0].versPorts).toBe("4500");
+    expect(c.nat.some((n) => n.action === "masquerade")).toBe(true);
+  });
+
+  test("comptes : everpass ET admin, le bon mot de passe admin", () => {
+    expect(c.comptes.map((x) => x.nom).sort()).toEqual(["admin", "everpass"]);
+    expect(c.adminMotDePasse).toBe("4J1wFg4MVD");
+  });
+
+  test("WAN PPPoE + VLAN 2900, pas de WiFi sur ce CPE", () => {
+    expect(c.wanUtilisateur).toBe("sw-SXR9CBNA@sw.dop");
+    expect(c.wanVlanId).toBe("2900");
+    expect(c.wifi).toEqual([]);
+  });
+});
+
+describe("parseDureeRouterOS", () => {
+  test("formats usuels", () => {
+    expect(parseDureeRouterOS("86400")).toBe(86400);
+    expect(parseDureeRouterOS("1d")).toBe(86400);
+    expect(parseDureeRouterOS("24h")).toBe(86400);
+    expect(parseDureeRouterOS("1h30m")).toBe(5400);
+    expect(parseDureeRouterOS("n'importe quoi")).toBeNull();
   });
 });
 

@@ -77,6 +77,11 @@ export function ConfigRouteurStaging({
               >
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <span className="text-[13.5px] font-bold">{c.clientNom ?? "— client non renseigné —"}</span>
+                  {d.identite && (
+                    <span className="ev-badge bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]">
+                      {d.identite}
+                    </span>
+                  )}
                   <span className="font-mono text-[10.5px] text-muted-foreground">
                     {c.nomFichier} · {new Date(c.creeLe).toLocaleDateString("fr-FR")}
                   </span>
@@ -170,7 +175,13 @@ export function ConfigRouteurStaging({
                 <div className="mt-2 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
                   {d.wanType && <span>WAN {d.wanType.toUpperCase()}{d.wanVlanId ? ` · VLAN ${d.wanVlanId}` : ""}</span>}
                   {d.wanUtilisateur && <CopiePuce valeur={d.wanUtilisateur} titre="Identifiant PPPoE" />}
-                  {d.adminMotDePasse && (
+                  {(d.comptes ?? []).map((cpt) => (
+                    <span key={cpt.nom} className="inline-flex items-center gap-1">
+                      <span>· {cpt.nom}</span>
+                      <CopiePuce valeur={cpt.motDePasse} titre={`Mot de passe ${cpt.nom}`} />
+                    </span>
+                  ))}
+                  {(d.comptes ?? []).length === 0 && d.adminMotDePasse && (
                     <>
                       <span>· admin</span>
                       <CopiePuce valeur={d.adminMotDePasse} titre="Mot de passe admin routeur" />
