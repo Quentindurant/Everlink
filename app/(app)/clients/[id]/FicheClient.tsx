@@ -76,24 +76,41 @@ export function FicheClient({
 
   const mondayRaw = (client.mondayRaw ?? null) as Record<string, unknown> | null;
 
+  // Compteur affiché dans l'onglet : on voit d'un coup d'œil ce qui est rempli.
+  const compteurs: Partial<Record<Onglet, string | number>> = {
+    "Numéros": client.numeros.length,
+    "Équipements": client.equipements.length,
+    "Utilisateurs": client.utilisateurs.length,
+    "Suivi téléphonie": `${pctSuivi}%`,
+    "Mails": envois.length,
+    "Historique": auditLogs.length,
+  };
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-1 border-b">
+      <div className="flex gap-1 overflow-x-auto border-b">
         {ONGLETS.map((o) => (
           <button
             key={o}
             onClick={() => setOnglet(o)}
             className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-sm transition-colors",
+              "-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm transition-colors",
               onglet === o
                 ? "border-primary font-medium text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
             {o}
-            {o === "Suivi téléphonie" && (
-              <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">
-                {pctSuivi}%
+            {compteurs[o] !== undefined && (
+              <span
+                className={cn(
+                  "ml-1.5 rounded-full px-1.5 py-0.5 font-mono text-[10.5px] font-bold tabular-nums",
+                  onglet === o
+                    ? "bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)]"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                {compteurs[o]}
               </span>
             )}
           </button>

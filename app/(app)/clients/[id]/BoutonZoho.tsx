@@ -33,10 +33,9 @@ export function BoutonZoho({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4 shadow-xs">
-      <Sheet className="size-4 text-muted-foreground" />
-      <span className="text-sm font-semibold">Suivi Zoho</span>
+    <div className="flex flex-wrap items-center gap-3">
       <Button variant="outline" size="sm" disabled={isPending} onClick={pousser}>
+        <Sheet data-icon="inline-start" />
         {isPending ? "Envoi…" : "Ajouter au tableau de suivi"}
       </Button>
       {pousse && (

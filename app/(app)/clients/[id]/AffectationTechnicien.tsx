@@ -1,7 +1,6 @@
 "use client";
 
 import { useTransition } from "react";
-import { Wrench } from "lucide-react";
 import { affecterTechnicienAction } from "@/app/(app)/techniciens/actions";
 
 export function AffectationTechnicien({
@@ -20,9 +19,10 @@ export function AffectationTechnicien({
   const [isPending, startTransition] = useTransition();
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4 shadow-xs">
-      <Wrench className="size-4 text-muted-foreground" />
-      <span className="text-sm font-semibold">Technicien</span>
+    <div className="flex flex-wrap items-center gap-3 p-4">
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        Technicien
+      </span>
       <select
         value={technicienId ?? ""}
         disabled={isPending}

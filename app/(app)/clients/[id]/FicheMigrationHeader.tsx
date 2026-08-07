@@ -33,7 +33,7 @@ export function FicheMigrationHeader({
   const suggererBloque = doitSuggererBloque(nbTentativesContact, courante);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs">
+    <div className="flex flex-col gap-3 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <EtapeMigrationStepper etapes={etapes} etapeCouranteId={etapeCouranteId} />
         <EtapeMigrationSelect

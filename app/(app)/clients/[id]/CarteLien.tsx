@@ -44,18 +44,16 @@ export function CarteLien({
 
   if (!avecLien) {
     return (
-      <div className="rounded-xl border border-dashed bg-card p-4 text-sm text-muted-foreground shadow-xs">
-        <span className="font-medium text-foreground">Lien opérateur</span> — pas de lien pour ce
-        scénario ({scenario ?? "non renseigné"}).
+      <div className="p-4 text-sm text-muted-foreground">
+        Pas de lien pour ce scénario ({scenario ?? "non renseigné"}).
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs">
+    <div className="flex flex-col gap-3 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">Lien opérateur</span>
           <span className={cn("rounded-lg px-2.5 py-0.5 text-[11px] font-semibold", STATUT_CLASSES[statut])}>
             {STATUT_LIEN_LABEL[statut]}
           </span>
