@@ -80,6 +80,7 @@ export default async function ClientDetailPage({
     erreur: e.erreur,
     creeLe: e.creeLe.toISOString().slice(0, 16).replace("T", " "),
     auteurEmail: e.auteur?.email ?? null,
+    suiviStatut: e.suiviStatut,
   }));
 
   // Avancement de la bascule téléphonie, repris en KPI du bandeau.

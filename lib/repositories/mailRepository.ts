@@ -55,6 +55,7 @@ export async function enregistrerEnvoi(data: {
   succes: boolean;
   erreur?: string;
   auteurId?: string | null;
+  mailjetCustomId?: string | null;
 }): Promise<void> {
   await prisma.mailEnvoi.create({ data: { ...data, erreur: data.erreur ?? null } });
 }

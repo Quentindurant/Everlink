@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import type { TypeMail } from "@prisma/client";
 import { auth } from "@/auth";
@@ -26,7 +27,14 @@ export async function envoyerMailAction(
   if (!session?.user) return { success: false, error: "Non authentifié." };
   if (!destinataire.trim()) return { success: false, error: "Destinataire manquant." };
 
-  const envoi = await envoyerMail({ to: destinataire.trim(), subject: objet, text: corps });
+  // CustomID Mailjet : corrélation avec l'état de délivrabilité relevé par le cron.
+  const customId = randomUUID();
+  const envoi = await envoyerMail({
+    to: destinataire.trim(),
+    subject: objet,
+    text: corps,
+    customId,
+  });
 
   await enregistrerEnvoi({
     clientId,
@@ -37,6 +45,7 @@ export async function envoyerMailAction(
     succes: envoi.success,
     erreur: envoi.error,
     auteurId: session.user.id ?? null,
+    mailjetCustomId: envoi.success ? customId : null,
   });
 
   // Auto-avancement de l'étape de migration (uniquement si l'envoi a réussi).

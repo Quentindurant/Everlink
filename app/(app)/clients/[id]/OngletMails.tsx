@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { substituer, type VariablesMail } from "@/lib/domain/mail/substitution";
 import type { ModeleMailLite } from "@/lib/repositories/mailRepository";
+import { SUIVI_MAIL } from "@/lib/domain/mail/suiviStatuts";
 import { envoyerMailAction, setCreneauInterventionAction } from "./mailActions";
 
 export interface EnvoiLigne {
@@ -25,6 +26,8 @@ export interface EnvoiLigne {
   erreur: string | null;
   creeLe: string;
   auteurEmail: string | null;
+  // Délivrabilité Mailjet (sent/opened/bounce…), relevée par le cron mail-suivi.
+  suiviStatut: string | null;
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -194,14 +197,27 @@ export function OngletMails({
                   <TableCell className="whitespace-nowrap">{e.destinataire}</TableCell>
                   <TableCell className="max-w-64 truncate" title={e.objet}>{e.objet}</TableCell>
                   <TableCell>
-                    {e.succes ? (
-                      <span className="rounded-full bg-[var(--pal-green-bg)] px-2 py-0.5 text-[11px] font-semibold text-[color:var(--pal-green-fg)]">
-                        Envoyé
-                      </span>
-                    ) : (
+                    {!e.succes ? (
                       <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-semibold text-destructive" title={e.erreur ?? undefined}>
                         Échec
                       </span>
+                    ) : (
+                      (() => {
+                        // Priorité à la délivrabilité Mailjet quand elle est connue ;
+                        // sinon « Envoyé » (accepté par le SMTP, état pas encore relevé).
+                        const suivi = e.suiviStatut ? SUIVI_MAIL[e.suiviStatut] : null;
+                        const classes =
+                          suivi?.niveau === "erreur"
+                            ? "bg-[var(--pal-red-bg)] text-[color:var(--pal-red-fg)]"
+                            : suivi?.niveau === "info"
+                              ? "bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)]"
+                              : "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]";
+                        return (
+                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${classes}`}>
+                            {suivi?.libelle ?? "Envoyé"}
+                          </span>
+                        );
+                      })()
                     )}
                   </TableCell>
                   <TableCell>{e.auteurEmail ?? "—"}</TableCell>

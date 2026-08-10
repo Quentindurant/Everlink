@@ -8,10 +8,14 @@ export async function envoyerMail({
   to,
   subject,
   text,
+  customId,
 }: {
   to: string;
   subject: string;
   text: string;
+  // Identifiant de corrélation Mailjet (X-MJ-CustomID) : permet au cron mail-suivi de
+  // retrouver l'état de délivrabilité du message via l'API REST. Ignoré hors Mailjet.
+  customId?: string;
 }): Promise<{ success: boolean; error?: string }> {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_SECURE } = process.env;
 
@@ -30,7 +34,13 @@ export async function envoyerMail({
       secure: SMTP_SECURE === "1",
       auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
     });
-    await transport.sendMail({ from: SMTP_FROM, to, subject, text });
+    await transport.sendMail({
+      from: SMTP_FROM,
+      to,
+      subject,
+      text,
+      ...(customId ? { headers: { "X-MJ-CustomID": customId } } : {}),
+    });
     return { success: true };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Échec de l'envoi SMTP." };

@@ -291,6 +291,12 @@ model MailEnvoi {
   auteurId     String?
   creeLe       DateTime        @default(now())
 
+  // Suivi de délivrabilité Mailjet : CustomID posé à l'envoi, état (sent/opened/bounce…)
+  // relevé par le cron mail-suivi via l'API REST (mêmes clés que le SMTP).
+  mailjetCustomId String?
+  suiviStatut     String?
+  suiviMajLe      DateTime?
+
   @@index([clientId, creeLe])
 }
 
