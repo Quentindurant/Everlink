@@ -8,12 +8,13 @@ import {
   fetchModeles,
   fetchSyncRuns,
 } from "@/lib/repositories/parametresRepository";
-import { fetchModelesMailParam } from "@/lib/repositories/mailRepository";
+import { fetchModelesMailParam, getParametreApp } from "@/lib/repositories/mailRepository";
 import { fetchActiviteEquipe } from "@/lib/repositories/activiteRepository";
 import { SectionActivite } from "./SectionActivite";
 import {
   SectionComptes,
   SectionControle,
+  SectionEnvoiMail,
   SectionEtapes,
   SectionEtapesMigration,
   SectionListes,
@@ -29,7 +30,7 @@ export default async function ParametresPage() {
   const session = await auth();
   if (session?.user?.role !== "ADMIN") redirect("/");
 
-  const [modeles, listes, etapes, etapesMigration, modelesMail, comptes, syncRuns, activite] =
+  const [modeles, listes, etapes, etapesMigration, modelesMail, comptes, syncRuns, activite, signatureMail, copieMail] =
     await Promise.all([
       fetchModeles(),
       fetchListesValeurs(),
@@ -39,6 +40,8 @@ export default async function ParametresPage() {
       fetchComptes(),
       fetchSyncRuns(),
       fetchActiviteEquipe(),
+      getParametreApp("signatureMail"),
+      getParametreApp("copieMail"),
     ]);
 
   const nbAQualifier = modeles.filter((m) => !m.eligibleExport && m.nbEquipements === 0).length;
@@ -62,6 +65,7 @@ export default async function ParametresPage() {
       <SectionActivite activite={activite} />
       <SectionModeles modeles={modeles} />
       <SectionEtapesMigration etapes={etapesMigration} />
+      <SectionEnvoiMail signature={signatureMail ?? ""} copie={copieMail ?? ""} />
       <SectionModelesMail modeles={modelesMail} />
       <SectionListes listes={listes} />
       <SectionEtapes etapes={etapes} />

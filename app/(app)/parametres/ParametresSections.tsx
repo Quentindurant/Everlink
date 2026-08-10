@@ -28,6 +28,7 @@ import {
   creerModeleMailAction,
   supprimerModeleMailAction,
   updateModeleMailAction,
+  updateParametreAppAction,
 } from "./actions";
 import { VARIABLES_DISPONIBLES } from "@/lib/domain/mail/substitution";
 import {
@@ -487,6 +488,50 @@ const TYPE_MAIL_LABEL: Record<string, string> = {
   PREVENANCE: "Prévenance",
   CONFIRMATION: "Confirmation RDV",
 };
+
+// Signature ajoutée sous chaque mail composé + adresse mise en copie de chaque envoi.
+export function SectionEnvoiMail({ signature, copie }: { signature: string; copie: string }) {
+  const [, startTransition] = useTransition();
+  return (
+    <Section
+      titre="Envoi de mail"
+      description="La signature est ajoutée sous le corps de chaque mail (modifiable avant envoi). L'adresse en copie reçoit chaque mail envoyé depuis l'app."
+    >
+      <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 shadow-xs">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Adresse en copie (Cc)</label>
+          <input
+            type="email"
+            defaultValue={copie}
+            placeholder="migration.ext@everlink-services.fr"
+            onBlur={(e) => {
+              if (e.target.value !== copie)
+                startTransition(async () => {
+                  await updateParametreAppAction("copieMail", e.target.value);
+                });
+            }}
+            className="w-96 max-w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/40"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Signature</label>
+          <textarea
+            defaultValue={signature}
+            rows={6}
+            placeholder={"L'équipe migration EverLink\nmigration.ext@everlink-services.fr"}
+            onBlur={(e) => {
+              if (e.target.value !== signature)
+                startTransition(async () => {
+                  await updateParametreAppAction("signatureMail", e.target.value);
+                });
+            }}
+            className="rounded-md border border-input bg-transparent px-2 py-1.5 text-[13px] outline-none focus:border-ring focus:ring-2 focus:ring-ring/40"
+          />
+        </div>
+      </div>
+    </Section>
+  );
+}
 
 export function SectionModelesMail({ modeles }: { modeles: ModeleMailLigne[] }) {
   const [erreur, setErreur] = useState<string | null>(null);

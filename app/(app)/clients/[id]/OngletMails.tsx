@@ -1,17 +1,10 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Send } from "lucide-react";
+import { ChevronDown, PenLine, RotateCcw, Send } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { substituer, type VariablesMail } from "@/lib/domain/mail/substitution";
 import type { ModeleMailLite } from "@/lib/repositories/mailRepository";
 import { SUIVI_MAIL } from "@/lib/domain/mail/suiviStatuts";
@@ -22,6 +15,7 @@ export interface EnvoiLigne {
   type: string;
   destinataire: string;
   objet: string;
+  corps: string;
   succes: boolean;
   erreur: string | null;
   creeLe: string;
@@ -35,11 +29,58 @@ const TYPE_LABEL: Record<string, string> = {
   CONFIRMATION: "Confirmation RDV",
 };
 
+// Badge d'état d'un envoi : échec SMTP en rouge, sinon délivrabilité Mailjet
+// (Livré/Ouvert vert, En file/Différé bleu, Rejeté/Bloqué/Spam rouge).
+function BadgeEnvoi({ e }: { e: EnvoiLigne }) {
+  if (!e.succes) {
+    return (
+      <span
+        className="rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-semibold text-destructive"
+        title={e.erreur ?? undefined}
+      >
+        Échec
+      </span>
+    );
+  }
+  const suivi = e.suiviStatut ? SUIVI_MAIL[e.suiviStatut] : null;
+  const classes =
+    suivi?.niveau === "erreur"
+      ? "bg-[var(--pal-red-bg)] text-[color:var(--pal-red-fg)]"
+      : suivi?.niveau === "info"
+        ? "bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)]"
+        : "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]";
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${classes}`}>
+      {suivi?.libelle ?? "Envoyé"}
+    </span>
+  );
+}
+
+// Ligne de champ façon Gmail : libellé discret à gauche, saisie sans cadre, filet en bas.
+function LigneChamp({
+  libelle,
+  children,
+}: {
+  libelle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="flex items-center gap-2 border-b px-4 py-1.5"
+      style={{ borderColor: "var(--ev-card-border-light)" }}
+    >
+      <span className="w-14 shrink-0 text-[12px] text-muted-foreground">{libelle}</span>
+      {children}
+    </div>
+  );
+}
+
 export function OngletMails({
   clientInfo,
   modeles,
   envois,
   numeroGc,
+  signature,
 }: {
   clientInfo: {
     id: string;
@@ -56,6 +97,8 @@ export function OngletMails({
   modeles: ModeleMailLite[];
   envois: EnvoiLigne[];
   numeroGc: string;
+  // Signature (paramètre « signatureMail »), ajoutée sous le corps — modifiable comme le reste.
+  signature: string;
 }) {
   // Défaut: 1er template dont le scénario matche celui du client, sinon le 1er.
   const modeleParDefaut =
@@ -64,7 +107,11 @@ export function OngletMails({
   const [destinataire, setDestinataire] = useState(clientInfo.contactEmail ?? "");
   const [date, setDate] = useState(clientInfo.dateIso ?? "");
   const [creneau, setCreneau] = useState(clientInfo.creneau ?? "");
+  // null = suit le modèle (avec variables à jour) ; string = texte retouché à la main.
+  const [objetEdite, setObjetEdite] = useState<string | null>(null);
+  const [corpsEdite, setCorpsEdite] = useState<string | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null);
+  const [lectureId, setLectureId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const modele = modeles.find((m) => m.id === modeleId) ?? null;
@@ -82,22 +129,28 @@ export function OngletMails({
     };
   }, [clientInfo, date, creneau, numeroGc]);
 
-  const objetRempli = modele ? substituer(modele.objet, variables) : "";
-  const corpsRempli = modele ? substituer(modele.corps, variables) : "";
+  const objetModele = modele ? substituer(modele.objet, variables) : "";
+  const corpsModele = modele
+    ? substituer(modele.corps, variables) + (signature.trim() ? `\n\n${signature.trim()}` : "")
+    : "";
+  const objet = objetEdite ?? objetModele;
+  const corps = corpsEdite ?? corpsModele;
+  const retouche = objetEdite !== null || corpsEdite !== null;
+
+  const changerModele = (id: string) => {
+    setModeleId(id);
+    // Nouveau modèle = nouveau texte : on abandonne les retouches de l'ancien.
+    setObjetEdite(null);
+    setCorpsEdite(null);
+  };
 
   const envoyer = () => {
     if (!modele) return;
     setMessage(null);
     startTransition(async () => {
-      // Persiste date/créneau saisis, puis envoie le contenu tel que prévisualisé.
+      // Persiste date/créneau saisis, puis envoie le contenu tel qu'affiché (retouches incluses).
       await setCreneauInterventionAction(clientInfo.id, date, creneau);
-      const r = await envoyerMailAction(
-        clientInfo.id,
-        modele.type,
-        destinataire,
-        objetRempli,
-        corpsRempli
-      );
+      const r = await envoyerMailAction(clientInfo.id, modele.type, destinataire, objet, corps);
       setMessage(
         r.success
           ? { ok: true, texte: "Mail envoyé et étape avancée." }
@@ -115,116 +168,167 @@ export function OngletMails({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
-        {/* Paramètres de l'envoi */}
-        <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Modèle</label>
-            <select
-              value={modeleId}
-              onChange={(e) => setModeleId(e.target.value)}
-              className="rounded-md border border-input bg-transparent px-2 py-1.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/40"
+    <div className="grid items-start gap-4 xl:grid-cols-[1.15fr_1fr]">
+      {/* Composeur façon Gmail : tout est éditable avant l'envoi. */}
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+        <div
+          className="flex items-center gap-2 border-b px-4 py-2.5"
+          style={{ background: "var(--ev-thead)", borderColor: "var(--ev-card-border-light)" }}
+        >
+          <PenLine className="size-3.5 text-muted-foreground" />
+          <span className="text-[13px] font-bold">Nouveau message</span>
+          {retouche && (
+            <button
+              onClick={() => {
+                setObjetEdite(null);
+                setCorpsEdite(null);
+              }}
+              className="ml-auto inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted"
+              title="Abandonner les retouches et revenir au texte du modèle"
             >
-              {modeles.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {TYPE_LABEL[m.type] ?? m.type} — {m.scenario}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Destinataire</label>
-            <Input
-              type="email"
-              value={destinataire}
-              onChange={(e) => setDestinataire(e.target.value)}
-              placeholder="contact@client.fr"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Date</label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Créneau</label>
-              <Input value={creneau} onChange={(e) => setCreneau(e.target.value)} placeholder="9h-13h" />
-            </div>
-          </div>
+              <RotateCcw className="size-3" />
+              texte du modèle
+            </button>
+          )}
+        </div>
+
+        <LigneChamp libelle="Modèle">
+          <select
+            value={modeleId}
+            onChange={(e) => changerModele(e.target.value)}
+            className="w-full bg-transparent py-1 text-sm outline-none"
+          >
+            {modeles.map((m) => (
+              <option key={m.id} value={m.id}>
+                {TYPE_LABEL[m.type] ?? m.type} — {m.scenario}
+              </option>
+            ))}
+          </select>
+        </LigneChamp>
+
+        <LigneChamp libelle="À">
+          <input
+            type="email"
+            value={destinataire}
+            onChange={(e) => setDestinataire(e.target.value)}
+            placeholder="contact@client.fr"
+            className="w-full bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground/50"
+          />
+        </LigneChamp>
+
+        <LigneChamp libelle="Objet">
+          <input
+            value={objet}
+            onChange={(e) => setObjetEdite(e.target.value)}
+            className="w-full bg-transparent py-1 text-sm font-medium outline-none"
+          />
+        </LigneChamp>
+
+        <textarea
+          value={corps}
+          onChange={(e) => setCorpsEdite(e.target.value)}
+          spellCheck={false}
+          className="block min-h-[380px] w-full resize-y bg-transparent px-4 py-3 text-[13.5px] leading-relaxed outline-none"
+        />
+
+        {/* Barre d'envoi : date/créneau alimentent les variables du modèle. */}
+        <div
+          className="flex flex-wrap items-center gap-3 border-t px-4 py-3"
+          style={{ borderColor: "var(--ev-card-border-light)" }}
+        >
           <Button onClick={envoyer} disabled={isPending || !destinataire.trim()}>
             <Send data-icon="inline-start" />
-            {isPending ? "Envoi…" : "Envoyer le mail"}
+            {isPending ? "Envoi…" : "Envoyer"}
           </Button>
+          <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Date
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8 w-36 text-sm" />
+          </label>
+          <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Créneau
+            <Input value={creneau} onChange={(e) => setCreneau(e.target.value)} placeholder="9h-13h" className="h-8 w-24 text-sm" />
+          </label>
           {message && (
-            <span className={message.ok ? "text-sm text-[color:var(--pal-green-fg)]" : "text-sm text-destructive"}>
+            <span className={cn("text-sm", message.ok ? "text-[color:var(--pal-green-fg)]" : "text-destructive")}>
               {message.texte}
             </span>
           )}
         </div>
-
-        {/* Prévisualisation */}
-        <div className="flex flex-col gap-2 rounded-xl border bg-card p-4 shadow-xs">
-          <div className="text-xs font-medium text-muted-foreground">Aperçu</div>
-          <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm font-medium">
-            {objetRempli || "—"}
-          </div>
-          <pre className="max-h-96 overflow-auto rounded-md border bg-muted/20 px-3 py-2 text-[13px] whitespace-pre-wrap">
-            {corpsRempli || "—"}
-          </pre>
-        </div>
       </div>
 
-      {/* Historique */}
-      <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
-        <p className="border-b p-3 text-sm font-medium">Historique des envois</p>
+      {/* Boîte d'envoi façon Gmail : une ligne par mail, clic pour lire le message. */}
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+        <p
+          className="border-b px-4 py-2.5 text-[13px] font-bold"
+          style={{ background: "var(--ev-thead)", borderColor: "var(--ev-card-border-light)" }}
+        >
+          Messages envoyés
+          <span className="ml-1.5 font-mono text-[11px] font-bold text-muted-foreground">
+            {envois.length}
+          </span>
+        </p>
         {envois.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Aucun mail envoyé.</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                {["Date", "Type", "Destinataire", "Objet", "Statut", "Auteur"].map((h) => (
-                  <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {envois.map((e) => (
-                <TableRow key={e.id}>
-                  <TableCell className="whitespace-nowrap tabular-nums">{e.creeLe}</TableCell>
-                  <TableCell>{TYPE_LABEL[e.type] ?? e.type}</TableCell>
-                  <TableCell className="whitespace-nowrap">{e.destinataire}</TableCell>
-                  <TableCell className="max-w-64 truncate" title={e.objet}>{e.objet}</TableCell>
-                  <TableCell>
-                    {!e.succes ? (
-                      <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-semibold text-destructive" title={e.erreur ?? undefined}>
-                        Échec
-                      </span>
-                    ) : (
-                      (() => {
-                        // Priorité à la délivrabilité Mailjet quand elle est connue ;
-                        // sinon « Envoyé » (accepté par le SMTP, état pas encore relevé).
-                        const suivi = e.suiviStatut ? SUIVI_MAIL[e.suiviStatut] : null;
-                        const classes =
-                          suivi?.niveau === "erreur"
-                            ? "bg-[var(--pal-red-bg)] text-[color:var(--pal-red-fg)]"
-                            : suivi?.niveau === "info"
-                              ? "bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)]"
-                              : "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]";
-                        return (
-                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${classes}`}>
-                            {suivi?.libelle ?? "Envoyé"}
-                          </span>
-                        );
-                      })()
+          <div className="max-h-[560px] overflow-auto">
+            {envois.map((e) => {
+              const ouvert = lectureId === e.id;
+              return (
+                <div
+                  key={e.id}
+                  className="border-t first:border-t-0"
+                  style={{ borderColor: "var(--ev-row-border)" }}
+                >
+                  <button
+                    onClick={() => setLectureId(ouvert ? null : e.id)}
+                    className={cn(
+                      "flex w-full items-center gap-2 px-4 py-2 text-left transition-colors",
+                      ouvert ? "bg-[var(--pal-blue-bg)]/40" : "hover:bg-[var(--ev-row-hover)]"
                     )}
-                  </TableCell>
-                  <TableCell>{e.auteurEmail ?? "—"}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  >
+                    <ChevronDown
+                      className={cn(
+                        "size-3.5 shrink-0 text-muted-foreground transition-transform",
+                        !ouvert && "-rotate-90"
+                      )}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-[13px] font-semibold">{e.destinataire}</span>
+                        <span className="shrink-0 text-[10.5px] text-muted-foreground">
+                          {TYPE_LABEL[e.type] ?? e.type}
+                        </span>
+                      </div>
+                      <div className="truncate text-[12px] text-muted-foreground">{e.objet}</div>
+                    </div>
+                    <BadgeEnvoi e={e} />
+                    <span className="shrink-0 font-mono text-[10.5px] text-muted-foreground tabular-nums">
+                      {e.creeLe}
+                    </span>
+                  </button>
+
+                  {/* Lecture du message tel qu'envoyé */}
+                  {ouvert && (
+                    <div className="px-4 pb-3">
+                      <div
+                        className="rounded-lg border p-3"
+                        style={{ borderColor: "var(--ev-card-border-light)" }}
+                      >
+                        <div className="mb-2 text-[13px] font-semibold">{e.objet}</div>
+                        <pre className="max-h-72 overflow-auto text-[12.5px] leading-relaxed whitespace-pre-wrap">
+                          {e.corps || "—"}
+                        </pre>
+                        <div className="mt-2 flex flex-wrap gap-x-4 text-[10.5px] text-muted-foreground">
+                          <span>envoyé par {e.auteurEmail ?? "—"}</span>
+                          {e.erreur && <span className="text-destructive">{e.erreur}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

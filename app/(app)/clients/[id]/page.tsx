@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { fetchClientDetail } from "@/lib/repositories/clientsRepository";
 import { listEtapesMigration } from "@/lib/repositories/migrationRepository";
-import { fetchEnvois, listModelesMail } from "@/lib/repositories/mailRepository";
+import { fetchEnvois, getParametreApp, listModelesMail } from "@/lib/repositories/mailRepository";
 import { fetchTechniciensDisponibles } from "@/lib/repositories/technicienRepository";
 import { PageHero } from "@/components/PageHero";
 import { CopiePuce } from "@/components/CopiePuce";
@@ -55,11 +55,12 @@ export default async function ClientDetailPage({
 }) {
   const { id } = await params;
   const { onglet } = await searchParams;
-  const [detail, etapesMigration, modelesMail, envoisRaw] = await Promise.all([
+  const [detail, etapesMigration, modelesMail, envoisRaw, signatureMail] = await Promise.all([
     fetchClientDetail(id),
     listEtapesMigration(),
     listModelesMail(),
     fetchEnvois(id),
+    getParametreApp("signatureMail"),
   ]);
   if (!detail) notFound();
   const { client, etapes } = detail;
@@ -76,6 +77,7 @@ export default async function ClientDetailPage({
     type: e.type,
     destinataire: e.destinataire,
     objet: e.objet,
+    corps: e.corps,
     succes: e.succes,
     erreur: e.erreur,
     creeLe: e.creeLe.toISOString().slice(0, 16).replace("T", " "),
@@ -243,6 +245,7 @@ export default async function ClientDetailPage({
         modelesMail={modelesMail}
         envois={envois}
         numeroGc={process.env.NUMERO_GC ?? ""}
+        signatureMail={signatureMail ?? ""}
         ongletInitial={onglet}
       />
     </main>

@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { runSheetsSync } from "@/lib/sync/runSheetsSync";
 import {
   creerModeleMail,
+  setParametreApp,
   supprimerModeleMail,
   updateModeleMail,
 } from "@/lib/repositories/mailRepository";
@@ -214,4 +215,12 @@ export async function creerModeleMailAction(
 }
 export async function supprimerModeleMailAction(id: string): Promise<Resultat> {
   return garde(() => supprimerModeleMail(id));
+}
+
+// Paramètres d'envoi de mail (signature, adresse en copie).
+export async function updateParametreAppAction(
+  cle: "signatureMail" | "copieMail",
+  valeur: string
+): Promise<Resultat> {
+  return garde(() => setParametreApp(cle, valeur.trim()));
 }

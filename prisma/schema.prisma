@@ -262,6 +262,15 @@ enum TypeMail {
 }
 
 // Modèle de mail éditable (objet + corps avec variables {...}), par scénario et type.
+// Paramètres applicatifs clé → valeur, édités dans Paramètres :
+//   signatureMail — ajoutée sous le corps de chaque mail composé
+//   copieMail     — adresse mise en copie (Cc) de chaque envoi
+model ParametreApp {
+  cle    String   @id
+  valeur String
+  majLe  DateTime @updatedAt
+}
+
 model ModeleMail {
   id       String   @id @default(cuid())
   scenario String

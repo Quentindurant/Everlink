@@ -9,6 +9,7 @@ export async function envoyerMail({
   subject,
   text,
   customId,
+  cc,
 }: {
   to: string;
   subject: string;
@@ -16,6 +17,8 @@ export async function envoyerMail({
   // Identifiant de corrélation Mailjet (X-MJ-CustomID) : permet au cron mail-suivi de
   // retrouver l'état de délivrabilité du message via l'API REST. Ignoré hors Mailjet.
   customId?: string;
+  // Adresse mise en copie (paramètre « copieMail » de l'app).
+  cc?: string;
 }): Promise<{ success: boolean; error?: string }> {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_SECURE } = process.env;
 
@@ -39,6 +42,7 @@ export async function envoyerMail({
       to,
       subject,
       text,
+      ...(cc?.trim() ? { cc: cc.trim() } : {}),
       ...(customId ? { headers: { "X-MJ-CustomID": customId } } : {}),
     });
     return { success: true };

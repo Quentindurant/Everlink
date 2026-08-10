@@ -46,6 +46,21 @@ export function buildVariablesClient(
   };
 }
 
+// --- Paramètres applicatifs (signature, copie systématique) ---
+
+export async function getParametreApp(cle: string): Promise<string | null> {
+  const p = await prisma.parametreApp.findUnique({ where: { cle } });
+  return p?.valeur ?? null;
+}
+
+export async function setParametreApp(cle: string, valeur: string): Promise<void> {
+  await prisma.parametreApp.upsert({
+    where: { cle },
+    update: { valeur },
+    create: { cle, valeur },
+  });
+}
+
 export async function enregistrerEnvoi(data: {
   clientId: string;
   type: TypeMail;

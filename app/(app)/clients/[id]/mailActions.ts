@@ -6,7 +6,7 @@ import type { TypeMail } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { envoyerMail } from "@/lib/mail/mailer";
-import { enregistrerEnvoi } from "@/lib/repositories/mailRepository";
+import { enregistrerEnvoi, getParametreApp } from "@/lib/repositories/mailRepository";
 
 type Resultat = { success: boolean; error?: string };
 
@@ -29,11 +29,14 @@ export async function envoyerMailAction(
 
   // CustomID Mailjet : corrélation avec l'état de délivrabilité relevé par le cron.
   const customId = randomUUID();
+  // Copie systématique (paramètre « copieMail »), sauf si c'est déjà le destinataire.
+  const copie = (await getParametreApp("copieMail"))?.trim() || undefined;
   const envoi = await envoyerMail({
     to: destinataire.trim(),
     subject: objet,
     text: corps,
     customId,
+    cc: copie && copie.toLowerCase() !== destinataire.trim().toLowerCase() ? copie : undefined,
   });
 
   await enregistrerEnvoi({
