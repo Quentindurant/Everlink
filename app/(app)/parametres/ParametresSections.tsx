@@ -31,6 +31,7 @@ import {
   updateParametreAppAction,
 } from "./actions";
 import { VARIABLES_DISPONIBLES } from "@/lib/domain/mail/substitution";
+import { horodateParis } from "@/lib/domain/horodatage";
 import {
   ajouterEtapeAction,
   ajouterEtapeMigrationAction,
@@ -817,7 +818,7 @@ export function SectionSync({
                 return (
                   <TableRow key={run.id}>
                     <TableCell className="whitespace-nowrap tabular-nums">
-                      {run.creeLe.toISOString().slice(0, 16).replace("T", " ")}
+                      {horodateParis(run.creeLe)}
                     </TableCell>
                     <TableCell>{run.declencheur}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">

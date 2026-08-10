@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import type { ClientDetail } from "@/lib/repositories/clientsRepository";
 import type { ModeleMailLite } from "@/lib/repositories/mailRepository";
+import { horodateParis } from "@/lib/domain/horodatage";
 import { OngletMails, type EnvoiLigne } from "./OngletMails";
 
 const NIVEAU_CLASSES: Record<string, string> = {
@@ -291,7 +292,7 @@ export function FicheClient({
                 {auditLogs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="whitespace-nowrap tabular-nums">
-                      {log.creeLe.toISOString().slice(0, 16).replace("T", " ")}
+                      {horodateParis(log.creeLe)}
                     </TableCell>
                     <TableCell>{log.entite}</TableCell>
                     <TableCell>{log.action}</TableCell>

@@ -11,6 +11,7 @@ import {
 import { fetchImportRuns } from "@/lib/repositories/importMondayRepository";
 import { ImportMondayForm } from "./ImportMondayForm";
 import { PageHero } from "@/components/PageHero";
+import { horodateParis } from "@/lib/domain/horodatage";
 
 export const dynamic = "force-dynamic";
 
@@ -111,7 +112,7 @@ export default async function ImportMondayPage() {
                   return (
                     <TableRow key={run.id}>
                       <TableCell className="whitespace-nowrap tabular-nums">
-                        {run.creeLe.toISOString().slice(0, 16).replace("T", " ")}
+                        {horodateParis(run.creeLe)}
                       </TableCell>
                       <TableCell className="font-mono text-[13px]">{run.nomFichier}</TableCell>
                       <TableCell className="text-sm">

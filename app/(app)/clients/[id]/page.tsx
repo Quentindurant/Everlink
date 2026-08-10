@@ -17,6 +17,7 @@ import { fetchEnvois, getParametreApp, listModelesMail } from "@/lib/repositorie
 import { fetchTechniciensDisponibles } from "@/lib/repositories/technicienRepository";
 import { PageHero } from "@/components/PageHero";
 import { CopiePuce } from "@/components/CopiePuce";
+import { horodateParis } from "@/lib/domain/horodatage";
 import { SectionStaging } from "@/app/(app)/staging/SectionStaging";
 import { FicheClient } from "./FicheClient";
 import { FicheMigrationHeader } from "./FicheMigrationHeader";
@@ -80,7 +81,7 @@ export default async function ClientDetailPage({
     corps: e.corps,
     succes: e.succes,
     erreur: e.erreur,
-    creeLe: e.creeLe.toISOString().slice(0, 16).replace("T", " "),
+    creeLe: horodateParis(e.creeLe),
     auteurEmail: e.auteur?.email ?? null,
     suiviStatut: e.suiviStatut,
   }));
