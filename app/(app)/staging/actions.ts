@@ -12,7 +12,7 @@ import {
   type StockPreviewRow,
 } from "@/lib/repositories/importStockRepository";
 import { STATUT_SUIVANT } from "@/lib/repositories/stockRepository";
-import { numeroSuiviValide } from "@/lib/domain/tracking/laposte";
+import { numeroSuiviValidePour, transporteurAvecSuiviApi } from "@/lib/domain/tracking/laposte";
 import { suivreColis } from "@/lib/tracking/laPosteClient";
 import { journaliser } from "@/lib/activite";
 import { parseMikrotikRsc } from "@/lib/domain/routeur/mikrotik";
@@ -79,10 +79,11 @@ export async function expedierAvecSuiviAction(
 ): Promise<{ success: boolean; error?: string }> {
   if (!(await garde())) return { success: false, error: "Non authentifié." };
   const num = numeroSuivi.trim();
-  if (num && !numeroSuiviValide(num)) {
-    return { success: false, error: "Numéro de suivi invalide (11 à 15 caractères)." };
+  if (num && !numeroSuiviValidePour(transporteur, num)) {
+    return { success: false, error: "Numéro de suivi invalide pour ce transporteur." };
   }
-  const etat = num ? await suivreColis(num) : null;
+  // Relevé temps réel uniquement pour les transporteurs couverts par l'API La Poste.
+  const etat = num && transporteurAvecSuiviApi(transporteur) ? await suivreColis(num) : null;
   await prisma.articleStock.update({
     where: { id },
     data: {
@@ -111,8 +112,8 @@ export async function expedierLotAction(
   if (!(await garde())) return { success: false, error: "Non authentifié." };
   if (ids.length === 0) return { success: false, error: "Aucun article sélectionné." };
   const num = numeroSuivi.trim();
-  if (num && !numeroSuiviValide(num)) {
-    return { success: false, error: "Numéro de suivi invalide (11 à 15 caractères)." };
+  if (num && !numeroSuiviValidePour(transporteur, num)) {
+    return { success: false, error: "Numéro de suivi invalide pour ce transporteur." };
   }
   const nom = clientNom.trim();
   const client = nom
@@ -121,7 +122,7 @@ export async function expedierLotAction(
         select: { id: true },
       })
     : null;
-  const etat = num ? await suivreColis(num) : null;
+  const etat = num && transporteurAvecSuiviApi(transporteur) ? await suivreColis(num) : null;
   await prisma.articleStock.updateMany({
     where: { id: { in: ids } },
     data: {
@@ -176,8 +177,8 @@ export async function corrigerColisAction(
   if (!(await garde())) return { success: false, error: "Non authentifié." };
   if (ids.length === 0) return { success: false, error: "Aucun article." };
   const num = numeroSuivi.trim();
-  if (num && !numeroSuiviValide(num)) {
-    return { success: false, error: "Numéro de suivi invalide (11 à 15 caractères)." };
+  if (num && !numeroSuiviValidePour(transporteur, num)) {
+    return { success: false, error: "Numéro de suivi invalide pour ce transporteur." };
   }
   const nom = clientNom.trim();
   const client = nom
@@ -186,7 +187,7 @@ export async function corrigerColisAction(
         select: { id: true },
       })
     : null;
-  const etat = num ? await suivreColis(num) : null;
+  const etat = num && transporteurAvecSuiviApi(transporteur) ? await suivreColis(num) : null;
   await prisma.articleStock.updateMany({
     where: { id: { in: ids } },
     data: {

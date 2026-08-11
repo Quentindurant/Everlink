@@ -40,6 +40,21 @@ export function ExpeditionStaging({
     [dossiers, nonRattaches]
   );
 
+  // Le champ scan sert aussi de recherche : taper filtre la liste par N° de série (ou nom
+  // de client), Entrée coche l'article qui correspond exactement.
+  const filtre = scan.trim().toLowerCase();
+  const correspond = (a: ArticleStockLigne) => a.numeroSerie.toLowerCase().includes(filtre);
+  const dossiersVisibles = filtre
+    ? dossiers
+        .map((d) =>
+          d.clientNom.toLowerCase().includes(filtre)
+            ? d
+            : { ...d, articles: d.articles.filter(correspond) }
+        )
+        .filter((d) => d.articles.length > 0)
+    : dossiers;
+  const nonRattachesVisibles = filtre ? nonRattaches.filter(correspond) : nonRattaches;
+
   // Destinataire déduit : tous les articles cochés appartiennent au même client → auto.
   const clientDeduit = useMemo(() => {
     const noms = new Set(
@@ -134,7 +149,16 @@ export function ExpeditionStaging({
       <div className="flex flex-wrap items-end gap-3 px-4 py-3">
         <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           Transporteur
-          <Input value={transporteur} onChange={(e) => setTransporteur(e.target.value)} className="h-8 w-32 text-sm" />
+          <Input
+            list="transporteurs-expedition"
+            value={transporteur}
+            onChange={(e) => setTransporteur(e.target.value)}
+            className="h-8 w-32 text-sm"
+          />
+          <datalist id="transporteurs-expedition">
+            <option value="Chronopost" />
+            <option value="DHL" />
+          </datalist>
         </label>
         <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           N° de suivi
@@ -162,8 +186,8 @@ export function ExpeditionStaging({
             value={scan}
             onChange={(e) => setScan(e.target.value)}
             onKeyDown={onScan}
-            placeholder="Scanner un N° de série…"
-            className="h-8 w-56 pl-8 font-mono text-sm"
+            placeholder="Scanner ou chercher un N° de série…"
+            className="h-8 w-64 pl-8 font-mono text-sm"
           />
         </div>
         <div className="ml-auto flex flex-col items-end gap-1">
@@ -176,13 +200,15 @@ export function ExpeditionStaging({
       </div>
 
       {/* Dossiers par client */}
-      {dossiers.length === 0 && nonRattaches.length === 0 ? (
+      {dossiersVisibles.length === 0 && nonRattachesVisibles.length === 0 ? (
         <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-          Aucun matériel en stock.
+          {filtre
+            ? `Aucun article ni client ne correspond à « ${scan.trim()} ».`
+            : "Aucun matériel en stock."}
         </p>
       ) : (
         <div className="max-h-[52vh] overflow-auto">
-          {dossiers.map((d) => {
+          {dossiersVisibles.map((d) => {
             const toutCoche = d.articles.every((a) => selection.has(a.id));
             return (
               <div key={d.clientNom}>
@@ -227,7 +253,7 @@ export function ExpeditionStaging({
             );
           })}
 
-          {nonRattaches.length > 0 && (
+          {nonRattachesVisibles.length > 0 && (
             <div>
               <div
                 className="flex items-center gap-2.5 border-t px-4 py-2"
@@ -235,10 +261,10 @@ export function ExpeditionStaging({
               >
                 <span className="text-[13px] font-bold text-muted-foreground">Non rattachés</span>
                 <span className="ml-auto font-mono text-[11px] text-muted-foreground">
-                  {nonRattaches.length} — rattacher depuis la Réception
+                  {nonRattachesVisibles.length} — rattacher depuis la Réception
                 </span>
               </div>
-              {nonRattaches.map((a) => (
+              {nonRattachesVisibles.map((a) => (
                 <LigneArticle key={a.id} a={a} />
               ))}
             </div>

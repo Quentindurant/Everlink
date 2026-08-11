@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { etatDeShipment, numeroSuiviValide, type LaPosteTrackingResponse } from "./laposte";
+import {
+  etatDeShipment,
+  numeroSuiviValide,
+  numeroSuiviValidePour,
+  transporteurAvecSuiviApi,
+  urlSuiviTransporteur,
+  type LaPosteTrackingResponse,
+} from "./laposte";
 
 describe("numeroSuiviValide", () => {
   test("accepte un numéro Chronopost 13 caractères", () => {
@@ -66,5 +73,29 @@ describe("etatDeShipment", () => {
       shipment: { idShip: "X", holder: 3, product: "Chronopost", isFinal: true, event: [] },
     };
     expect(etatDeShipment(r).statut).toBe("EN_COURS");
+  });
+});
+
+describe("numeroSuiviValidePour / transporteurAvecSuiviApi", () => {
+  test("Chronopost garde la validation stricte 11-15", () => {
+    expect(numeroSuiviValidePour("Chronopost", "XN368574133FR")).toBe(true);
+    expect(numeroSuiviValidePour("Chronopost", "1234567890")).toBe(false);
+  });
+
+  test("DHL accepte les bons courts (10 chiffres) et longs (JJD…)", () => {
+    expect(numeroSuiviValidePour("DHL", "1234567890")).toBe(true);
+    expect(numeroSuiviValidePour("DHL", "JJD014600002535011186")).toBe(true);
+    expect(numeroSuiviValidePour("DHL", "abc")).toBe(false);
+  });
+
+  test("seuls La Poste/Chronopost/Colissimo ont le suivi API", () => {
+    expect(transporteurAvecSuiviApi("Chronopost")).toBe(true);
+    expect(transporteurAvecSuiviApi(null)).toBe(true);
+    expect(transporteurAvecSuiviApi("DHL")).toBe(false);
+  });
+
+  test("URL de suivi DHL, aucune pour Chronopost (suivi intégré)", () => {
+    expect(urlSuiviTransporteur("DHL", "1234567890")).toContain("dhl.com");
+    expect(urlSuiviTransporteur("Chronopost", "XN368574133FR")).toBeNull();
   });
 });

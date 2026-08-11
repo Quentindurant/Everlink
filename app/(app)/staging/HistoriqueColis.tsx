@@ -195,10 +195,15 @@ export function HistoriqueColis({ colis }: { colis: ColisExpedie[] }) {
                     <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                       Transporteur
                       <Input
+                        list="transporteurs-correction"
                         value={transporteur}
                         onChange={(e) => setTransporteur(e.target.value)}
                         className="h-8 w-32 text-sm"
                       />
+                      <datalist id="transporteurs-correction">
+                        <option value="Chronopost" />
+                        <option value="DHL" />
+                      </datalist>
                     </label>
                     <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                       N° de suivi

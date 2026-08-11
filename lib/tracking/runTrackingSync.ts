@@ -4,6 +4,7 @@
 // les autres, et l'état précédent est conservé si La Poste ne répond pas.
 import { prisma } from "@/lib/prisma";
 import { laPosteConfigure, suivreColis } from "@/lib/tracking/laPosteClient";
+import { transporteurAvecSuiviApi } from "@/lib/domain/tracking/laposte";
 
 export interface TrackingSyncResult {
   succes: boolean;
@@ -34,7 +35,7 @@ export async function runTrackingSync(): Promise<TrackingSyncResult> {
         numeroSuivi: { not: null },
         NOT: { suiviStatut: "LIVRE" },
       },
-      select: { id: true, numeroSuivi: true },
+      select: { id: true, numeroSuivi: true, transporteur: true },
     }),
     prisma.client.findMany({
       where: {
@@ -42,13 +43,15 @@ export async function runTrackingSync(): Promise<TrackingSyncResult> {
         colisNumeroSuivi: { not: null },
         NOT: { colisSuiviStatut: "LIVRE" },
       },
-      select: { id: true, colisNumeroSuivi: true },
+      select: { id: true, colisNumeroSuivi: true, colisTransporteur: true },
     }),
   ]);
 
   let misAJour = 0;
 
   for (const a of articles) {
+    // DHL et autres transporteurs hors API La Poste : pas de relevé automatique.
+    if (!transporteurAvecSuiviApi(a.transporteur)) continue;
     const etat = await suivreColis(a.numeroSuivi as string);
     if (!etat) continue;
     await prisma.articleStock.update({
@@ -64,6 +67,7 @@ export async function runTrackingSync(): Promise<TrackingSyncResult> {
   }
 
   for (const c of clients) {
+    if (!transporteurAvecSuiviApi(c.colisTransporteur)) continue;
     const etat = await suivreColis(c.colisNumeroSuivi as string);
     if (!etat) continue;
     await prisma.client.update({

@@ -44,6 +44,32 @@ export function numeroSuiviValide(numero: string): boolean {
   return n.length >= 11 && n.length <= 15 && /^[A-Za-z0-9]+$/.test(n);
 }
 
+// Seuls les transporteurs couverts par l'API La Poste (Chronopost, Colissimo, lettre suivie)
+// ont un suivi temps réel. DHL et consorts sont acceptés à l'expédition mais sans relevé
+// automatique : le bon est saisi, affiché et lié au site du transporteur.
+export function transporteurAvecSuiviApi(transporteur: string | null): boolean {
+  const t = (transporteur ?? "").toLowerCase();
+  return t === "" || t.includes("chrono") || t.includes("poste") || t.includes("colissimo");
+}
+
+// Validation selon le transporteur : stricte pour La Poste/Chronopost (l'API refuse le reste),
+// large pour les autres (DHL Express = 10 chiffres, DHL Parcel = JJD/JVGL + suite longue).
+export function numeroSuiviValidePour(transporteur: string | null, numero: string): boolean {
+  const n = numero.trim();
+  if (!/^[A-Za-z0-9]+$/.test(n)) return false;
+  if (transporteurAvecSuiviApi(transporteur)) return n.length >= 11 && n.length <= 15;
+  return n.length >= 8 && n.length <= 30;
+}
+
+// URL de suivi publique pour les transporteurs sans API (ouverte dans un nouvel onglet).
+export function urlSuiviTransporteur(transporteur: string | null, numero: string): string | null {
+  const t = (transporteur ?? "").toLowerCase();
+  if (t.includes("dhl")) {
+    return `https://www.dhl.com/fr-fr/home/tracking.html?tracking-id=${encodeURIComponent(numero)}`;
+  }
+  return null;
+}
+
 // Dérive l'état normalisé d'une réponse API. Robuste : s'appuie sur `isFinal` + `deliveryDate`
 // fournis par La Poste plutôt que sur les codes d'événement, qui varient selon le transporteur.
 export function etatDeShipment(reponse: LaPosteTrackingResponse): EtatSuivi {

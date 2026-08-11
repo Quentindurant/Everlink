@@ -9,7 +9,7 @@ import {
   supprimerTechnicien,
   updateTechnicien,
 } from "@/lib/repositories/technicienRepository";
-import { numeroSuiviValide } from "@/lib/domain/tracking/laposte";
+import { numeroSuiviValidePour, transporteurAvecSuiviApi } from "@/lib/domain/tracking/laposte";
 import { suivreColis } from "@/lib/tracking/laPosteClient";
 import { journaliser } from "@/lib/activite";
 
@@ -81,10 +81,10 @@ export async function setColisSuiviAction(
       });
       return;
     }
-    if (!numeroSuiviValide(num)) {
-      return { success: false, error: "Numéro de suivi invalide (11 à 15 caractères)." };
+    if (!numeroSuiviValidePour(transporteur, num)) {
+      return { success: false, error: "Numéro de suivi invalide pour ce transporteur." };
     }
-    const etat = await suivreColis(num);
+    const etat = transporteurAvecSuiviApi(transporteur) ? await suivreColis(num) : null;
     await prisma.client.update({
       where: { id: clientId },
       data: {
