@@ -5,6 +5,8 @@ export interface TelephoneUtilisateurLigne {
   utilisateurNom: string;
   clientId: string;
   clientRaisonSociale: string;
+  // Tech qui s'est attribué le client (email), null si personne.
+  clientAttribueA: string | null;
   // etapeId -> statut ("À faire" implicite si absent)
   statuts: Record<string, string>;
   // Infos du poste, copiables par les techniciens pendant la configuration.
@@ -47,7 +49,9 @@ export async function fetchTelephoneGrille(filtres: {
           : {}),
       },
       include: {
-        client: { select: { id: true, raisonSociale: true, dateIntervention: true } },
+        client: {
+          select: { id: true, raisonSociale: true, dateIntervention: true, telephoneAttribueA: true },
+        },
         suivis: { where: { etape: { actif: true } } },
         numeros: {
           where: { archiveA: null },
@@ -78,6 +82,7 @@ export async function fetchTelephoneGrille(filtres: {
       utilisateurNom: u.nom,
       clientId: u.client.id,
       clientRaisonSociale: u.client.raisonSociale,
+      clientAttribueA: u.client.telephoneAttribueA,
       statuts: Object.fromEntries(u.suivis.map((s) => [s.etapeId, s.statut])),
       numeros: u.numeros.map((n) => ({ brut: n.numeroBrut, courts: n.numerosCourts })),
       equipements: u.equipements

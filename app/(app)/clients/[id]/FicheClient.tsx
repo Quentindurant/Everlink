@@ -15,6 +15,7 @@ import {
 import type { ClientDetail } from "@/lib/repositories/clientsRepository";
 import type { ModeleMailLite } from "@/lib/repositories/mailRepository";
 import { horodateParis } from "@/lib/domain/horodatage";
+import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
 import { OngletMails, type EnvoiLigne } from "./OngletMails";
 
 const NIVEAU_CLASSES: Record<string, string> = {
@@ -74,7 +75,7 @@ export function FicheClient({
   const nbCellulesSuivi = client.utilisateurs.length * etapes.length;
   const nbFaits = client.utilisateurs
     .flatMap((u) => u.suivis)
-    .filter((s) => s.statut === "Fait").length;
+    .filter((s) => estEtapeResolue(s.statut)).length;
   const pctSuivi = nbCellulesSuivi > 0 ? Math.round((nbFaits / nbCellulesSuivi) * 100) : 0;
 
   const mondayRaw = (client.mondayRaw ?? null) as Record<string, unknown> | null;
@@ -190,7 +191,7 @@ export function FicheClient({
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.nom}</TableCell>
                   <TableCell className="tabular-nums">
-                    {u.suivis.filter((s) => s.statut === "Fait").length}/{etapes.length}
+                    {u.suivis.filter((s) => estEtapeResolue(s.statut)).length}/{etapes.length}
                   </TableCell>
                   <TableCell className="max-w-64 truncate">{u.commentaire ?? "—"}</TableCell>
                 </TableRow>

@@ -1,5 +1,7 @@
+import { auth } from "@/auth";
 import { fetchTelephoneGrille } from "@/lib/repositories/telephoneRepository";
 import { listClientsActifs } from "@/lib/repositories/provisionningRepository";
+import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
 import { TelephoneFiltres } from "./TelephoneFiltres";
 import { TelephoneGrille } from "./TelephoneGrille";
 import { PageHero } from "@/components/PageHero";
@@ -12,9 +14,10 @@ export default async function TelephonePage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
-  const [grille, clients] = await Promise.all([
+  const [grille, clients, session] = await Promise.all([
     fetchTelephoneGrille({ clientId: params.client, recherche: params.q }),
     listClientsActifs(),
+    auth(),
   ]);
 
   const totalUtilisateurs = grille.utilisateurs.length;
@@ -23,9 +26,7 @@ export default async function TelephonePage({
         (grille.utilisateurs.reduce(
           (acc, u) =>
             acc +
-            Object.values(u.statuts).filter(
-              (st) => st === "Fait" || st === "Sans objet"
-            ).length,
+            Object.values(u.statuts).filter((st) => estEtapeResolue(st)).length,
           0
         ) /
           (totalUtilisateurs * grille.etapes.length)) *
@@ -50,7 +51,7 @@ export default async function TelephonePage({
         ]}
       />
       <TelephoneFiltres clients={clients} />
-      <TelephoneGrille grille={grille} />
+      <TelephoneGrille grille={grille} monEmail={session?.user?.email ?? ""} />
     </main>
   );
 }

@@ -38,6 +38,8 @@ async function main() {
     { categorie: "STATUT_ETAPE", valeur: "En cours", ordre: 1 },
     { categorie: "STATUT_ETAPE", valeur: "Fait", ordre: 2 },
     { categorie: "STATUT_ETAPE", valeur: "Sans objet", ordre: 3 },
+    // « Aucun » = l'étape ne s'applique pas au poste ; compté comme résolu dans les jauges.
+    { categorie: "STATUT_ETAPE", valeur: "Aucun", ordre: 4 },
     { categorie: "SCENARIO", valeur: "CENTREX only", ordre: 0 },
     { categorie: "SCENARIO", valeur: "Lien + CENTREX", ordre: 1 },
     { categorie: "SCENARIO", valeur: "Lien + CENTREX + 4G/5G", ordre: 2 },

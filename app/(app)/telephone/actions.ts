@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { journaliser } from "@/lib/activite";
 import { setEtapeClient, setSuiviEtape } from "@/lib/repositories/telephoneRepository";
 
@@ -18,6 +19,30 @@ export async function setSuiviEtapeAction(
   } catch {
     return { success: false, error: "Échec de la sauvegarde." };
   }
+  revalidatePath("/telephone");
+  return { success: true };
+}
+
+// S'attribue (ou libère) la migration téléphone d'un client : le nom s'affiche sur la
+// bande du client pour que deux techs ne travaillent pas le même dossier en parallèle.
+export async function attribuerClientTelephoneAction(
+  clientId: string,
+  prendre: boolean
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.email) return { success: false, error: "Non authentifié." };
+  await prisma.client.update({
+    where: { id: clientId },
+    data: prendre
+      ? { telephoneAttribueA: session.user.email, telephoneAttribueLe: new Date() }
+      : { telephoneAttribueA: null, telephoneAttribueLe: null },
+  });
+  await journaliser(
+    "Client",
+    clientId,
+    prendre ? "Attribution téléphone" : "Libération téléphone",
+    session.user.email
+  );
   revalidatePath("/telephone");
   return { success: true };
 }

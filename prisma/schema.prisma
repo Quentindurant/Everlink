@@ -101,6 +101,10 @@ model Client {
   dernierContactLe    DateTime?
   // Nomenclature commentaires Monday, ex "EV VTO0907 : XXXXX".
   referenceClient     String?
+  // Tech qui s'est attribué la migration téléphone du client (email), pour éviter que
+  // deux techniciens travaillent le même dossier en parallèle.
+  telephoneAttribueA  String?
+  telephoneAttribueLe DateTime?
   // Créneau horaire du RDV (ex "9h-13h"), complément de dateIntervention pour les mails.
   creneauIntervention String?
 
