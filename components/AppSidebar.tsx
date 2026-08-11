@@ -16,6 +16,7 @@ const NAV_GROUPES = [
   {
     titre: "Migration Téléphone",
     items: [
+      { href: "/chef-projet", label: "Chef projet", dot: "var(--ev-purple)" },
       { href: "/", label: "Provisionning", dot: "var(--ev-blue)" },
       { href: "/telephone", label: "Téléphone", dot: "var(--ev-cyan)" },
     ],

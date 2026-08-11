@@ -4,6 +4,7 @@ import {
   fetchComptes,
   fetchEtapes,
   fetchEtapesMigrationParam,
+  fetchEtapesProjetParam,
   fetchListesValeurs,
   fetchModeles,
   fetchSyncRuns,
@@ -17,6 +18,7 @@ import {
   SectionEnvoiMail,
   SectionEtapes,
   SectionEtapesMigration,
+  SectionEtapesProjet,
   SectionListes,
   SectionModeles,
   SectionModelesMail,
@@ -30,12 +32,13 @@ export default async function ParametresPage() {
   const session = await auth();
   if (session?.user?.role !== "ADMIN") redirect("/");
 
-  const [modeles, listes, etapes, etapesMigration, modelesMail, comptes, syncRuns, activite, copieMail] =
+  const [modeles, listes, etapes, etapesMigration, etapesProjet, modelesMail, comptes, syncRuns, activite, copieMail] =
     await Promise.all([
       fetchModeles(),
       fetchListesValeurs(),
       fetchEtapes(),
       fetchEtapesMigrationParam(),
+      fetchEtapesProjetParam(),
       fetchModelesMailParam(),
       fetchComptes(),
       fetchSyncRuns(),
@@ -64,6 +67,7 @@ export default async function ParametresPage() {
       <SectionActivite activite={activite} />
       <SectionModeles modeles={modeles} />
       <SectionEtapesMigration etapes={etapesMigration} />
+      <SectionEtapesProjet etapes={etapesProjet} />
       <SectionEnvoiMail copie={copieMail ?? ""} />
       <SectionModelesMail modeles={modelesMail} />
       <SectionListes listes={listes} />

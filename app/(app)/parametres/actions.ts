@@ -12,6 +12,9 @@ import {
   updateModeleMail,
 } from "@/lib/repositories/mailRepository";
 import {
+  ajouterEtapeProjet,
+  supprimerEtapeProjet,
+  updateEtapeProjet,
   ajouterEtape,
   ajouterEtapeMigration,
   ajouterValeur,
@@ -223,4 +226,25 @@ export async function updateParametreAppAction(
   valeur: string
 ): Promise<Resultat> {
   return garde(() => setParametreApp(cle, valeur.trim()));
+}
+
+// --- Checklist chef de projet ---
+
+export async function updateEtapeProjetAction(
+  id: string,
+  data: { libelle?: string; phase?: string; aide?: string; actif?: boolean }
+): Promise<Resultat> {
+  return garde(() => updateEtapeProjet(id, data));
+}
+
+export async function ajouterEtapeProjetAction(libelle: string, phase: string): Promise<Resultat> {
+  return garde(async () => {
+    if (!libelle.trim() || !phase.trim())
+      return { success: false, error: "Libellé et phase obligatoires." };
+    await ajouterEtapeProjet(libelle.trim(), phase.trim());
+  });
+}
+
+export async function supprimerEtapeProjetAction(id: string): Promise<Resultat> {
+  return garde(() => supprimerEtapeProjet(id));
 }

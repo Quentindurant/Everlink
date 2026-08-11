@@ -24,7 +24,11 @@ import type {
   ValeurListe,
 } from "@/lib/repositories/parametresRepository";
 import type { ModeleMailLigne } from "@/lib/repositories/mailRepository";
+import type { EtapeProjetLigne } from "@/lib/repositories/parametresRepository";
 import {
+  ajouterEtapeProjetAction,
+  supprimerEtapeProjetAction,
+  updateEtapeProjetAction,
   creerModeleMailAction,
   supprimerModeleMailAction,
   updateModeleMailAction,
@@ -267,6 +271,117 @@ function ListeCategorie({
 }
 
 // ---------------------------------------------------------------- Étapes
+
+// Checklist du chef de projet : libellés, phase de regroupement et aide terrain.
+export function SectionEtapesProjet({ etapes }: { etapes: EtapeProjetLigne[] }) {
+  const [libelle, setLibelle] = useState("");
+  const [phase, setPhase] = useState("");
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+  const phases = [...new Set(etapes.map((e) => e.phase))];
+
+  return (
+    <Section
+      titre="Checklist chef de projet"
+      description="Les étapes de préparation d'un dossier, regroupées par phase. L'aide s'affiche sous le libellé (identifiant, URL, piège connu)."
+    >
+      <div className="flex flex-col gap-3">
+        {phases.map((p) => (
+          <div key={p} className="rounded-xl border bg-card p-3 shadow-xs">
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[color:var(--ev-accent-text)]">
+              {p}
+            </div>
+            <div className="flex flex-col gap-2">
+              {etapes
+                .filter((e) => e.phase === p)
+                .map((e) => (
+                  <div key={e.id} className="flex flex-wrap items-center gap-2">
+                    <Checkbox
+                      checked={e.actif}
+                      onCheckedChange={(v) =>
+                        startTransition(async () => {
+                          await updateEtapeProjetAction(e.id, { actif: Boolean(v) });
+                        })
+                      }
+                    />
+                    <input
+                      defaultValue={e.libelle}
+                      onBlur={(ev) => {
+                        if (ev.target.value !== e.libelle && ev.target.value.trim())
+                          startTransition(async () => {
+                            await updateEtapeProjetAction(e.id, { libelle: ev.target.value });
+                          });
+                      }}
+                      className="w-72 rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-sm font-medium outline-none hover:border-input focus:border-ring"
+                    />
+                    <input
+                      defaultValue={e.aide ?? ""}
+                      placeholder="aide (identifiant, URL…)"
+                      onBlur={(ev) => {
+                        if (ev.target.value !== (e.aide ?? ""))
+                          startTransition(async () => {
+                            await updateEtapeProjetAction(e.id, { aide: ev.target.value });
+                          });
+                      }}
+                      className="min-w-64 flex-1 rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-[12.5px] text-muted-foreground outline-none hover:border-input focus:border-ring"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() =>
+                        startTransition(async () => {
+                          const r = await supprimerEtapeProjetAction(e.id);
+                          if (!r.success) setErreur(r.error ?? null);
+                        })
+                      }
+                    >
+                      <Trash2 />
+                    </Button>
+                  </div>
+                ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          placeholder="Nouvelle étape"
+          value={libelle}
+          onChange={(e) => setLibelle(e.target.value)}
+          className="w-72"
+        />
+        <Input
+          list="phases-projet"
+          placeholder="Phase"
+          value={phase}
+          onChange={(e) => setPhase(e.target.value)}
+          className="w-52"
+        />
+        <datalist id="phases-projet">
+          {phases.map((p) => (
+            <option key={p} value={p} />
+          ))}
+        </datalist>
+        <Button
+          size="sm"
+          onClick={() =>
+            startTransition(async () => {
+              const r = await ajouterEtapeProjetAction(libelle, phase);
+              if (r.success) {
+                setLibelle("");
+                setErreur(null);
+              } else setErreur(r.error ?? null);
+            })
+          }
+        >
+          <Plus data-icon="inline-start" />
+          Ajouter
+        </Button>
+      </div>
+      <Erreur texte={erreur} />
+    </Section>
+  );
+}
 
 export function SectionEtapes({ etapes }: { etapes: EtapeLigne[] }) {
   const [nouvelle, setNouvelle] = useState("");

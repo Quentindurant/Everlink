@@ -307,3 +307,47 @@ export async function fetchSyncRuns(limit = 10) {
     take: limit,
   });
 }
+
+// --- Checklist chef de projet (étapes au niveau dossier) ---
+
+export interface EtapeProjetLigne {
+  id: string;
+  libelle: string;
+  phase: string;
+  aide: string | null;
+  ordre: number;
+  actif: boolean;
+}
+
+export async function fetchEtapesProjetParam(): Promise<EtapeProjetLigne[]> {
+  const etapes = await prisma.etapeProjet.findMany({ orderBy: { ordre: "asc" } });
+  return etapes.map((e) => ({
+    id: e.id,
+    libelle: e.libelle,
+    phase: e.phase,
+    aide: e.aide,
+    ordre: e.ordre,
+    actif: e.actif,
+  }));
+}
+
+export async function updateEtapeProjet(
+  id: string,
+  data: { libelle?: string; phase?: string; aide?: string; actif?: boolean }
+): Promise<void> {
+  await prisma.etapeProjet.update({
+    where: { id },
+    data: { ...data, ...(data.aide !== undefined ? { aide: data.aide.trim() || null } : {}) },
+  });
+}
+
+export async function ajouterEtapeProjet(libelle: string, phase: string): Promise<void> {
+  const max = await prisma.etapeProjet.aggregate({ _max: { ordre: true } });
+  await prisma.etapeProjet.create({
+    data: { libelle, phase, ordre: (max._max.ordre ?? 0) + 10 },
+  });
+}
+
+export async function supprimerEtapeProjet(id: string): Promise<void> {
+  await prisma.etapeProjet.delete({ where: { id } });
+}

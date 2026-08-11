@@ -17,6 +17,7 @@ const PAGES: Resultat[] = [
   { type: "Page", libelle: "Provisionning", detail: "", href: "/" },
   { type: "Page", libelle: "Clients", detail: "", href: "/clients" },
   { type: "Page", libelle: "Téléphone", detail: "", href: "/telephone" },
+  { type: "Page", libelle: "Chef projet — préparation", detail: "", href: "/chef-projet" },
   { type: "Page", libelle: "Pilotage dossiers (ADV)", detail: "", href: "/techniciens" },
   { type: "Page", libelle: "Stock & routeurs (Staging)", detail: "", href: "/staging" },
   { type: "Page", libelle: "Export SDA", detail: "", href: "/import-sda" },

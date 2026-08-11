@@ -105,6 +105,10 @@ model Client {
   // deux techniciens travaillent le même dossier en parallèle.
   telephoneAttribueA  String?
   telephoneAttribueLe DateTime?
+  // Préparation chef de projet : qui pilote le dossier, et clôture de la checklist.
+  projetAttribueA     String?
+  projetAttribueLe    DateTime?
+  projetClosLe        DateTime?
   // Créneau horaire du RDV (ex "9h-13h"), complément de dateIntervention pour les mails.
   creneauIntervention String?
 
@@ -133,6 +137,7 @@ model Client {
   majLe    DateTime  @updatedAt
 
   utilisateurs Utilisateur[]
+  suivisProjet SuiviProjet[]
   numeros      Numero[]
   equipements  Equipement[]
   mailEnvois   MailEnvoi[]
@@ -474,6 +479,44 @@ model EtapeMigration {
 }
 
 // ---------------------------------------------------------------- Suivi téléphonie
+
+// Étapes de préparation d'une migration, au niveau du dossier client (pas du poste) :
+// la checklist du chef de projet avant et pendant l'intervention. Les libellés sont
+// éditables dans Paramètres, l'aide porte les valeurs terrain (URL autoprovision, etc.).
+model EtapeProjet {
+  id      String   @id @default(cuid())
+  libelle String   @unique
+  // Regroupement affiché : "Avant reset", "Reset & autoprovision", "Vérifications", "Client".
+  phase   String
+  // Précision pratique affichée sous le libellé (identifiant, URL, piège connu).
+  aide    String?
+  ordre   Int
+  actif   Boolean  @default(true)
+  creeLe  DateTime @default(now())
+  majLe   DateTime @updatedAt
+
+  suivis SuiviProjet[]
+}
+
+model SuiviProjet {
+  id String @id @default(cuid())
+
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+
+  etape   EtapeProjet @relation(fields: [etapeId], references: [id], onDelete: Cascade)
+  etapeId String
+
+  // Mêmes valeurs que le suivi téléphonie : À faire | En cours | Fait | Aucun.
+  statut      String    @default("À faire")
+  commentaire String?
+  faitLe      DateTime?
+  faitPar     String?
+  majLe       DateTime  @updatedAt
+
+  @@unique([clientId, etapeId])
+  @@index([statut])
+}
 
 model EtapeModele {
   id      String   @id @default(cuid())
