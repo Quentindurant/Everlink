@@ -80,7 +80,6 @@ export function OngletMails({
   modeles,
   envois,
   numeroGc,
-  signature,
 }: {
   clientInfo: {
     id: string;
@@ -97,8 +96,6 @@ export function OngletMails({
   modeles: ModeleMailLite[];
   envois: EnvoiLigne[];
   numeroGc: string;
-  // Signature (paramètre « signatureMail »), ajoutée sous le corps — modifiable comme le reste.
-  signature: string;
 }) {
   // Défaut: 1er template dont le scénario matche celui du client, sinon le 1er.
   const modeleParDefaut =
@@ -130,9 +127,7 @@ export function OngletMails({
   }, [clientInfo, date, creneau, numeroGc]);
 
   const objetModele = modele ? substituer(modele.objet, variables) : "";
-  const corpsModele = modele
-    ? substituer(modele.corps, variables) + (signature.trim() ? `\n\n${signature.trim()}` : "")
-    : "";
+  const corpsModele = modele ? substituer(modele.corps, variables) : "";
   const objet = objetEdite ?? objetModele;
   const corps = corpsEdite ?? corpsModele;
   const retouche = objetEdite !== null || corpsEdite !== null;
@@ -230,6 +225,9 @@ export function OngletMails({
           spellCheck={false}
           className="block min-h-[380px] w-full resize-y bg-transparent px-4 py-3 text-[13.5px] leading-relaxed outline-none"
         />
+        <p className="px-4 pb-2 text-[10.5px] text-muted-foreground">
+          La signature EverLink (logo Pôle migration) est ajoutée automatiquement à l&apos;envoi.
+        </p>
 
         {/* Barre d'envoi : date/créneau alimentent les variables du modèle. */}
         <div

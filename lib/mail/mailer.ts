@@ -1,4 +1,10 @@
 import nodemailer from "nodemailer";
+import {
+  corpsEnHtml,
+  pieceJointeLogo,
+  SIGNATURE_TEXTE,
+  signatureHtml,
+} from "@/lib/mail/signature";
 
 // Envoi SMTP. Config lue dans l'environnement pour ne jamais committer d'identifiants:
 //   SMTP_HOST, SMTP_PORT, SMTP_SECURE ("1" pour TLS implicite), SMTP_USER, SMTP_PASS, SMTP_FROM
@@ -37,11 +43,16 @@ export async function envoyerMail({
       secure: SMTP_SECURE === "1",
       auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
     });
+    // Version HTML (corps + signature EverLink avec logo inline) ; le texte brut reste en
+    // fallback pour les clients mail qui n'affichent pas le HTML.
+    const logo = pieceJointeLogo();
     await transport.sendMail({
       from: SMTP_FROM,
       to,
       subject,
-      text,
+      text: `${text}\n\n${SIGNATURE_TEXTE}`,
+      html: corpsEnHtml(text) + signatureHtml(),
+      ...(logo ? { attachments: [logo] } : {}),
       ...(cc?.trim() ? { cc: cc.trim() } : {}),
       ...(customId ? { headers: { "X-MJ-CustomID": customId } } : {}),
     });

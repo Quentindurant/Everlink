@@ -30,7 +30,7 @@ export default async function ParametresPage() {
   const session = await auth();
   if (session?.user?.role !== "ADMIN") redirect("/");
 
-  const [modeles, listes, etapes, etapesMigration, modelesMail, comptes, syncRuns, activite, signatureMail, copieMail] =
+  const [modeles, listes, etapes, etapesMigration, modelesMail, comptes, syncRuns, activite, copieMail] =
     await Promise.all([
       fetchModeles(),
       fetchListesValeurs(),
@@ -40,7 +40,6 @@ export default async function ParametresPage() {
       fetchComptes(),
       fetchSyncRuns(),
       fetchActiviteEquipe(),
-      getParametreApp("signatureMail"),
       getParametreApp("copieMail"),
     ]);
 
@@ -65,7 +64,7 @@ export default async function ParametresPage() {
       <SectionActivite activite={activite} />
       <SectionModeles modeles={modeles} />
       <SectionEtapesMigration etapes={etapesMigration} />
-      <SectionEnvoiMail signature={signatureMail ?? ""} copie={copieMail ?? ""} />
+      <SectionEnvoiMail copie={copieMail ?? ""} />
       <SectionModelesMail modeles={modelesMail} />
       <SectionListes listes={listes} />
       <SectionEtapes etapes={etapes} />
