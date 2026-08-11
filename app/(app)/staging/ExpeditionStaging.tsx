@@ -149,16 +149,14 @@ export function ExpeditionStaging({
       <div className="flex flex-wrap items-end gap-3 px-4 py-3">
         <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           Transporteur
-          <Input
-            list="transporteurs-expedition"
+          <select
             value={transporteur}
             onChange={(e) => setTransporteur(e.target.value)}
-            className="h-8 w-32 text-sm"
-          />
-          <datalist id="transporteurs-expedition">
-            <option value="Chronopost" />
-            <option value="DHL" />
-          </datalist>
+            className="h-8 w-32 rounded-md border border-input bg-transparent px-2 text-sm font-normal normal-case tracking-normal outline-none focus:border-ring focus:ring-2 focus:ring-ring/40"
+          >
+            <option value="Chronopost">Chronopost</option>
+            <option value="DHL">DHL</option>
+          </select>
         </label>
         <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           N° de suivi

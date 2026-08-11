@@ -2,16 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Pencil, Undo2, X } from "lucide-react";
+import { Check, Pencil, RefreshCw, Undo2, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SuiviColisBadge } from "@/components/SuiviColisBadge";
+import { transporteurAvecSuiviApi } from "@/lib/domain/tracking/laposte";
 import type { ColisExpedie } from "@/lib/repositories/stockRepository";
 import {
   annulerExpeditionAction,
   annulerInstallationAction,
   avancerStatutAction,
   corrigerColisAction,
+  rafraichirSuiviColisAction,
 } from "./actions";
 
 // Puce d'un article expédié : clic pour marquer installé, re-clic pour annuler si erreur.
@@ -143,6 +146,38 @@ export function HistoriqueColis({ colis }: { colis: ColisExpedie[] }) {
                     transporteur={c.transporteur}
                   />
 
+                  {/* Suivi temps réel Chronopost : dernier événement La Poste + actualisation
+                      à la demande (le cron rafraîchit sinon toutes les 2 h). */}
+                  {c.numeroSuivi && transporteurAvecSuiviApi(c.transporteur) && (
+                    <span className="flex min-w-0 max-w-72 items-center gap-1.5">
+                      {c.suiviLibelle && (
+                        <span
+                          className="truncate text-[11.5px] text-muted-foreground"
+                          title={c.suiviLibelle}
+                        >
+                          {c.suiviLibelle}
+                        </span>
+                      )}
+                      <button
+                        disabled={isPending}
+                        onClick={() =>
+                          startTransition(async () => {
+                            const r = await rafraichirSuiviColisAction(
+                              c.articles.map((a) => a.id),
+                              c.numeroSuivi ?? ""
+                            );
+                            if (!r.success) setErreur(r.error ?? "Échec du relevé.");
+                            else router.refresh();
+                          })
+                        }
+                        className="shrink-0 rounded-lg border p-1 text-muted-foreground hover:bg-[var(--ev-row-hover)]"
+                        title="Relever l'état du colis maintenant"
+                      >
+                        <RefreshCw className={cn("size-3", isPending && "animate-spin")} />
+                      </button>
+                    </span>
+                  )}
+
                   <div className="flex flex-1 flex-wrap items-center justify-end gap-1.5">
                     {c.articles.map((a) => (
                       <ArticlePuce
@@ -194,16 +229,14 @@ export function HistoriqueColis({ colis }: { colis: ColisExpedie[] }) {
                   <div className="mt-2 flex flex-wrap items-end gap-3">
                     <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                       Transporteur
-                      <Input
-                        list="transporteurs-correction"
+                      <select
                         value={transporteur}
                         onChange={(e) => setTransporteur(e.target.value)}
-                        className="h-8 w-32 text-sm"
-                      />
-                      <datalist id="transporteurs-correction">
-                        <option value="Chronopost" />
-                        <option value="DHL" />
-                      </datalist>
+                        className="h-8 w-32 rounded-md border border-input bg-transparent px-2 text-sm font-normal normal-case tracking-normal outline-none focus:border-ring focus:ring-2 focus:ring-ring/40"
+                      >
+                        <option value="Chronopost">Chronopost</option>
+                        <option value="DHL">DHL</option>
+                      </select>
                     </label>
                     <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                       N° de suivi

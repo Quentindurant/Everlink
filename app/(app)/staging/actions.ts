@@ -143,6 +143,30 @@ export async function expedierLotAction(
   return { success: true };
 }
 
+// Relève l'état du colis à la demande (bouton actualiser de l'historique) : interroge
+// l'API La Poste tout de suite au lieu d'attendre le prochain passage du cron.
+export async function rafraichirSuiviColisAction(
+  ids: string[],
+  numeroSuivi: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  const num = numeroSuivi.trim();
+  if (ids.length === 0 || !num) return { success: false, error: "Aucun colis." };
+  const etat = await suivreColis(num);
+  if (!etat) return { success: false, error: "Suivi indisponible (API La Poste)." };
+  await prisma.articleStock.updateMany({
+    where: { id: { in: ids } },
+    data: {
+      suiviStatut: etat.statut,
+      suiviLibelle: etat.libelle,
+      suiviLivreLe: etat.livreLe ? new Date(etat.livreLe) : null,
+      suiviMajLe: new Date(),
+    },
+  });
+  revalidatePath("/staging", "layout");
+  return { success: true };
+}
+
 // Annule une expédition faite par erreur : les articles reviennent « En stock », l'envoi et
 // le suivi sont effacés. Le rattachement client est conservé (l'erreur porte sur le colis,
 // pas sur le dossier).
