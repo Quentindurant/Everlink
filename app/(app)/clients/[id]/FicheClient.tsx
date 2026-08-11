@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import type { ModeleMailLite } from "@/lib/repositories/mailRepository";
 import { horodateParis } from "@/lib/domain/horodatage";
 import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
 import { OngletMails, type EnvoiLigne } from "./OngletMails";
+import { affecterSiteUtilisateurAction } from "./siteActions";
 
 const NIVEAU_CLASSES: Record<string, string> = {
   OK: "border-transparent bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]",
@@ -34,6 +35,39 @@ const ONGLETS = [
   "Historique",
 ] as const;
 type Onglet = (typeof ONGLETS)[number];
+
+// Rattachement d'un poste à un site, proposé seulement quand le client en a plusieurs.
+function SelectSite({
+  utilisateurId,
+  siteId,
+  sites,
+}: {
+  utilisateurId: string;
+  siteId: string | null;
+  sites: { id: string; nom: string }[];
+}) {
+  const [isPending, startTransition] = useTransition();
+  return (
+    <select
+      value={siteId ?? ""}
+      disabled={isPending}
+      onChange={(e) => {
+        const v = e.target.value;
+        startTransition(async () => {
+          await affecterSiteUtilisateurAction(utilisateurId, v);
+        });
+      }}
+      className="rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[12.5px] outline-none hover:border-input focus:border-ring disabled:opacity-50"
+    >
+      <option value="">— non précisé —</option>
+      {sites.map((s) => (
+        <option key={s.id} value={s.id}>
+          {s.nom}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 function EnteteTableau({ colonnes }: { colonnes: string[] }) {
   return (
@@ -77,6 +111,7 @@ export function FicheClient({
   const pctSuivi = nbCellulesSuivi > 0 ? Math.round((nbFaits / nbCellulesSuivi) * 100) : 0;
 
   const mondayRaw = (client.mondayRaw ?? null) as Record<string, unknown> | null;
+  const multiSites = client.sites.length > 1;
 
   // Compteur affiché dans l'onglet : on voit d'un coup d'œil ce qui est rempli.
   const compteurs: Partial<Record<Onglet, string | number>> = {
@@ -183,7 +218,13 @@ export function FicheClient({
       {onglet === "Utilisateurs" && (
         <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
           <Table>
-            <EnteteTableau colonnes={["Nom", "Étapes faites", "Commentaire"]} />
+            <EnteteTableau
+              colonnes={
+                multiSites
+                  ? ["Nom", "Site", "Étapes faites", "Commentaire"]
+                  : ["Nom", "Étapes faites", "Commentaire"]
+              }
+            />
             <TableBody>
               {client.utilisateurs.map((u) => (
                 <TableRow key={u.id}>

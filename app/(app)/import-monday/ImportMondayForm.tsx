@@ -22,6 +22,8 @@ import {
 export function ImportMondayForm() {
   const [payload, setPayload] = useState<PrevisualisationPayload | null>(null);
   const [decisions, setDecisions] = useState<Record<number, string>>({});
+  // Lignes « plusieurs sites » : par défaut on crée le site, l'opérateur peut changer.
+  const [decisionsSites, setDecisionsSites] = useState<Record<number, string>>({});
   const [applique, setApplique] = useState<ApplicationResultat | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -35,6 +37,7 @@ export function ImportMondayForm() {
       if (result.success) {
         setPayload(result.payload);
         setDecisions({});
+        setDecisionsSites({});
       } else {
         setErreur(result.error);
         setPayload(null);
@@ -46,7 +49,7 @@ export function ImportMondayForm() {
     if (!payload) return;
     setErreur(null);
     startTransition(async () => {
-      const result = await validerAction(payload, decisions);
+      const result = await validerAction(payload, decisions, decisionsSites);
       if (result.success) {
         setApplique(result.resultat);
         setPayload(null);
@@ -83,6 +86,11 @@ export function ImportMondayForm() {
           <Badge variant="outline">{applique.crees} créés</Badge>
           <Badge variant="outline">{applique.misAJour} mis à jour</Badge>
           <Badge variant="outline">{applique.ignores} ignorés</Badge>
+          {applique.sitesCrees > 0 && (
+            <Badge className="border-transparent bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]">
+              {applique.sitesCrees} site(s) créé(s)
+            </Badge>
+          )}
           {applique.modelesCrees.length > 0 && (
             <Badge className="border-transparent bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]">
               {applique.modelesCrees.length} modèle(s) créé(s) — vérifier l'éligibilité dans
@@ -115,6 +123,11 @@ export function ImportMondayForm() {
             >
               {payload.resultat.aRapprocher.length} à rapprocher
             </Badge>
+            {payload.resultat.sites.length > 0 && (
+              <Badge className="border-transparent bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)] tabular-nums">
+                {payload.resultat.sites.length} site(s) supplémentaire(s)
+              </Badge>
+            )}
             {payload.resultat.modelesInconnus.length > 0 && (
               <Badge className="border-transparent bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]">
                 Modèles inconnus : {payload.resultat.modelesInconnus.join(", ")}
@@ -168,6 +181,57 @@ export function ImportMondayForm() {
                               Fusionner avec « {c.raisonSociale} »
                             </option>
                           ))}
+                        </select>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {payload.resultat.sites.length > 0 && (
+            <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
+              <p className="border-b p-3 text-sm font-medium">
+                Même raison sociale, adresse différente — un client, plusieurs sites
+                <span className="ml-2 font-normal text-muted-foreground">
+                  Les postes restent sur un seul client (ils s&apos;appellent entre eux) ; chaque
+                  adresse devient un site.
+                </span>
+              </p>
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    {["Client", "Adresse de la ligne", "Décision"].map((h) => (
+                      <TableHead key={h} className="text-xs font-semibold text-muted-foreground">
+                        {h}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payload.resultat.sites.map((s, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {s.raisonSociale}
+                        {s.ligne.codeMonday && (
+                          <span className="ml-2 font-mono text-xs text-muted-foreground">
+                            {s.ligne.codeMonday}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-[13px]">{s.ligne.adresse ?? "—"}</TableCell>
+                      <TableCell>
+                        <select
+                          value={decisionsSites[i] ?? "site"}
+                          onChange={(e) =>
+                            setDecisionsSites((prev) => ({ ...prev, [i]: e.target.value }))
+                          }
+                          className="rounded-md border border-input bg-transparent px-2 py-1 text-sm"
+                        >
+                          <option value="site">Créer un site du client</option>
+                          <option value="maj">Écraser la fiche client</option>
+                          <option value="ignorer">Ignorer la ligne</option>
                         </select>
                       </TableCell>
                     </TableRow>

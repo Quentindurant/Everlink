@@ -53,7 +53,13 @@ export async function previsualiserAction(
 
   const [existants, modeles] = await Promise.all([
     prisma.client.findMany({
-      select: { id: true, codeMonday: true, raisonSociale: true },
+      select: {
+        id: true,
+        codeMonday: true,
+        raisonSociale: true,
+        adresse: true,
+        sites: { select: { codeMonday: true, adresse: true } },
+      },
     }),
     prisma.modeleEquipement.findMany({ select: { libelle: true, alias: true } }),
   ]);
@@ -74,7 +80,9 @@ export async function previsualiserAction(
 
 export async function validerAction(
   payload: PrevisualisationPayload,
-  decisions: Record<number, string>
+  decisions: Record<number, string>,
+  // Décision par ligne « plusieurs sites » : "site" (défaut), "maj" ou "ignorer".
+  decisionsSites: Record<number, string> = {}
 ): Promise<{ success: true; resultat: ApplicationResultat } | { success: false; error: string }> {
   const admin = await exigerAdmin();
   if (!admin) return { success: false, error: "Réservé aux administrateurs." };
@@ -97,7 +105,12 @@ export async function validerAction(
     payload.resultat.modelesInconnus,
     payload.nomFichier,
     payload.tailleOctets,
-    admin.id
+    admin.id,
+    payload.resultat.sites.map((s, i) => ({
+      ligne: s.ligne as MondayLigne,
+      raisonSociale: s.raisonSociale,
+      decision: decisionsSites[i] ?? "site",
+    }))
   );
 
   revalidatePath("/import-monday");

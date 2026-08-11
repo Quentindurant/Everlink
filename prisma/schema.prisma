@@ -136,6 +136,7 @@ model Client {
   creeLe   DateTime  @default(now())
   majLe    DateTime  @updatedAt
 
+  sites        Site[]
   utilisateurs Utilisateur[]
   suivisProjet SuiviProjet[]
   numeros      Numero[]
@@ -170,6 +171,52 @@ model Client {
   @@index([statutBascule])
   @@index([etapeMigrationId])
   @@index([technicienId])
+}
+
+// Site d'un client multi-établissements : même raison sociale (et donc même téléphonie, les
+// postes s'appellent entre eux), mais adresses et interventions distinctes. Les sites ne sont
+// créés que pour les clients qui en ont plusieurs — un client mono-site n'a aucune ligne ici
+// et reste décrit par ses propres champs.
+model Site {
+  id       String @id @default(cuid())
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+
+  // Libellé lisible ("Versailles", "Siège"), déduit de l'adresse à l'import puis modifiable.
+  nom     String
+  // Code Monday de la ligne d'origine : sert au rapprochement des ré-imports.
+  codeMonday String? @unique
+  adresse    String?
+  departement String?
+
+  dateIntervention    DateTime?
+  creneauIntervention String?
+  scenario            String?
+  typeIntervention    String?
+  statutMonday        String?
+  nbPostesAnnonce     Int?
+
+  contactNom    String?
+  contactPrenom String?
+  contactFixe   String?
+  contactMobile String?
+  contactEmail  String?
+
+  technoLien String?
+  debit      String?
+  modeleCpe  String?
+
+  mondayRaw Json?
+  // Site historique du client (celui dont les champs sont recopiés sur la fiche client).
+  principal Boolean @default(false)
+  ordre     Int     @default(0)
+
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  utilisateurs Utilisateur[]
+
+  @@index([clientId])
 }
 
 // Inventaire du staging (roulement des routeurs 4G, box, SIM...). On reçoit du matériel, on le
@@ -322,6 +369,10 @@ model Utilisateur {
   id       String @id @default(cuid())
   client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientId String
+
+  // Site d'affectation, pour les clients multi-établissements (null = non précisé).
+  site   Site?   @relation(fields: [siteId], references: [id])
+  siteId String?
 
   // Tel que saisi dans le Sheet, par exemple "BAUDON Émilie" ou "GARE Accueil".
   nom         String

@@ -101,6 +101,8 @@ export async function fetchClientDetail(id: string) {
     include: {
       lot: true,
       etapeMigration: true,
+      // Sites d'un client multi-établissements (aucune ligne pour un client mono-site).
+      sites: { orderBy: [{ ordre: "asc" }, { creeLe: "asc" }] },
       numeros: {
         where: { archiveA: null },
         include: { utilisateur: true },
@@ -115,6 +117,7 @@ export async function fetchClientDetail(id: string) {
         where: { archiveA: null },
         include: {
           suivis: { where: { etape: { actif: true } }, include: { etape: true } },
+          site: { select: { id: true, nom: true } },
         },
         orderBy: [{ ordre: "asc" }, { id: "asc" }],
       },

@@ -6,6 +6,7 @@ import {
   Cable,
   FileUp,
   PencilLine,
+  MapPinned,
   Route,
   Wrench,
 } from "lucide-react";
@@ -19,6 +20,7 @@ import { PageHero } from "@/components/PageHero";
 import { CopiePuce } from "@/components/CopiePuce";
 import { horodateParis } from "@/lib/domain/horodatage";
 import { SectionStaging } from "@/app/(app)/staging/SectionStaging";
+import { SitesClient } from "./SitesClient";
 import { FicheClient } from "./FicheClient";
 import { FicheMigrationHeader } from "./FicheMigrationHeader";
 import { CarteLien } from "./CarteLien";
@@ -94,6 +96,21 @@ export default async function ClientDetailPage({
 
   const contact = [client.contactPrenom, client.contactNom].filter(Boolean).join(" ") || null;
 
+  // Client multi-établissements : une carte par site, avec le nombre de postes rattachés.
+  const sites = client.sites.map((s) => ({
+    id: s.id,
+    nom: s.nom,
+    adresse: s.adresse,
+    dateInterventionIso: s.dateIntervention?.toISOString().slice(0, 10) ?? null,
+    creneau: s.creneauIntervention,
+    contact: [s.contactPrenom, s.contactNom].filter(Boolean).join(" ") || null,
+    telephone: s.contactMobile ?? s.contactFixe,
+    email: s.contactEmail,
+    nbPostesAnnonce: s.nbPostesAnnonce,
+    nbPostes: client.utilisateurs.filter((u) => u.siteId === s.id).length,
+    principal: s.principal,
+  }));
+
   return (
     <main className="flex flex-1 flex-col gap-5 p-5 pb-15">
       <PageHero
@@ -105,6 +122,9 @@ export default async function ClientDetailPage({
           { value: client.equipements.length, label: "équipements" },
           { value: client.utilisateurs.length, label: "utilisateurs" },
           { value: `${pctSuivi}%`, label: "basculé", color: "var(--ev-green)" },
+          ...(client.sites.length > 1
+            ? [{ value: client.sites.length, label: "sites", color: "var(--ev-purple)" }]
+            : []),
         ]}
       />
 
@@ -137,6 +157,24 @@ export default async function ClientDetailPage({
           Saisir les utilisateurs et numéros
         </Button>
       </div>
+
+      {/* Plusieurs adresses pour une même raison sociale : la téléphonie reste commune. */}
+      {sites.length > 1 && (
+        <SectionStaging
+          couleur="var(--ev-purple)"
+          icone={<MapPinned className="size-4" />}
+          titre="Sites"
+          compteur={sites.length}
+        >
+          <div className="p-4">
+            <p className="mb-3 text-[12px] text-muted-foreground">
+              Une seule téléphonie pour ce client : les postes des différents sites s&apos;appellent
+              entre eux. Seules les interventions et les adresses sont propres à chaque site.
+            </p>
+            <SitesClient sites={sites} />
+          </div>
+        </SectionStaging>
+      )}
 
       {/* Identité + parcours de migration, côte à côte : qui c'est, où on en est. */}
       <div className="grid gap-4 xl:grid-cols-3">

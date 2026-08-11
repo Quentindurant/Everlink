@@ -167,4 +167,89 @@ describe("rapprocher", () => {
     const r = rapprocher([ligne1], existants, ["Yealink T57W"]);
     expect(r.modelesInconnus).toEqual(["Grandstream GXP1620"]);
   });
+
+  test("deux lignes de même raison sociale : la 2e devient un site", () => {
+    const paris = l("POCGC300", "CARROSSERIE CDA (78)");
+    paris.adresse = "24 BOULEVARD GOUVION SAINT CYR 75017 PARIS";
+    const versailles = l("POCGC401", "CARROSSERIE CDA (78)");
+    versailles.adresse = "79 RUE DES CHANTIERS 78000 Versailles";
+
+    const r = rapprocher([paris, versailles], existants, []);
+    expect(r.aCreer).toHaveLength(1);
+    expect(r.sites).toHaveLength(1);
+    expect(r.sites[0].motif).toBe("fichier");
+    expect(r.sites[0].ligne.adresse).toContain("Versailles");
+    expect(r.sites[0].clientId).toBeNull();
+  });
+
+  test("client existant à une autre adresse : proposé en site", () => {
+    const ligne = l(null, "BOREAL HYGIENE");
+    ligne.adresse = "12 RUE NEUVE 49000 ANGERS";
+    const avecAdresse = [
+      { id: "cl2", codeMonday: null, raisonSociale: "BOREAL HYGIENE", adresse: "1 RUE DU PORT 44000 NANTES" },
+    ];
+    const r = rapprocher([ligne], avecAdresse, []);
+    expect(r.sites).toHaveLength(1);
+    expect(r.sites[0].motif).toBe("adresse");
+    expect(r.sites[0].clientId).toBe("cl2");
+    expect(r.aMettreAJour).toHaveLength(0);
+  });
+
+  test("ré-import à la même adresse : simple mise à jour, pas de site", () => {
+    const ligne = l(null, "BOREAL HYGIENE");
+    ligne.adresse = "1 rue du Port, 44000 NANTES";
+    const avecAdresse = [
+      { id: "cl2", codeMonday: null, raisonSociale: "BOREAL HYGIENE", adresse: "1 RUE DU PORT 44000 NANTES" },
+    ];
+    const r = rapprocher([ligne], avecAdresse, []);
+    expect(r.sites).toHaveLength(0);
+    expect(r.aMettreAJour).toHaveLength(1);
+  });
+
+  test("adresse déjà connue comme site : mise à jour, pas de doublon de site", () => {
+    const ligne = l(null, "BOREAL HYGIENE");
+    ligne.adresse = "12 RUE NEUVE 49000 ANGERS";
+    const avecSites = [
+      {
+        id: "cl2",
+        codeMonday: null,
+        raisonSociale: "BOREAL HYGIENE",
+        adresse: "1 RUE DU PORT 44000 NANTES",
+        sites: [{ codeMonday: null, adresse: "12 rue Neuve, 49000 Angers" }],
+      },
+    ];
+    const r = rapprocher([ligne], avecSites, []);
+    expect(r.sites).toHaveLength(0);
+    expect(r.aMettreAJour).toHaveLength(1);
+  });
+
+  test("ré-import : la ligne déjà devenue site n'écrase pas la fiche client", () => {
+    const paris = l("POCGC300", "CARROSSERIE CDA (78)");
+    paris.adresse = "24 BOULEVARD GOUVION SAINT CYR 75017 PARIS";
+    const versailles = l("POCGC401", "CARROSSERIE CDA (78)");
+    versailles.adresse = "79 RUE DES CHANTIERS 78000 Versailles";
+    // État après un premier import : le client porte Paris, Versailles est un site.
+    const apresPremierImport = [
+      {
+        id: "cl9",
+        codeMonday: "POCGC300",
+        raisonSociale: "CARROSSERIE CDA (78)",
+        adresse: "24 BOULEVARD GOUVION SAINT CYR 75017 PARIS",
+        sites: [
+          { codeMonday: "POCGC300", adresse: "24 BOULEVARD GOUVION SAINT CYR 75017 PARIS" },
+          { codeMonday: "POCGC401", adresse: "79 RUE DES CHANTIERS 78000 Versailles" },
+        ],
+      },
+    ];
+
+    const r = rapprocher([paris, versailles], apresPremierImport, []);
+    expect(r.aCreer).toHaveLength(0);
+    // Seule la ligne Paris met la fiche client à jour.
+    expect(r.aMettreAJour).toHaveLength(1);
+    expect(r.aMettreAJour[0].ligne.adresse).toContain("PARIS");
+    // Versailles reste un site du même client.
+    expect(r.sites).toHaveLength(1);
+    expect(r.sites[0].clientId).toBe("cl9");
+    expect(r.sites[0].ligne.codeMonday).toBe("POCGC401");
+  });
 });

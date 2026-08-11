@@ -32,16 +32,52 @@ export interface MondayLigne {
   champsBruts: Record<string, unknown>;
 }
 
+// Même raison sociale, adresse différente : un client à plusieurs établissements. Les postes
+// restent sur un seul client (ils s'appellent entre eux), chaque adresse devient un site.
+export interface SiteDetecte {
+  ligne: MondayLigne;
+  // Client existant concerné, null si le client est créé par une autre ligne du même fichier.
+  clientId: string | null;
+  raisonSociale: string;
+  // "fichier" : plusieurs lignes du fichier portent ce nom.
+  // "adresse" : la ligne vise un client existant mais à une autre adresse.
+  motif: "fichier" | "adresse";
+}
+
 export interface RapprochementResultat {
   aCreer: MondayLigne[];
   aMettreAJour: { ligne: MondayLigne; clientId: string }[];
   // Aucun rapprochement flou automatique (SPEC §4): en cas de doute l'opérateur tranche.
   aRapprocher: { ligne: MondayLigne; candidats: { id: string; raisonSociale: string }[] }[];
+  // Lignes proposées en site supplémentaire d'un client (l'opérateur confirme).
+  sites: SiteDetecte[];
   modelesInconnus: string[];
 }
 
 export function normaliserRaisonSociale(brut: string): string {
   return brut.trim().replace(/\s+/g, " ").toUpperCase();
+}
+
+// Libellé court d'un site déduit de son adresse : la ville qui suit le code postal
+// ("79 RUE DES CHANTIERS 78000 Versailles" → "Versailles"). Sans code postal, on garde
+// le début de l'adresse — le nom reste modifiable dans la fiche client.
+export function nomSiteDepuisAdresse(adresse: string | null, defaut: string): string {
+  const t = (adresse ?? "").trim();
+  if (!t) return defaut;
+  const ville = t.match(/\b\d{5}\b\s+(.+)$/)?.[1]?.trim();
+  if (ville) return ville.length > 40 ? ville.slice(0, 40) : ville;
+  return t.length > 40 ? `${t.slice(0, 40)}…` : t;
+}
+
+// Comparaison d'adresses tolérante à la casse, aux espaces et à la ponctuation : deux
+// écritures de la même adresse ne doivent pas créer un faux site.
+export function memeAdresse(a: string | null, b: string | null): boolean {
+  const cle = (v: string | null) =>
+    (v ?? "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, " ")
+      .trim();
+  return cle(a) === cle(b);
 }
 
 const MAPPING: Record<string, keyof MondayLigne> = {
@@ -205,7 +241,14 @@ export function parseMondayWorkbook(wb: ExcelJS.Workbook): {
 
 export function rapprocher(
   lignes: MondayLigne[],
-  existants: { id: string; codeMonday: string | null; raisonSociale: string }[],
+  existants: {
+    id: string;
+    codeMonday: string | null;
+    raisonSociale: string;
+    adresse?: string | null;
+    // Sites déjà connus du client (multi-établissements).
+    sites?: { codeMonday: string | null; adresse: string | null }[];
+  }[],
   modelesConnus: string[]
 ): RapprochementResultat {
   const parCode = new Map(
@@ -214,12 +257,30 @@ export function rapprocher(
   const parRaison = new Map(
     existants.map((e) => [normaliserRaisonSociale(e.raisonSociale), e])
   );
+  // Code Monday d'un site déjà créé → le client auquel il appartient.
+  const parSiteCode = new Map<string, (typeof existants)[number]>();
+  for (const e of existants) {
+    for (const s of e.sites ?? []) {
+      if (s.codeMonday) parSiteCode.set(s.codeMonday, e);
+    }
+  }
   const modelesNormalises = new Set(modelesConnus.map((m) => m.trim().toLowerCase()));
+
+  // Raisons sociales portées par plusieurs lignes du fichier : un seul client, plusieurs sites.
+  const compteFichier = new Map<string, number>();
+  for (const l of lignes) {
+    const cle = normaliserRaisonSociale(l.raisonSociale);
+    compteFichier.set(cle, (compteFichier.get(cle) ?? 0) + 1);
+  }
+  // Première ligne de chaque groupe : elle crée (ou met à jour) le client, les suivantes
+  // deviennent des sites.
+  const premiereVue = new Set<string>();
 
   const resultat: RapprochementResultat = {
     aCreer: [],
     aMettreAJour: [],
     aRapprocher: [],
+    sites: [],
     modelesInconnus: [],
   };
   const inconnusVus = new Set<string>();
@@ -233,16 +294,63 @@ export function rapprocher(
       }
     }
 
+    const raisonNormalisee = normaliserRaisonSociale(ligne.raisonSociale);
+    const parRaisonMatch = parRaison.get(raisonNormalisee);
+    // Le code Monday du client l'emporte : c'est sa propre ligne (le site principal porte
+    // le même code, il ne doit pas détourner la mise à jour de la fiche).
     const parCodeMatch = ligne.codeMonday ? parCode.get(ligne.codeMonday) : undefined;
     if (parCodeMatch) {
       resultat.aMettreAJour.push({ ligne, clientId: parCodeMatch.id });
+      // Le groupe est traité : les autres lignes du même nom deviendront des sites.
+      premiereVue.add(raisonNormalisee);
       continue;
     }
 
-    const raisonNormalisee = normaliserRaisonSociale(ligne.raisonSociale);
-    const parRaisonMatch = parRaison.get(raisonNormalisee);
+    // Une ligne déjà importée comme site le reste : sinon un ré-import écraserait la fiche
+    // client avec l'adresse du second établissement.
+    const parSiteMatch = ligne.codeMonday ? parSiteCode.get(ligne.codeMonday) : undefined;
+    if (parSiteMatch) {
+      resultat.sites.push({
+        ligne,
+        clientId: parSiteMatch.id,
+        raisonSociale: parSiteMatch.raisonSociale,
+        motif: "adresse",
+      });
+      continue;
+    }
+
+    // Doublon interne au fichier : la première ligne fait le client, les suivantes des sites.
+    if ((compteFichier.get(raisonNormalisee) ?? 0) > 1 && premiereVue.has(raisonNormalisee)) {
+      resultat.sites.push({
+        ligne,
+        clientId: parRaisonMatch?.id ?? null,
+        raisonSociale: parRaisonMatch?.raisonSociale ?? ligne.raisonSociale,
+        motif: "fichier",
+      });
+      continue;
+    }
+    premiereVue.add(raisonNormalisee);
+
     if (parRaisonMatch) {
-      resultat.aMettreAJour.push({ ligne, clientId: parRaisonMatch.id });
+      // Adresse différente de celle du client et de ses sites connus : nouvel établissement.
+      const connues = [
+        parRaisonMatch.adresse ?? null,
+        ...(parRaisonMatch.sites ?? []).map((s) => s.adresse),
+      ];
+      const adresseInedite =
+        !!ligne.adresse?.trim() &&
+        connues.some((a) => !!a?.trim()) &&
+        !connues.some((a) => memeAdresse(a, ligne.adresse));
+      if (adresseInedite) {
+        resultat.sites.push({
+          ligne,
+          clientId: parRaisonMatch.id,
+          raisonSociale: parRaisonMatch.raisonSociale,
+          motif: "adresse",
+        });
+      } else {
+        resultat.aMettreAJour.push({ ligne, clientId: parRaisonMatch.id });
+      }
       continue;
     }
 
