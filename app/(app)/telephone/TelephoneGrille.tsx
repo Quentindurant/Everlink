@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useTransition } from "react";
 import Link from "next/link";
-import { ChevronDown, Hand, X } from "lucide-react";
+import { ChevronDown, Hand, MapPin, X } from "lucide-react";
 import { CopiePuce } from "@/components/CopiePuce";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ import {
 import type { TelephoneGrille as Grille } from "@/lib/repositories/telephoneRepository";
 import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
 import {
+  affecterSiteAction,
+  affecterSiteRestantsAction,
   attribuerClientTelephoneAction,
   setEtapeClientAction,
   setSuiviEtapeAction,
@@ -179,8 +181,108 @@ function AttributionClient({
   );
 }
 
+// Site du poste, pour un client à plusieurs adresses : le tech doit savoir où va chaque
+// téléphone (les interventions sont datées site par site). Non renseigné = ambre, ça se voit.
+function SitePoste({
+  utilisateurId,
+  siteId,
+  sites,
+}: {
+  utilisateurId: string;
+  siteId: string | null;
+  sites: { id: string; nom: string }[];
+}) {
+  const [isPending, startTransition] = useTransition();
+  return (
+    <select
+      value={siteId ?? ""}
+      disabled={isPending}
+      onChange={(e) => {
+        const v = e.target.value;
+        startTransition(async () => {
+          await affecterSiteAction(utilisateurId, v);
+        });
+      }}
+      title="Site de ce poste"
+      className={cn(
+        "cursor-pointer appearance-none rounded-full border border-transparent px-2 py-0.5 text-[10.5px] font-semibold outline-none focus:border-ring disabled:opacity-50",
+        siteId
+          ? "bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]"
+          : "bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]"
+      )}
+    >
+      <option value="">site ?</option>
+      {sites.map((s) => (
+        <option key={s.id} value={s.id}>
+          {s.nom}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+// Répartition des postes du client entre ses sites + affectation en masse de ceux qui
+// n'en ont pas encore (après un import Sewan, aucun poste n'a de site).
+function SitesClientBande({
+  clientId,
+  sites,
+  rows,
+}: {
+  clientId: string;
+  sites: { id: string; nom: string }[];
+  rows: { siteId: string | null }[];
+}) {
+  const [isPending, startTransition] = useTransition();
+  const sansSite = rows.filter((r) => !r.siteId).length;
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      {sites.map((s) => (
+        <span
+          key={s.id}
+          className="ev-badge bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]"
+        >
+          <MapPin className="size-2.5" />
+          {s.nom}
+          <span className="font-mono">{rows.filter((r) => r.siteId === s.id).length}</span>
+        </span>
+      ))}
+      {sansSite > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button
+                disabled={isPending}
+                onClick={(e) => e.stopPropagation()}
+                className="ev-badge bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)] hover:cursor-pointer"
+                title="Affecter les postes sans site"
+              >
+                {sansSite} sans site
+                <ChevronDown className="size-2.5" />
+              </button>
+            }
+          />
+          <DropdownMenuContent>
+            {sites.map((s) => (
+              <DropdownMenuItem
+                key={s.id}
+                onClick={() =>
+                  startTransition(async () => {
+                    await affecterSiteRestantsAction(clientId, s.id);
+                  })
+                }
+              >
+                Tout affecter à « {s.nom} »
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </span>
+  );
+}
+
 export function TelephoneGrille({ grille, monEmail }: { grille: Grille; monEmail: string }) {
-  const { etapes, utilisateurs, valeursStatut } = grille;
+  const { etapes, utilisateurs, valeursStatut, sitesParClient } = grille;
   // Bandes clients repliées par défaut (comme le Provisionning) : on ouvre le client
   // qu'on travaille, la grille reste légère.
   const [deplies, setDeplies] = useState<Set<string>>(new Set());
@@ -304,6 +406,15 @@ export function TelephoneGrille({ grille, monEmail }: { grille: Grille; monEmail
                           attribueA={rows[0].clientAttribueA}
                           monEmail={monEmail}
                         />
+                        {(sitesParClient[clientId]?.length ?? 0) > 1 && (
+                          <span onClick={(e) => e.stopPropagation()}>
+                            <SitesClientBande
+                              clientId={clientId}
+                              sites={sitesParClient[clientId]}
+                              rows={rows}
+                            />
+                          </span>
+                        )}
                       </span>
                       <span onClick={(e) => e.stopPropagation()}>
                         <MenuEtapeClient clientId={clientId} etapes={etapes} valeurs={valeursStatut} />
@@ -331,6 +442,13 @@ export function TelephoneGrille({ grille, monEmail }: { grille: Grille; monEmail
                         >
                           {faitsUser}/{etapes.length}
                         </span>
+                        {(sitesParClient[u.clientId]?.length ?? 0) > 1 && (
+                          <SitePoste
+                            utilisateurId={u.utilisateurId}
+                            siteId={u.siteId}
+                            sites={sitesParClient[u.clientId]}
+                          />
+                        )}
                       </span>
                       {(u.numeros.length > 0 || u.equipements.length > 0) && (
                         <span className="mt-1 flex flex-wrap items-center gap-1">

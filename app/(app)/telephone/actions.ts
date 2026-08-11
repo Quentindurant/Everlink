@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { journaliser } from "@/lib/activite";
-import { setEtapeClient, setSuiviEtape } from "@/lib/repositories/telephoneRepository";
+import {
+  affecterSiteRestants,
+  affecterSiteUtilisateur,
+  setEtapeClient,
+  setSuiviEtape,
+} from "@/lib/repositories/telephoneRepository";
 
 export async function setSuiviEtapeAction(
   utilisateurId: string,
@@ -62,4 +67,29 @@ export async function setEtapeClientAction(
   }
   revalidatePath("/telephone");
   return { success: true };
+}
+
+// Affecte un poste à un site du client (clients multi-établissements).
+export async function affecterSiteAction(
+  utilisateurId: string,
+  siteId: string
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "Non authentifié." };
+  await affecterSiteUtilisateur(utilisateurId, siteId);
+  revalidatePath("/telephone");
+  return { success: true };
+}
+
+// Affecte tous les postes encore sans site à un site donné.
+export async function affecterSiteRestantsAction(
+  clientId: string,
+  siteId: string
+): Promise<{ success: boolean; error?: string; nb?: number }> {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "Non authentifié." };
+  const nb = await affecterSiteRestants(clientId, siteId);
+  await journaliser("Client", clientId, "Affectation site des postes", `${nb} poste(s)`);
+  revalidatePath("/telephone");
+  return { success: true, nb };
 }

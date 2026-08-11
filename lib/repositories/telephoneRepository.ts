@@ -7,6 +7,8 @@ export interface TelephoneUtilisateurLigne {
   clientRaisonSociale: string;
   // Tech qui s'est attribué le client (email), null si personne.
   clientAttribueA: string | null;
+  // Site d'affectation du poste, pour les clients multi-établissements (null = non précisé).
+  siteId: string | null;
   // etapeId -> statut ("À faire" implicite si absent)
   statuts: Record<string, string>;
   // Infos du poste, copiables par les techniciens pendant la configuration.
@@ -18,6 +20,8 @@ export interface TelephoneGrille {
   etapes: { id: string; libelle: string }[];
   utilisateurs: TelephoneUtilisateurLigne[];
   valeursStatut: string[];
+  // Sites par client : vide pour un client mono-établissement (rien à choisir).
+  sitesParClient: Record<string, { id: string; nom: string }[]>;
 }
 
 export async function fetchTelephoneGrille(filtres: {
@@ -50,7 +54,16 @@ export async function fetchTelephoneGrille(filtres: {
       },
       include: {
         client: {
-          select: { id: true, raisonSociale: true, dateIntervention: true, telephoneAttribueA: true },
+          select: {
+            id: true,
+            raisonSociale: true,
+            dateIntervention: true,
+            telephoneAttribueA: true,
+            sites: {
+              select: { id: true, nom: true },
+              orderBy: [{ ordre: "asc" }, { creeLe: "asc" }],
+            },
+          },
         },
         suivis: { where: { etape: { actif: true } } },
         numeros: {
@@ -74,15 +87,23 @@ export async function fetchTelephoneGrille(filtres: {
     }),
   ]);
 
+  // Un client n'apparaît ici que s'il a plusieurs adresses : sinon rien à affecter.
+  const sitesParClient: Record<string, { id: string; nom: string }[]> = {};
+  for (const u of utilisateurs) {
+    if (u.client.sites.length > 1) sitesParClient[u.client.id] = u.client.sites;
+  }
+
   return {
     etapes: etapes.map((e) => ({ id: e.id, libelle: e.libelle })),
     valeursStatut: valeurs.map((v) => v.valeur),
+    sitesParClient,
     utilisateurs: utilisateurs.map((u) => ({
       utilisateurId: u.id,
       utilisateurNom: u.nom,
       clientId: u.client.id,
       clientRaisonSociale: u.client.raisonSociale,
       clientAttribueA: u.client.telephoneAttribueA,
+      siteId: u.siteId,
       statuts: Object.fromEntries(u.suivis.map((s) => [s.etapeId, s.statut])),
       numeros: u.numeros.map((n) => ({ brut: n.numeroBrut, courts: n.numerosCourts })),
       equipements: u.equipements
@@ -139,4 +160,25 @@ export async function setEtapeClient(
     )
   );
   return utilisateurs.length;
+}
+
+// Affecte un poste à un site du client (chaîne vide = site non précisé).
+export async function affecterSiteUtilisateur(
+  utilisateurId: string,
+  siteId: string
+): Promise<void> {
+  await prisma.utilisateur.update({
+    where: { id: utilisateurId },
+    data: { siteId: siteId || null },
+  });
+}
+
+// Affecte d'un coup tous les postes du client encore sans site : à l'import Sewan aucun
+// poste n'a de site, on les répartit ensuite site par site.
+export async function affecterSiteRestants(clientId: string, siteId: string): Promise<number> {
+  const r = await prisma.utilisateur.updateMany({
+    where: { clientId, archiveA: null, siteId: null },
+    data: { siteId },
+  });
+  return r.count;
 }
