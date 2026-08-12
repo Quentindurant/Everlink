@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useTransition } from "react";
 import Link from "next/link";
-import { ChevronDown, Hand, MapPin, X } from "lucide-react";
+import { CalendarClock, ChevronDown, Hand, MapPin, X } from "lucide-react";
 import { CopiePuce } from "@/components/CopiePuce";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -414,6 +414,21 @@ export function TelephoneGrille({
                         >
                           {pct} %
                         </span>
+                        {rows[0].clientDateIso ? (
+                          <span
+                            className="ev-badge bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)]"
+                            title="Date d'installation planifiée"
+                          >
+                            <CalendarClock className="size-2.5" />
+                            {new Date(rows[0].clientDateIso).toLocaleDateString("fr-FR")}
+                            {rows[0].clientCreneau ? ` · ${rows[0].clientCreneau}` : ""}
+                          </span>
+                        ) : (
+                          <span className="ev-badge bg-muted text-muted-foreground" title="Aucune date d'installation planifiée">
+                            <CalendarClock className="size-2.5" />
+                            à planifier
+                          </span>
+                        )}
                         <span className="text-xs text-muted-foreground tabular-nums">
                           {rows.length} utilisateur{rows.length > 1 ? "s" : ""}
                         </span>

@@ -8,6 +8,9 @@ export interface TelephoneUtilisateurLigne {
   clientRaisonSociale: string;
   // Tech qui s'est attribué le client (email), null si personne.
   clientAttribueA: string | null;
+  // Intervention planifiée par l'ADV : le tech configure dans cet ordre.
+  clientDateIso: string | null;
+  clientCreneau: string | null;
   // Site d'affectation du poste, pour les clients multi-établissements (null = non précisé).
   siteId: string | null;
   // etapeId -> statut ("À faire" implicite si absent)
@@ -60,6 +63,7 @@ export async function fetchTelephoneGrille(filtres: {
             raisonSociale: true,
             dateIntervention: true,
             telephoneAttribueA: true,
+            creneauIntervention: true,
             sites: {
               select: { id: true, nom: true },
               orderBy: [{ ordre: "asc" }, { creeLe: "asc" }],
@@ -104,6 +108,8 @@ export async function fetchTelephoneGrille(filtres: {
       clientId: u.client.id,
       clientRaisonSociale: u.client.raisonSociale,
       clientAttribueA: u.client.telephoneAttribueA,
+      clientDateIso: u.client.dateIntervention?.toISOString().slice(0, 10) ?? null,
+      clientCreneau: u.client.creneauIntervention,
       siteId: u.siteId,
       statuts: Object.fromEntries(u.suivis.map((s) => [s.etapeId, s.statut])),
       numeros: u.numeros.map((n) => ({ brut: n.numeroBrut, courts: n.numerosCourts })),
