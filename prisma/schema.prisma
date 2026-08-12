@@ -105,6 +105,11 @@ model Client {
   // deux techniciens travaillent le même dossier en parallèle.
   telephoneAttribueA  String?
   telephoneAttribueLe DateTime?
+  // Mail envoyé hors application (appel, mail perso) : l'ADV coche la case sans rien envoyer.
+  // Un envoi réel depuis l'app prime sur ce marquage.
+  mailPrevenanceManuelLe   DateTime?
+  mailConfirmationManuelLe DateTime?
+
   // Préparation chef de projet : qui pilote le dossier, et clôture de la checklist.
   projetAttribueA     String?
   projetAttribueLe    DateTime?

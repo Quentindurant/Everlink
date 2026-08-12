@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { journaliser } from "@/lib/activite";
 import {
   noterTentativeContact,
+  retirerTentativeContact,
   passerBloque,
   setEtapeMigration,
   updateReferenceClient,
@@ -39,6 +40,13 @@ export async function noterTentativeContactAction(clientId: string): Promise<Res
   return garde(async () => {
     await noterTentativeContact(clientId);
     await journaliser("Client", clientId, "Tentative de contact");
+  });
+}
+
+export async function retirerTentativeContactAction(clientId: string): Promise<Resultat> {
+  return garde(async () => {
+    await retirerTentativeContact(clientId);
+    await journaliser("Client", clientId, "Annulation tentative de contact");
   });
 }
 

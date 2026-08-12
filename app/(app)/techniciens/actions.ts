@@ -184,3 +184,31 @@ export async function affecterTechnicienParNomAction(
   revalidatePath("/techniciens");
   return { success: true, technicienId, cree };
 }
+
+// Coche (ou décoche) un mail « fait hors application » : l'ADV a prévenu le client par
+// téléphone ou depuis sa boîte perso. N'envoie rien. Un envoi réel depuis l'app prime et
+// n'est pas effaçable ici — c'est un fait, pas une case.
+export async function basculerMailManuelAction(
+  clientId: string,
+  type: "PREVENANCE" | "CONFIRMATION"
+): Promise<Resultat> {
+  return garde(async () => {
+    const champ = type === "PREVENANCE" ? "mailPrevenanceManuelLe" : "mailConfirmationManuelLe";
+    const c = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { mailPrevenanceManuelLe: true, mailConfirmationManuelLe: true },
+    });
+    if (!c) return { success: false, error: "Client introuvable." };
+    const actif = c[champ] !== null;
+    await prisma.client.update({
+      where: { id: clientId },
+      data: { [champ]: actif ? null : new Date() },
+    });
+    await journaliser(
+      "Client",
+      clientId,
+      actif ? "Mail décoché (hors app)" : "Mail coché (hors app)",
+      type
+    );
+  });
+}

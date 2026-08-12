@@ -3,7 +3,7 @@
 import { Fragment, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Mail, PhoneOutgoing, Router, Search, Send, Sheet } from "lucide-react";
+import { ChevronDown, Minus, PhoneOutgoing, Router, Search, Send, Sheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,10 @@ import {
 import type { DossierAdv, TechnicienLigne } from "@/lib/repositories/technicienRepository";
 import type { EtapeMigrationLite } from "@/lib/domain/migration/etapes";
 import { EtapeMigrationSelect } from "@/components/migration/EtapeMigrationSelect";
-import { noterTentativeContactAction } from "@/app/(app)/clients/actions";
+import {
+  noterTentativeContactAction,
+  retirerTentativeContactAction,
+} from "@/app/(app)/clients/actions";
 import { setCreneauInterventionAction } from "@/app/(app)/clients/[id]/mailActions";
 import { marquerLienCommandeAction, marquerLienLivreAction } from "@/app/(app)/clients/[id]/lienActions";
 import { pousserVersZohoAction } from "@/app/(app)/clients/[id]/zohoActions";
@@ -26,6 +29,7 @@ import { couleurStatutSuivi, STATUTS_SUIVI } from "@/lib/domain/zoho/suiviSheet"
 import { SuiviColisBadge } from "@/components/SuiviColisBadge";
 import {
   affecterTechnicienParNomAction,
+  basculerMailManuelAction,
   setColisSuiviAction,
   setRouteurClientReutiliseAction,
   updateSuiviAdvAction,
@@ -194,6 +198,50 @@ function ChampTechnicien({
   );
 }
 
+// Prévenance / Confirmation. Vert plein = mail parti de l'app (fait établi, non décochable).
+// Vert clair = coché à la main parce que l'ADV a prévenu autrement. Gris = rien.
+function PastilleMail({
+  lettre,
+  envoyeLe,
+  manuelLe,
+  onBasculer,
+}: {
+  lettre: "P" | "C";
+  envoyeLe: string | null;
+  manuelLe: string | null;
+  onBasculer: () => void;
+}) {
+  const libelle = lettre === "P" ? "prévenance" : "confirmation";
+  if (envoyeLe) {
+    return (
+      <span
+        className="rounded px-1 text-xs font-semibold bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]"
+        title={`${libelle} envoyée depuis l'app le ${envoyeLe}`}
+      >
+        {lettre}
+      </span>
+    );
+  }
+  return (
+    <button
+      onClick={onBasculer}
+      className={cn(
+        "rounded px-1 text-xs transition-colors hover:cursor-pointer",
+        manuelLe
+          ? "bg-[var(--pal-green-bg)]/50 font-semibold text-[color:var(--pal-green-fg)]"
+          : "bg-muted text-muted-foreground hover:bg-[var(--ev-row-hover)]"
+      )}
+      title={
+        manuelLe
+          ? `${libelle} faite hors application le ${manuelLe} — cliquer pour décocher`
+          : `${libelle} non envoyée — cliquer si elle a été faite hors application`
+      }
+    >
+      {lettre}
+    </button>
+  );
+}
+
 function LigneDossier({
   d,
   etapes,
@@ -278,23 +326,34 @@ function LigneDossier({
         <EtapeMigrationSelect clientId={d.clientId} etapeCouranteId={d.etapeMigrationId} etapes={etapes} />
       </TableCell>
 
-      {/* Contact */}
+      {/* Contact : +1 au clic, −1 pour corriger un double clic */}
       <TableCell>
-        <button
-          onClick={() => agir(() => noterTentativeContactAction(d.clientId))}
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors hover:cursor-pointer",
-            d.nbTentativesContact >= 3
-              ? "border-transparent bg-[var(--pal-red-bg)] font-bold text-[color:var(--pal-red-fg)]"
-              : d.nbTentativesContact > 0
-                ? "border-transparent bg-[var(--pal-amber-bg)] font-semibold text-[color:var(--pal-amber-fg)]"
-                : "text-muted-foreground hover:bg-muted"
+        <span className="inline-flex items-center gap-0.5">
+          <button
+            onClick={() => agir(() => noterTentativeContactAction(d.clientId))}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors hover:cursor-pointer",
+              d.nbTentativesContact >= 3
+                ? "border-transparent bg-[var(--pal-red-bg)] font-bold text-[color:var(--pal-red-fg)]"
+                : d.nbTentativesContact > 0
+                  ? "border-transparent bg-[var(--pal-amber-bg)] font-semibold text-[color:var(--pal-amber-fg)]"
+                  : "text-muted-foreground hover:bg-muted"
+            )}
+            title={d.dernierContactLe ? `dernière le ${d.dernierContactLe}` : "noter une tentative"}
+          >
+            <PhoneOutgoing className="size-3" />
+            <span className="tabular-nums">{d.nbTentativesContact}</span>
+          </button>
+          {d.nbTentativesContact > 0 && (
+            <button
+              onClick={() => agir(() => retirerTentativeContactAction(d.clientId))}
+              className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              title="Retirer une tentative comptée par erreur"
+            >
+              <Minus className="size-3" />
+            </button>
           )}
-          title={d.dernierContactLe ? `dernière le ${d.dernierContactLe}` : "noter une tentative"}
-        >
-          <PhoneOutgoing className="size-3" />
-          <span className="tabular-nums">{d.nbTentativesContact}</span>
-        </button>
+        </span>
       </TableCell>
 
       {/* Date + créneau */}
@@ -360,19 +419,27 @@ function LigneDossier({
 
       {/* Mails */}
       <TableCell>
-        <Link
-          href={`/clients/${d.clientId}?onglet=Mails`}
-          className="inline-flex items-center gap-1.5 text-xs hover:underline"
-          title="Ouvrir l'envoi de mails"
-        >
-          <Mail className="size-3 text-muted-foreground" />
-          <span className={cn("rounded px-1", d.mailPrevenanceLe ? "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]" : "bg-muted text-muted-foreground")} title={d.mailPrevenanceLe ? `prévenance le ${d.mailPrevenanceLe}` : "prévenance non envoyée"}>
-            P
-          </span>
-          <span className={cn("rounded px-1", d.mailConfirmationLe ? "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]" : "bg-muted text-muted-foreground")} title={d.mailConfirmationLe ? `confirmation le ${d.mailConfirmationLe}` : "confirmation non envoyée"}>
-            C
-          </span>
-        </Link>
+        <span className="inline-flex items-center gap-1.5">
+          <PastilleMail
+            lettre="P"
+            envoyeLe={d.mailPrevenanceLe}
+            manuelLe={d.mailPrevenanceManuelLe}
+            onBasculer={() => agir(() => basculerMailManuelAction(d.clientId, "PREVENANCE"))}
+          />
+          <PastilleMail
+            lettre="C"
+            envoyeLe={d.mailConfirmationLe}
+            manuelLe={d.mailConfirmationManuelLe}
+            onBasculer={() => agir(() => basculerMailManuelAction(d.clientId, "CONFIRMATION"))}
+          />
+          <Link
+            href={`/clients/${d.clientId}?onglet=Mails`}
+            className="text-[10.5px] text-muted-foreground hover:underline"
+            title="Ouvrir la fiche client pour envoyer le mail"
+          >
+            envoyer
+          </Link>
+        </span>
       </TableCell>
 
       {/* Zoho */}

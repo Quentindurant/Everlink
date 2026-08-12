@@ -37,6 +37,24 @@ export async function noterTentativeContact(clientId: string): Promise<void> {
   });
 }
 
+// Annule une tentative comptée par erreur (double clic, mauvaise ligne). Jamais en dessous
+// de zéro ; la date du dernier contact est effacée quand on retombe à zéro.
+export async function retirerTentativeContact(clientId: string): Promise<void> {
+  const c = await prisma.client.findFirst({
+    where: { id: clientId, archiveA: null },
+    select: { nbTentativesContact: true },
+  });
+  if (!c || c.nbTentativesContact <= 0) return;
+  const reste = c.nbTentativesContact - 1;
+  await prisma.client.updateMany({
+    where: { id: clientId, archiveA: null },
+    data: {
+      nbTentativesContact: reste,
+      ...(reste === 0 ? { dernierContactLe: null } : {}),
+    },
+  });
+}
+
 // Passe le client sur la première étape bloquante du référentiel.
 export async function passerBloque(clientId: string): Promise<{ success: boolean; error?: string }> {
   const bloquante = await prisma.etapeMigration.findFirst({

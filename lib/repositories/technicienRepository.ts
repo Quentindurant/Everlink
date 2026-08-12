@@ -32,9 +32,12 @@ export interface DossierAdv {
   avecLien: boolean;
   lienCommande: boolean;
   lienLivre: boolean;
-  // Derniers mails envoyés avec succès, par type.
+  // Derniers mails envoyés avec succès, par type (envoi réel depuis l'app).
   mailPrevenanceLe: string | null;
   mailConfirmationLe: string | null;
+  // Marquage « fait hors application » posé à la main par l'ADV.
+  mailPrevenanceManuelLe: string | null;
+  mailConfirmationManuelLe: string | null;
   zohoPousseLe: string | null;
   routeurClientReutilise: boolean;
   // Suivi ADV (colonnes du TABLEAU SUIVI COMMANDES pilotées depuis l'app).
@@ -83,6 +86,8 @@ export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
       colisNumeroSuivi: true,
       colisSuiviStatut: true,
       colisSuiviLibelle: true,
+      mailPrevenanceManuelLe: true,
+      mailConfirmationManuelLe: true,
       mailEnvois: {
         where: { succes: true },
         orderBy: { creeLe: "desc" },
@@ -110,6 +115,8 @@ export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
     lienLivre: c.lienLivre,
     mailPrevenanceLe: d(c.mailEnvois.find((m) => m.type === "PREVENANCE")?.creeLe ?? null),
     mailConfirmationLe: d(c.mailEnvois.find((m) => m.type === "CONFIRMATION")?.creeLe ?? null),
+    mailPrevenanceManuelLe: d(c.mailPrevenanceManuelLe),
+    mailConfirmationManuelLe: d(c.mailConfirmationManuelLe),
     zohoPousseLe: d(c.zohoLignePousseeLe),
     routeurClientReutilise: c.routeurClientReutilise,
     statutSuivi: c.statutSuivi,
