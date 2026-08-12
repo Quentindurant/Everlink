@@ -302,6 +302,8 @@ export function TelephoneGrille({
   // Bandes clients repliées par défaut (comme le Provisionning) : on ouvre le client
   // qu'on travaille, la grille reste légère.
   const [deplies, setDeplies] = useState<Set<string>>(new Set());
+  // Le chantier avance lot par lot : un seul lot ouvert à la fois.
+  const [lotOuvert, setLotOuvert] = useState<string | null>(null);
   const basculerRepli = (raisonSociale: string) =>
     setDeplies((prev) => {
       const n = new Set(prev);
@@ -325,14 +327,40 @@ export function TelephoneGrille({
     else groupes.set(u.clientRaisonSociale, [u]);
   }
 
+  // Niveau lot au-dessus des clients, dans l'ordre des noms ; « Sans lot » en dernier.
+  const parLot = new Map<string, [string, typeof utilisateurs][]>();
+  for (const [raisonSociale, rows] of groupes) {
+    const cle = rows[0].clientLotNom ?? "Sans lot";
+    const liste = parLot.get(cle);
+    if (liste) liste.push([raisonSociale, rows]);
+    else parLot.set(cle, [[raisonSociale, rows]]);
+  }
+  const lots = [...parLot.entries()].sort(([a], [b]) =>
+    a === "Sans lot" ? 1 : b === "Sans lot" ? -1 : a.localeCompare(b, "fr", { numeric: true })
+  );
+
   const nbColonnes = etapes.length + 1;
   const toutDeplie = deplies.size >= groupes.size && groupes.size > 0;
+  // Un seul lot : l'ouvrir d'office, la hiérarchie n'apporterait rien.
+  const lotUnique = lots.length === 1 ? lots[0][0] : null;
+
+  // Avancement d'un ensemble de clients, en cases d'étapes résolues.
+  const avancement = (clients: [string, typeof utilisateurs][]) => {
+    const rows = clients.flatMap(([, r]) => r);
+    const total = rows.length * etapes.length;
+    const faits = rows.reduce(
+      (acc, u) => acc + etapes.filter((e) => estEtapeResolue(u.statuts[e.id])).length,
+      0
+    );
+    return { pct: total > 0 ? Math.round((faits / total) * 100) : 0, nbPostes: rows.length };
+  };
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs text-muted-foreground tabular-nums">
-          {groupes.size} client{groupes.size > 1 ? "s" : ""} · cliquez une bande pour ouvrir
+          {lots.length} lot{lots.length > 1 ? "s" : ""} · {groupes.size} client
+          {groupes.size > 1 ? "s" : ""} · cliquez une bande pour ouvrir
         </span>
         <button
           onClick={() => setDeplies(toutDeplie ? new Set() : new Set(groupes.keys()))}
@@ -360,7 +388,58 @@ export function TelephoneGrille({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {Array.from(groupes.entries()).map(([raisonSociale, rows]) => {
+          {lots.map(([lot, clientsDuLot]) => {
+            const lotDeplie = toutDeplie || lotUnique === lot || lotOuvert === lot;
+            const { pct: pctLot, nbPostes } = avancement(clientsDuLot);
+            return (
+              <Fragment key={lot}>
+                {lots.length > 1 && (
+                  <TableRow
+                    className="cursor-pointer hover:bg-[var(--ev-row-hover)]"
+                    style={{ background: "var(--ev-surface)" }}
+                    onClick={() => setLotOuvert(lotDeplie ? null : lot)}
+                  >
+                    <TableCell colSpan={nbColonnes} className="py-2">
+                      <span className="flex items-center gap-2.5">
+                        <ChevronDown
+                          className={cn(
+                            "size-4 text-muted-foreground transition-transform",
+                            !lotDeplie && "-rotate-90"
+                          )}
+                        />
+                        <span className="text-[14px] font-bold tracking-tight">{lot}</span>
+                        <span
+                          className="h-[5px] w-24 overflow-hidden rounded-full"
+                          style={{ background: "oklch(0.92 0.008 240)" }}
+                        >
+                          <span
+                            className="block h-full rounded-full"
+                            style={{
+                              background: pctLot === 100 ? "var(--pal-green-dot)" : "var(--ev-blue)",
+                              width: `${pctLot}%`,
+                            }}
+                          />
+                        </span>
+                        <span
+                          className={cn(
+                            "font-mono text-[11.5px] font-bold tabular-nums",
+                            pctLot === 100
+                              ? "text-[color:var(--pal-green-fg)]"
+                              : "text-[color:var(--ev-accent-text)]"
+                          )}
+                        >
+                          {pctLot} %
+                        </span>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {clientsDuLot.length} client{clientsDuLot.length > 1 ? "s" : ""} ·{" "}
+                          {nbPostes} poste{nbPostes > 1 ? "s" : ""}
+                        </span>
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                )}
+                {lotDeplie &&
+                  clientsDuLot.map(([raisonSociale, rows]) => {
             const clientId = rows[0].clientId;
             const ouvert = deplies.has(raisonSociale);
             const total = rows.length * etapes.length;
@@ -512,6 +591,9 @@ export function TelephoneGrille({
                   </TableRow>
                   );
                 })}
+              </Fragment>
+            );
+                  })}
               </Fragment>
             );
           })}

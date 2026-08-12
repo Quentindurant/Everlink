@@ -8,6 +8,8 @@ export interface TelephoneUtilisateurLigne {
   clientRaisonSociale: string;
   // Tech qui s'est attribué le client (email), null si personne.
   clientAttribueA: string | null;
+  // Lot de migration : le chantier avance lot par lot.
+  clientLotNom: string | null;
   // Intervention planifiée par l'ADV : le tech configure dans cet ordre.
   clientDateIso: string | null;
   clientCreneau: string | null;
@@ -64,6 +66,7 @@ export async function fetchTelephoneGrille(filtres: {
             dateIntervention: true,
             telephoneAttribueA: true,
             creneauIntervention: true,
+            lot: { select: { nom: true } },
             sites: {
               select: { id: true, nom: true },
               orderBy: [{ ordre: "asc" }, { creeLe: "asc" }],
@@ -84,6 +87,7 @@ export async function fetchTelephoneGrille(filtres: {
       },
       // Même ordre que le Provisionning: interventions planifiées les plus proches d'abord.
       orderBy: [
+        { client: { lot: { nom: "asc" } } },
         { client: { dateIntervention: { sort: "asc", nulls: "last" } } },
         { client: { raisonSociale: "asc" } },
         { ordre: "asc" },
@@ -108,6 +112,7 @@ export async function fetchTelephoneGrille(filtres: {
       clientId: u.client.id,
       clientRaisonSociale: u.client.raisonSociale,
       clientAttribueA: u.client.telephoneAttribueA,
+      clientLotNom: u.client.lot?.nom ?? null,
       clientDateIso: u.client.dateIntervention?.toISOString().slice(0, 10) ?? null,
       clientCreneau: u.client.creneauIntervention,
       siteId: u.siteId,
