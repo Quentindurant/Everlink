@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Fragment, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, PhoneOutgoing, Router, Search, Send, Sheet } from "lucide-react";
+import { ChevronDown, Mail, PhoneOutgoing, Router, Search, Send, Sheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,7 @@ import { pousserVersZohoAction } from "@/app/(app)/clients/[id]/zohoActions";
 import { couleurStatutSuivi, STATUTS_SUIVI } from "@/lib/domain/zoho/suiviSheet";
 import { SuiviColisBadge } from "@/components/SuiviColisBadge";
 import {
-  affecterTechnicienAction,
+  affecterTechnicienParNomAction,
   setColisSuiviAction,
   setRouteurClientReutiliseAction,
   updateSuiviAdvAction,
@@ -154,14 +154,56 @@ function ChampSuivi({
   );
 }
 
+// Technicien du dossier : champ libre avec autocomplétion sur l'annuaire. Un nom absent de
+// l'annuaire (fréquent : les ADV reprennent ceux du Zoho Sheet) crée le technicien plutôt
+// que de rester introuvable. Une liste de 127 noms ne se parcourt pas dans un menu déroulant.
+function ChampTechnicien({
+  clientId,
+  nom,
+  techniciens,
+  idListe,
+  onDone,
+}: {
+  clientId: string;
+  nom: string | null;
+  techniciens: TechnicienLigne[];
+  idListe: string;
+  onDone: (fn: () => Promise<unknown>) => void;
+}) {
+  const [valeur, setValeur] = useState(nom ?? "");
+  const connu = techniciens.some((t) => t.nom.toLowerCase() === valeur.trim().toLowerCase());
+  return (
+    <input
+      list={idListe}
+      value={valeur}
+      placeholder="technicien…"
+      onChange={(e) => setValeur(e.target.value)}
+      onBlur={() => {
+        if (valeur.trim() !== (nom ?? "")) onDone(() => affecterTechnicienParNomAction(clientId, valeur));
+      }}
+      title={
+        valeur.trim() && !connu
+          ? "Ce technicien n'est pas dans l'annuaire : il sera créé à la validation"
+          : "Technicien affecté"
+      }
+      className={cn(
+        "w-36 rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[12.5px] outline-none placeholder:text-muted-foreground/40 hover:border-input focus:border-ring",
+        valeur.trim() && !connu && "text-[color:var(--pal-amber-fg)]"
+      )}
+    />
+  );
+}
+
 function LigneDossier({
   d,
   etapes,
   techniciens,
+  idListeTechs,
 }: {
   d: DossierAdv;
   etapes: EtapeMigrationLite[];
   techniciens: TechnicienLigne[];
+  idListeTechs: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -280,16 +322,13 @@ function LigneDossier({
 
       {/* Technicien */}
       <TableCell>
-        <select
-          value={d.technicienId ?? ""}
-          onChange={(e) => agir(() => affecterTechnicienAction(d.clientId, e.target.value))}
-          className="max-w-36 rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[13px] outline-none hover:border-input focus:border-ring"
-        >
-          <option value="">—</option>
-          {techniciens.map((t) => (
-            <option key={t.id} value={t.id}>{t.nom}</option>
-          ))}
-        </select>
+        <ChampTechnicien
+          clientId={d.clientId}
+          nom={d.technicienNom}
+          techniciens={techniciens}
+          idListe={idListeTechs}
+          onDone={agir}
+        />
       </TableCell>
 
       {/* Lien */}
@@ -402,13 +441,35 @@ export function GestionDossiers({
   techniciens: TechnicienLigne[];
 }) {
   const [recherche, setRecherche] = useState("");
+  // Les ADV pilotent lot par lot : un lot ouvert à la fois garde le tableau lisible.
+  const [lotOuvert, setLotOuvert] = useState<string | null>(null);
   const techsActifs = techniciens.filter((t) => t.actif);
+  const idListeTechs = "annuaire-techniciens";
   const visibles = dossiers.filter((d) =>
     d.raisonSociale.toLowerCase().includes(recherche.toLowerCase())
   );
 
+  // Regroupement par lot, dans l'ordre des noms de lot ; les dossiers sans lot en dernier.
+  const parLot = new Map<string, DossierAdv[]>();
+  for (const d of visibles) {
+    const cle = d.lotNom ?? "Sans lot";
+    const liste = parLot.get(cle);
+    if (liste) liste.push(d);
+    else parLot.set(cle, [d]);
+  }
+  const lots = [...parLot.entries()].sort(([a], [b]) =>
+    a === "Sans lot" ? 1 : b === "Sans lot" ? -1 : a.localeCompare(b, "fr", { numeric: true })
+  );
+  // Une recherche traverse les lots : on déplie tout pour ne rien cacher.
+  const toutDeplie = recherche.trim().length > 0;
+
   return (
     <div className="flex flex-col gap-2">
+      <datalist id={idListeTechs}>
+        {techsActifs.map((t) => (
+          <option key={t.id} value={t.nom} />
+        ))}
+      </datalist>
       <div className="relative max-w-md">
         <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -437,9 +498,48 @@ export function GestionDossiers({
                 </TableCell>
               </TableRow>
             ) : (
-              visibles.map((d) => (
-                <LigneDossier key={d.clientId} d={d} etapes={etapes} techniciens={techsActifs} />
-              ))
+              lots.map(([lot, lignes]) => {
+                const ouvert = toutDeplie || lotOuvert === lot;
+                const aPlanifier = lignes.filter((l) => !l.dateIso).length;
+                return (
+                  <Fragment key={lot}>
+                    <TableRow
+                      className="cursor-pointer bg-[var(--ev-thead)] hover:bg-[var(--ev-row-hover)]"
+                      onClick={() => setLotOuvert(ouvert ? null : lot)}
+                    >
+                      <TableCell colSpan={16} className="py-2">
+                        <span className="flex items-center gap-2.5">
+                          <ChevronDown
+                            className={cn(
+                              "size-4 text-muted-foreground transition-transform",
+                              !ouvert && "-rotate-90"
+                            )}
+                          />
+                          <span className="text-[13.5px] font-bold">{lot}</span>
+                          <span className="text-xs text-muted-foreground tabular-nums">
+                            {lignes.length} dossier{lignes.length > 1 ? "s" : ""}
+                          </span>
+                          {aPlanifier > 0 && (
+                            <span className="ev-badge bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]">
+                              {aPlanifier} sans date
+                            </span>
+                          )}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                    {ouvert &&
+                      lignes.map((d) => (
+                        <LigneDossier
+                          key={d.clientId}
+                          d={d}
+                          etapes={etapes}
+                          techniciens={techsActifs}
+                          idListeTechs={idListeTechs}
+                        />
+                      ))}
+                  </Fragment>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -448,7 +548,9 @@ export function GestionDossiers({
         Tout est éditable ici : statut ADV (code couleur du tableau de suivi), date impérative,
         étape, tentative de contact (+1 au clic), date/créneau, technicien, lien (clic = commandé
         puis livré), P/C = mails prévenance/confirmation, Zoho = ajouter la ligne au tableau,
-        matériel reçu, n° Chrono, infos facturation, commentaire libre.
+        matériel reçu, n° Chrono, infos facturation, commentaire libre. Les dossiers sont
+        regroupés par lot : cliquez un lot pour l'ouvrir. Un technicien absent de l'annuaire
+        est créé à la saisie.
       </p>
     </div>
   );

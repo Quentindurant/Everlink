@@ -60,7 +60,13 @@ export function AppSidebar({
   role: string;
   onLogout: () => Promise<void>;
   badges?: Record<string, string | number | undefined>;
-  progression?: { faites: number; total: number; pct: number };
+  progression?: {
+    postesFaits: number;
+    postesTotal: number;
+    pct: number;
+    clientsFaits: number;
+    clientsTotal: number;
+  };
 }) {
   const pathname = usePathname();
   const estActif = (href: string) =>
@@ -180,8 +186,13 @@ export function AppSidebar({
               style={{ background: "var(--ev-blue)", width: `${progression.pct}%` }}
             />
           </div>
-          <div className="text-[11px]" style={{ color: "var(--ev-text-tertiary)" }}>
-            {progression.faites} / {progression.total} étapes faites
+          <div className="flex items-baseline justify-between text-[11px]" style={{ color: "var(--ev-text-tertiary)" }}>
+            <span>
+              {progression.postesFaits} / {progression.postesTotal} postes
+            </span>
+            <span title="Clients dont tous les postes sont migrés">
+              {progression.clientsFaits} / {progression.clientsTotal} clients
+            </span>
           </div>
         </div>
       )}

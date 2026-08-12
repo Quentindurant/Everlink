@@ -148,3 +148,39 @@ export async function supprimerTechnicienAction(id: string): Promise<Resultat> {
     if (!r.success) return r;
   });
 }
+
+// Affecte un technicien par son nom, en le créant s'il n'existe pas encore : les ADV
+// saisissent des noms venus du Zoho Sheet qui ne sont pas toujours dans notre annuaire.
+// Nom vide = on retire l'affectation.
+export async function affecterTechnicienParNomAction(
+  clientId: string,
+  nom: string
+): Promise<Resultat & { technicienId?: string; cree?: boolean }> {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "Non authentifié." };
+  const t = nom.trim();
+  if (!t) {
+    await affecterTechnicien(clientId, null);
+    revalidatePath("/techniciens");
+    return { success: true };
+  }
+  const existant = await prisma.technicien.findFirst({
+    where: { nom: { equals: t, mode: "insensitive" } },
+    select: { id: true, actif: true },
+  });
+  let technicienId = existant?.id;
+  let cree = false;
+  if (!existant) {
+    const nouveau = await prisma.technicien.create({ data: { nom: t, departements: [] } });
+    technicienId = nouveau.id;
+    cree = true;
+    await journaliser("Technicien", nouveau.id, "Création technicien", t);
+  } else if (!existant.actif) {
+    // Réaffecter un technicien désactivé le réactive : l'ADV le voit sur le Sheet.
+    await prisma.technicien.update({ where: { id: existant.id }, data: { actif: true } });
+  }
+  await affecterTechnicien(clientId, technicienId!);
+  await journaliser("Client", clientId, "Affectation technicien", t);
+  revalidatePath("/techniciens");
+  return { success: true, technicienId, cree };
+}

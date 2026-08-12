@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
 import { toucherPresence } from "@/lib/activite";
-import { STATUTS_ETAPE_RESOLUS } from "@/lib/domain/telephone/statuts";
+import { fetchProgressionChantier } from "@/lib/repositories/telephoneRepository";
 import { AppSidebar } from "@/components/AppSidebar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { logoutAction } from "./actions";
@@ -14,26 +13,10 @@ export default async function AppLayout({
   const session = await auth();
   if (session?.user?.email) await toucherPresence(session.user.email);
 
-  // Avancement du chantier = étapes de migration réellement cochées poste par poste (page
-  // Téléphone). C'est là que l'équipe travaille ; le statut de bascule par numéro n'est plus
-  // renseigné et laissait la jauge à 0 % en permanence.
-  const [postes, etapesActives, resolues] = await Promise.all([
-    prisma.utilisateur.count({ where: { archiveA: null, client: { archiveA: null } } }),
-    prisma.etapeModele.count({ where: { actif: true } }),
-    prisma.suiviEtape.count({
-      where: {
-        statut: { in: STATUTS_ETAPE_RESOLUS },
-        etape: { actif: true },
-        utilisateur: { archiveA: null, client: { archiveA: null } },
-      },
-    }),
-  ]);
-  const total = postes * etapesActives;
-  const progression = {
-    faites: resolues,
-    total,
-    pct: total > 0 ? Math.round((resolues / total) * 100) : 0,
-  };
+  // Avancement du chantier : un numéro = un poste, migré quand toutes ses étapes sont
+  // résolues. Le statut de bascule par numéro n'étant plus renseigné, il laissait la jauge
+  // à 0 % en permanence.
+  const progression = await fetchProgressionChantier();
 
   return (
     <div className="flex min-h-screen" style={{ background: "var(--ev-surface)" }}>

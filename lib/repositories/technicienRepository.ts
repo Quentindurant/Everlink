@@ -19,6 +19,8 @@ export interface TechnicienLigne {
 export interface DossierAdv {
   clientId: string;
   raisonSociale: string;
+  // Lot de migration : les ADV pilotent lot par lot.
+  lotNom: string | null;
   departement: string | null;
   etapeMigrationId: string | null;
   nbTentativesContact: number;
@@ -26,6 +28,7 @@ export interface DossierAdv {
   dateIso: string | null;
   creneau: string | null;
   technicienId: string | null;
+  technicienNom: string | null;
   avecLien: boolean;
   lienCommande: boolean;
   lienLivre: boolean;
@@ -56,6 +59,7 @@ export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
     select: {
       id: true,
       raisonSociale: true,
+      lot: { select: { nom: true } },
       departement: true,
       scenario: true,
       etapeMigrationId: true,
@@ -64,6 +68,7 @@ export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
       dateIntervention: true,
       creneauIntervention: true,
       technicienId: true,
+      technicien: { select: { nom: true } },
       lienCommande: true,
       lienLivre: true,
       zohoLignePousseeLe: true,
@@ -91,6 +96,7 @@ export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
   return clients.map((c) => ({
     clientId: c.id,
     raisonSociale: c.raisonSociale,
+    lotNom: c.lot?.nom ?? null,
     departement: c.departement,
     etapeMigrationId: c.etapeMigrationId,
     nbTentativesContact: c.nbTentativesContact,
@@ -98,6 +104,7 @@ export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
     dateIso: d(c.dateIntervention),
     creneau: c.creneauIntervention,
     technicienId: c.technicienId,
+    technicienNom: c.technicien?.nom ?? null,
     avecLien: (c.scenario ?? "").toLowerCase().includes("lien"),
     lienCommande: c.lienCommande,
     lienLivre: c.lienLivre,

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { STATUTS_ETAPE_RESOLUS } from "@/lib/domain/telephone/statuts";
 
 export interface TelephoneUtilisateurLigne {
   utilisateurId: string;
@@ -181,4 +182,54 @@ export async function affecterSiteRestants(clientId: string, siteId: string): Pr
     data: { siteId },
   });
   return r.count;
+}
+
+export interface ProgressionChantier {
+  // Un numéro = un poste : le chantier se compte en postes migrés, pas en cases cochées.
+  postesFaits: number;
+  postesTotal: number;
+  pct: number;
+  clientsFaits: number;
+  clientsTotal: number;
+}
+
+// Avancement global affiché dans la sidebar. Un poste est « fait » quand toutes les étapes
+// actives sont résolues (Fait ou Aucun) ; un client est fait quand tous ses postes le sont.
+export async function fetchProgressionChantier(): Promise<ProgressionChantier> {
+  const [etapesActives, utilisateurs, clientsTotal] = await Promise.all([
+    prisma.etapeModele.count({ where: { actif: true } }),
+    prisma.utilisateur.findMany({
+      where: { archiveA: null, client: { archiveA: null } },
+      select: {
+        clientId: true,
+        suivis: {
+          where: { etape: { actif: true }, statut: { in: STATUTS_ETAPE_RESOLUS } },
+          select: { id: true },
+        },
+      },
+    }),
+    prisma.client.count({ where: { archiveA: null } }),
+  ]);
+
+  const posteFait = (u: { suivis: unknown[] }) =>
+    etapesActives > 0 && u.suivis.length >= etapesActives;
+  const postesFaits = utilisateurs.filter(posteFait).length;
+
+  // Un client compte comme terminé s'il a des postes et qu'ils sont tous faits.
+  const parClient = new Map<string, { total: number; faits: number }>();
+  for (const u of utilisateurs) {
+    const e = parClient.get(u.clientId) ?? { total: 0, faits: 0 };
+    e.total++;
+    if (posteFait(u)) e.faits++;
+    parClient.set(u.clientId, e);
+  }
+  const clientsFaits = [...parClient.values()].filter((c) => c.total > 0 && c.faits === c.total).length;
+
+  return {
+    postesFaits,
+    postesTotal: utilisateurs.length,
+    pct: utilisateurs.length > 0 ? Math.round((postesFaits / utilisateurs.length) * 100) : 0,
+    clientsFaits,
+    clientsTotal,
+  };
 }
