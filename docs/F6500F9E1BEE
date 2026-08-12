@@ -1,0 +1,334 @@
+do {
+# Mikrotik ; Numero de Serie = F6500F9E1BEE ; Conf Id = 6810423
+
+# FR
+
+
+/system clock set date=jan/01/2020 time=12:00:00 time-zone-name=Europe/Paris time-zone-autodetect=no
+
+/certificate add name=root-cert common-name=MyCPE days-valid=6522 key-usage=key-cert-sign,crl-sign key-size=2048
+/certificate sign root-cert
+:delay 15s;
+/certificate add name=https-cert common-name=MyCPE days-valid=6522 key-size=2048
+/certificate sign ca=root-cert https-cert
+:delay 15s;
+
+/interface bridge
+/interface bridge add name=LAN_BRIDGE priority=0x1000 
+/interface bridge add name=WAN_BRIDGE protocol-mode=none 
+
+
+/ip dhcp-server option add code=43 name=OPTION43 value="'http://prov.sewan.fr/conf.txt'"
+/ip dhcp-server option add code=66 name=OPTION66 value="'prov.sewan.fr'"
+/ip dhcp-server option add code=160 name=OPTION160 value="'http://prov.sewan.fr'"
+
+/ip dhcp-server option sets add name=DHCP_OPTIONS options=OPTION43,OPTION66,OPTION160
+/interface vlan add interface=ether1 name=INT_VLAN_2900 vlan-id=2900
+
+
+
+/ip pool add name=pool_dhcp1 ranges=172.16.10.10-172.16.10.200
+/ip dhcp-server add address-pool=pool_dhcp1 dhcp-option-set=DHCP_OPTIONS disabled=no interface=LAN_BRIDGE lease-time=1d name=dhcp1
+
+
+
+
+/interface bridge port add bridge=WAN_BRIDGE interface=ether1
+/interface bridge port add bridge=LAN_BRIDGE interface=ether2 
+/interface bridge port add bridge=LAN_BRIDGE interface=ether3 
+/interface bridge port add bridge=LAN_BRIDGE interface=ether4 
+/interface bridge port add bridge=LAN_BRIDGE interface=ether5 
+/interface bridge port add bridge=WAN_BRIDGE interface=INT_VLAN_2900
+/interface pppoe-client add add-default-route=yes allow=chap disabled=no interface=WAN_BRIDGE name=pppoe-out1 password=UI4YCEYADN use-peer-dns=yes user=sw-SXR9CBNA@sw.dop  
+    
+
+/ip address add address=172.16.10.254/24 interface=LAN_BRIDGE network=172.16.10.0
+#DHCP DNS by country or custom (mode standard)
+/ip dhcp-server network add address=172.16.10.0/24 dns-server=178.255.160.92,178.255.160.94,8.8.8.8 gateway=172.16.10.254 netmask=24 ntp-server=217.74.101.0
+/ip firewall address-list add address=172.16.10.0/24 list=LAN
+/ip firewall address-list add address=0.0.0.0/8 comment=RFC6890 list=not_in_internet
+/ip firewall address-list add address=172.16.0.0/12 comment=RFC6890 list=not_in_internet
+/ip firewall address-list add address=192.168.0.0/16 comment=RFC6890 list=not_in_internet
+/ip firewall address-list add address=10.0.0.0/8 comment=RFC6890 list=not_in_internet
+/ip firewall address-list add address=169.254.0.0/16 comment=RFC6890 list=not_in_internet
+/ip firewall address-list add address=127.0.0.0/8 comment=RFC6890 list=not_in_internet
+/ip firewall address-list add address=224.0.0.0/4 comment=Multicast list=not_in_internet
+/ip firewall address-list add address=198.18.0.0/15 comment=RFC6890 list=not_in_internet
+/ip firewall address-list add address=192.0.0.0/24 comment=RFC6890 list=not_in_internet
+/ip firewall address-list add address=192.0.2.0/24 comment=RFC6890 list=not_in_internet
+/ip firewall address-list add address=198.51.100.0/24 comment=RFC6890 list=not_in_internet
+/ip firewall address-list add address=203.0.113.0/24 comment=RFC6890 list=not_in_internet
+/ip firewall address-list add address=100.64.0.0/10 comment=RFC6890 list=not_in_internet
+/ip firewall address-list add address=240.0.0.0/4 comment=RFC6890 list=not_in_internet
+/ip firewall address-list add address=192.88.99.0/24 comment="6to4 relay Anycast [RFC 3068]" list=not_in_internet
+/ip firewall address-list add address=81.93.7.8 comment="Management CPE" list=MGMT
+/ip firewall address-list add address=81.93.7.9 comment="Management CPE" list=MGMT
+/ip firewall address-list add address=81.93.7.13 comment="Management CPE" list=MGMT
+/ip firewall address-list add address=81.93.16.126 comment="Management CPE" list=MGMT
+/ip firewall address-list add address=178.255.160.71 comment="Management CPE" list=MGMT
+/ip firewall address-list add address=178.255.160.99 comment="Management CPE" list=MGMT
+/ip firewall address-list add address=178.255.160.100 comment="Management CPE" list=MGMT
+/ip firewall address-list add address=217.181.178.218 comment="Management CPE" list=MGMT
+/ip firewall address-list add address=217.181.178.221 comment="Management CPE" list=MGMT
+/ip firewall address-list add address=65.39.65.250 comment="Management CPE FR" list=MGMT
+/ip firewall address-list add address=188.66.8.14 comment="Management CPE BE" list=MGMT
+/ip firewall address-list add address=109.235.238.180 comment="Management CPE DE" list=MGMT
+/ip firewall address-list add address=37.139.120.241 comment="Management CPE ES" list=MGMT
+/ip firewall address-list add address=81.93.6.122 comment="Management VRF Customers" list=MGMT
+/ip firewall address-list add address=217.74.107.120 comment="Management VRF Internet" list=MGMT
+/ip firewall address-list add address=10.97.39.250 comment="Management Lookback PE in VRF Customers" list=MGMT
+/ip firewall address-list add address=178.255.160.22 comment="Management Lookback PE in VRF Internet" list=MGMT
+/ip firewall address-list add address=185.8.252.70 comment="Management stepping stone" list=MGMT
+/ip firewall address-list add address=178.255.160.73 comment="Management stepping stone" list=MGMT
+/ip firewall address-list add address=81.93.1.15 comment="Grafana" list=MGMT
+/ip firewall address-list add address=81.93.0.15 comment="Grafana" list=MGMT
+/ip firewall address-list add address=6.0.0.205 comment="Grafana" list=MGMT
+/ip firewall address-list add address=6.0.0.206 comment="Grafana" list=MGMT
+/ip firewall address-list add address=217.74.101.0 comment="NTP" list=MGMT
+
+/ip firewall address-list add address=217.74.107.120/32 comment="Partner access" list=PARTNER
+/ip firewall address-list add address=178.255.165.155/32 comment="Partner access" list=PARTNER
+
+ 
+
+/ip firewall filter add action=accept chain=input protocol=icmp
+/ip firewall filter add action=accept chain=input src-address-list=MGMT
+/ip firewall filter add action=accept chain=input src-address-list=PARTNER
+/ip firewall filter add action=accept chain=input src-address-list=adv_conf
+/ip firewall address-list add address=224.0.0.5 comment="OSPF" list=adv_conf 
+/ip firewall address-list add address=224.0.0.6 comment="OSPF" list=adv_conf
+/ip firewall filter add action=accept chain=input connection-state=established,related
+/ip firewall filter add action=drop chain=input
+/ip firewall address-list add address=172.16.10.0/24 comment="LAN" list=MGMT
+/ip firewall mangle add action=fasttrack-connection chain=forward in-interface=pppoe-out1 out-interface=LAN_BRIDGE
+/ip firewall mangle add action=fasttrack-connection chain=forward in-interface=LAN_BRIDGE out-interface=pppoe-out1
+/ip firewall mangle add action=fasttrack-connection chain=output out-interface=INT_VLAN_2900
+/ip firewall mangle add action=fasttrack-connection chain=input in-interface=INT_VLAN_2900
+
+/ip firewall nat add chain=dstnat dst-address=0.0.0.0/0 dst-port=4500 action=dst-nat in-interface=pppoe-out1 protocol=udp to-addresses=172.16.10.199 to-port=4500
+/ip firewall nat add chain=dstnat dst-address=0.0.0.0/0 dst-port=500 action=dst-nat in-interface=pppoe-out1 protocol=udp to-addresses=172.16.10.199 to-port=500
+/ip firewall nat add chain=dstnat dst-address=0.0.0.0/0 dst-port=64998 action=dst-nat in-interface=pppoe-out1 protocol=udp to-addresses=172.16.10.199 to-port=64998
+/ip firewall nat add chain=dstnat dst-address=0.0.0.0/0 dst-port=64998 action=dst-nat in-interface=pppoe-out1 protocol=tcp to-addresses=172.16.10.199 to-port=64998
+ 
+/ip firewall nat add action=masquerade chain=srcnat comment="masquerade" out-interface=pppoe-out1
+
+/ip firewall service-port set sip disabled=yes
+
+/ip service set ftp disabled=yes
+/ip service set www disabled=yes
+/ip service set api disabled=yes
+/ip service set api-ssl disabled=yes
+/tool bandwidth-server set enabled=no
+/ip service set telnet disabled=no address="172.16.10.0/24"
+
+/ip service set ssh address="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,178.255.160.64/26,81.93.6.0/28,81.93.6.112/28,217.74.107.120/32,65.39.65.250/32,37.139.120.241/32,188.66.8.14/32,109.235.238.180/32,217.74.107.120/32,178.255.165.155/32,172.16.10.0/24"
+/ip service set www-ssl address="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,178.255.160.64/26,81.93.6.0/28,81.93.6.112/28,217.74.107.120/32,65.39.65.250/32,37.139.120.241/32,188.66.8.14/32,109.235.238.180/32,217.74.107.120/32,178.255.165.155/32,172.16.10.0/24" certificate=https-cert disabled=no
+/ip service set winbox address="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,178.255.160.64/26,81.93.6.0/28,81.93.6.112/28,217.74.107.120/32,65.39.65.250/32,37.139.120.241/32,188.66.8.14/32,109.235.238.180/32,217.74.107.120/32,178.255.165.155/32,172.16.10.0/24"
+
+/ip ssh set strong-crypto=yes
+
+/system package enable ipv6
+
+/ipv6 dhcp-client add add-default-route=yes interface=pppoe-out1 pool-name=ipv6-pool request=prefix
+
+
+/ipv6 address add address=::1/64 advertise=yes disabled=no eui-64=no from-pool=ipv6-pool interface=LAN_BRIDGE
+
+/ipv6 firewall filter add action=accept chain=input comment="allow established and related" connection-state=established,related
+/ipv6 firewall filter add action=accept chain=input in-interface=pppoe-out1 log=no log-prefix=allowed_LL_for_PD src-address=fe80::/16
+/ipv6 firewall filter add action=accept chain=input in-interface=pppoe-out1 log=no log-prefix=allowed_sw_pool src-address=2a02:c440::/32
+/ipv6 firewall filter add action=accept chain=input comment="allow allowed addresses" in-interface=!pppoe-out1
+/ipv6 firewall filter add action=drop chain=input
+/ipv6 firewall filter add action=accept chain=forward comment=established,related connection-state=established,related
+/ipv6 firewall filter add action=drop chain=forward comment=invalid connection-state=invalid log=no log-prefix=ipv6,invalid
+/ipv6 firewall filter add action=accept chain=forward comment=icmpv6 in-interface=!pppoe-out1 protocol=icmpv6
+/ipv6 firewall filter add action=accept chain=forward comment="local network" in-interface=!pppoe-out1
+/ipv6 firewall filter add action=drop chain=forward
+/ipv6 firewall mangle add action=change-mss chain=forward new-mss=clamp-to-pmtu passthrough=yes protocol=tcp tcp-flags=syn
+/ipv6 nd set [ find default=yes ] advertise-dns=yes advertise-mac-address=yes disabled=no hop-limit=unspecified interface=all managed-address-configuration=no mtu=unspecified other-configuration=yes ra-delay=3s ra-interval=30s-2m ra-lifetime=2m reachable-time=5m retransmit-interval=unspecified
+/ipv6 nd prefix add autonomous=no disabled=no interface=LAN_BRIDGE on-link=yes preferred-lifetime=2m prefix=::/64 valid-lifetime=3m
+
+/ipv6 nd prefix default set autonomous=yes preferred-lifetime=2m valid-lifetime=3m
+/ipv6 settings set accept-redirects=yes accept-router-advertisements=no forward=yes
+
+
+/ip dns set servers=178.255.160.92,178.255.160.94,8.8.8.8
+
+/system clock set time-zone-name=Europe/Paris
+/system identity set name="ADNSFR_6810423"
+/system logging set 3 action=memory
+/system ntp client set enabled=yes primary-ntp=217.74.101.0
+
+/ip neighbor discovery-settings set protocol=mndp
+/user group add name=partners policy=local,telnet,ssh,ftp,reboot,read,write,policy,test,winbox,web
+/user add name=everpass disabled=no password=HBQzuJbtVp group=partners address=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,217.74.107.120/32,178.255.165.155/32
+
+/user set admin password=4J1wFg4MVD address=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,178.255.160.64/26,81.93.6.0/28,81.93.6.112/28,217.74.107.120/32,65.39.65.250/32,37.139.120.241/32,188.66.8.14/32,109.235.238.180/32,172.16.10.0/24
+/tr069-client set acs-url=https://acs.ztp.sewan.fr:51005/ client-certificate=none check-certificate=no connection-request-password=F6500F9E1BEE \
+    username=cpe connection-request-username=acs enabled=yes \
+    password=F6500F9E1BEE periodic-inform-enabled=yes \
+    provisioning-code=6810423
+/system logging set 0 action=disk
+/system logging set 1 action=disk
+/system logging set 2 action=disk
+/system logging set 3 action=disk
+
+
+/system scheduler add interval=1h  name=Backup on-event="/system backup save name=/flash/backup.backup password=sewan" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
+/system scheduler add interval=1h  name=BackupConfig on-event=BackupConfig policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
+/system scheduler add interval=0s  name=Autoprov on-event=BeforeBootAutoprov policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
+/system scheduler add interval=12h name=CheckNTPServers on-event=CheckNTPServers policy=read,write,test start-date=jan/01/2017 start-time=12:00:00
+/system scheduler add interval=0s  name=upgradeRB on-event="/system routerboard\r\
+    \n:if ([/system routerboard get current-firmware] != [/system routerboard get upgrade-firmware]) do={\r\
+    \n   ## New version of firmware available, let's upgrade\r\
+    \n      :log info (\"Upgrading firmware on router \$[/system identity get name] from \$[/system routerboard get current-firmware] to \$[/system routerboard get upgrade-firmware]\")\r\
+    \n      :log warning \"System will reboot in 30s\"\r\
+    \n      upgrade\r\
+    \n      ## Wait for upgrade, then reboot\r\
+    \n      :delay 120s;\r\
+    \n      /system reboot\r\
+    \n   } else={\r\
+    \n   :log info (\"No firmware upgrade found\")\r\
+    \n}\r\
+    \n" policy=reboot,read,write,policy,test start-time=startup
+
+
+/system script add name=BackupConfig owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="\r\
+    \n:global SystemIdentity\r\
+    \n:set SystemIdentity [:pick [/system identity get name] 0 12]\r\
+    \n:if (( \$SystemIdentity = \"BACKUPCONFIG\" ) != true) do={\r\
+    \n\r\
+    \n:global hostname [/system identity get name]\r\
+    \n#:log info (\"info.debug - hostname is : \" . \$hostname)\r\
+    \n/system identity set name \"BACKUPCONFIG_\$hostname\"\r\
+    \n#:log info (\"info.debug - BACKUPCONFIG_hostname is : \" . [put [/system identity get name]])\r\
+    \n/system backup save name=/flash/backup.backup password=sewan\r\
+    \ndelay 5s\r\
+    \n/system identity set name \"\$hostname\"\r\
+    \n\r\
+    \n} else={\r\
+    \n:log error (\"info.debug : -- BACKUPCONFIG STOPPED --- This configuration is a backup configuration -\")\r\
+    \n}"
+
+/system script add name=BeforeBootAutoprov owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source=":global SystemIdentity\r\
+    \n:set SystemIdentity [:pick [/system identity get name] 0 12]\r\
+    \n:if (( \$SystemIdentity = \"BACKUPCONFIG\" ) != true) do={\r\
+    \n:log info (\"info.debug - we can load Bootautoprov - SystemIdentity is : \"  . \$SystemIdentity . \".....\")\r\
+    \n:system script run Bootautoprov\r\
+    \n} else={\r\
+    \n:log error (\"info.debug : -- AUTOPROV STOPPED --- This configuration is a backup configuration -\")\r\
+    \n}"
+
+/system script add name=Bootautoprov owner=admin policy=\
+    ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="\r\
+    \n       :log warning \"Script Bootautoprov loaded\";\r\
+    \n       :if ([/ping 178.255.160.71 interval=5s count=10]!=0) do={\r\
+    \n       :do {:log warning \"ping 178.255.160.71 successful - it try to get final config on Sophia\";\r\
+    \n       :global serial [/sy ro g s ];\r\
+    \n       :global url http://configcpe.sewan.fr/airdevices/;\r\
+    \n       :tool fetch url=(\$url .\$serial.\".txt\") dst-path=(\"/flash/\".\$serial.\".txt\");\r\
+    \n\r\
+    \n    ##\r\
+    \n    ## We are only interested on the first line \r\
+    \n    ##\r\
+    \n       :global content [/file get [/file find name=(\"flash/\".\$serial.\".txt\")] contents] ;\r\
+    \n       #:log warning (\"content: \" . \$content)   \r\
+    \n\r\
+    \n       :global contentLen [ :len \$content ] ;\r\
+    \n       :global lineEnd 0;\r\
+    \n       :global firstline \"\";\r\
+    \n       :global lastEnd 0;\r\
+    \n        # pour CR LF\r\
+    \n        #:set lineEnd [:find \$content \"\\r\\n\" \$lastEnd ] ;\r\
+    \n        # pour LF\r\
+    \n       :set lineEnd [:find \$content \"\\n\" \$lastEnd ] ;\r\
+    \n       :set firstline [:pick \$content \$lastEnd \$lineEnd] ;\r\
+    \n       #:log warning (\"firstline is : \" . \$firstline)   \r\
+    \n    ##\r\
+    \n    ## Now we need to find the configuration ID\r\
+    \n    ## of the configuration generated by Sophia \r\
+    \n    ##  \r\
+    \n       :global decimalPos \"0\";\r\
+    \n       :global sophiaconfid\r\
+    \n       \r\
+    \n       :set decimalPos [:find \$firstline \"=\"];\r\
+    \n       :set decimalPos (\$decimalPos+1);\r\
+    \n       :set sophiaconfid [:pick \$firstline \$decimalPos [:len \$firstline]];\r\
+    \n       #:log warning (\"sophiaconfid is : \" . \$sophiaconfid)\r\
+    \n       :global WorkString [/system identity get name];\r\
+    \n       :global bclcondition ([find \$WorkString \"_\"]>=0)\r\
+    \n       #:log warning (\"bclcondition is : \" . \$bclcondition)\r\
+    \n       :while (\$bclcondition=true) do={\r\
+    \n          #:log info  (\"IN LOOP\")\r\
+    \n          :set decimalPos [:find \$WorkString \"_\"];\r\
+    \n          :set decimalPos (\$decimalPos+1);\r\
+    \n          #:log warning (\"decimalPos+1 is : \" . \$decimalPos)\r\
+    \n          :set WorkString [:pick \$WorkString \$decimalPos [:len \$WorkString]];\r\
+    \n          #:log warning (\"curconfid is : \" . \$WorkString)\r\
+    \n          :global bclcondition ([find \$WorkString \"_\"]>=0)\r\
+    \n       } \r\
+    \n      :global DeviceCurrentConfId \$WorkString \r\
+    \n    \r\
+    \n    \r\
+    \n    ##\r\
+    \n    ## Now we check if Sophia configuration file\r\
+    \n    ## is recent ( greater ID ). if this is the case,\r\
+    \n    ## the router restarts with the new version.\r\
+    \n    ##   \r\
+    \n       :if (( \$sophiaconfid > \$DeviceCurrentConfId ) = false)  do={\r\
+    \n            :log warning (\"No need to update - old_ID: \" . \$DeviceCurrentConfId . \" and new_ID: \" . \$sophiaconfid);\r\
+    \n            } else={\r\
+    \n            :log warning (\"system will restart on new configuration - old_ID: \" . \$DeviceCurrentConfId . \" and new_ID: \" . \$sophiaconfid);\r\
+    \n            :delay 5s\r\
+    \n                 :global url http://configcpe.sewan.fr/airdevices/;\r\
+    \n             :tool fetch url=(\$url .\$serial) dst-path=(\"/flash/\".\$serial.\".rsc\");\r\
+    \n             :delay 5s\r\
+    \n            /system reset-configuration no-defaults=yes run-after-reset=(\"flash/\".\$serial.\".rsc\")\r\
+    \n\r\
+    \n            y\r\
+    \n\r\
+    \n           }\r\
+    \n      } on-error={\r\
+    \n    :log error \"Error occur on Bootautoprov script.\"\r\
+    \n    }\r\
+    \n}"
+
+
+
+
+/system script add name=CheckNTPServers owner=admin policy=read,write,test source="\r\
+    \n# Check and set NTP servers \r\
+    \n\r\
+    \n# NTP pools to use (check ntp.sewan.fr)\r\
+    \n:global SYSntp \"ntp.sewan.fr\";\r\
+    \n\r\
+    \n# Resolve the two ntp pool hostnames\r\
+    \n:local ntpip [:resolve \$SYSntp];\r\
+    \n\r\
+    \n# Get the current settings\r\
+    \n:local ntpcur [/system ntp client get primary-ntp];\r\
+    \n\r\
+    \n# Define a variable so we know if anything's changed.\r\
+    \n:local changea 0;\r\
+    \n\r\
+    \n# Debug output\r\
+    \n:put (\"Old: \" . \$ntpcur . \" New: \" . \$ntpip);\r\
+    \n\r\
+    \n# Change primary if required\r\
+    \n:if (\$ntpip != \$ntpcur) do={\r\
+    \n    :put \"Changing primary NTP\";\r\
+    \n    /system ntp client set primary-ntp=\"\$ntpip\";\r\
+    \n    /ip dhcp-server network set numbers=0 ntp-server=\"\$ntpip\";\r\
+    \n    :set changea 1;\r\
+    \n    }"
+
+
+
+
+
+
+} on-error={ /system backup load name=/flash/backup.backup password=sewan
+  
+y
+
+}

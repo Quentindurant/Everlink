@@ -18,7 +18,7 @@ async function garde(fn: (email: string) => Promise<void>): Promise<Resultat> {
   try {
     await fn(session.user.email ?? "");
     revalidatePath("/clients");
-    revalidatePath("/");
+    revalidatePath("/provisionning");
     return { success: true };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Erreur." };

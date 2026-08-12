@@ -36,7 +36,7 @@ export function ProvisionningFiltresBar({
     if (value) params.set(key, value);
     else params.delete(key);
     startTransition(() => {
-      router.push(`/?${params.toString()}`);
+      router.push(`/provisionning?${params.toString()}`);
     });
   };
 

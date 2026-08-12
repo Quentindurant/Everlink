@@ -151,7 +151,7 @@ export default async function ClientDetailPage({
           size="sm"
           className="ml-auto"
           nativeButton={false}
-          render={<Link href={`/?client=${client.id}`} />}
+          render={<Link href={`/provisionning?client=${client.id}`} />}
         >
           <PencilLine data-icon="inline-start" />
           Saisir les utilisateurs et numéros

@@ -44,7 +44,7 @@ export async function validerNumerosV4Action(
   if (!session?.user) return { success: false, error: "Non authentifié." };
   try {
     const resultat = await importNumerosV4(clientId, rows);
-    revalidatePath("/");
+    revalidatePath("/provisionning");
     revalidatePath(`/clients/${clientId}`);
     return { success: true, resultat };
   } catch (e) {

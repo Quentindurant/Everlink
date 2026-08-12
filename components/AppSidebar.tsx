@@ -17,7 +17,6 @@ const NAV_GROUPES = [
     titre: "Migration Téléphone",
     items: [
       { href: "/chef-projet", label: "Chef projet", dot: "var(--ev-purple)" },
-      { href: "/", label: "Provisionning", dot: "var(--ev-blue)" },
       { href: "/telephone", label: "Téléphone", dot: "var(--ev-cyan)" },
     ],
   },
@@ -34,6 +33,7 @@ const NAV_GROUPES = [
     items: [
       { href: "/lots", label: "Lots", dot: "var(--ev-green)" },
       { href: "/import-monday", label: "Import Monday", dot: "var(--ev-blue)" },
+      { href: "/provisionning", label: "Provisionning", dot: "var(--ev-blue)" },
       { href: "/import-sda", label: "Export SDA", dot: "var(--ev-amber)" },
       { href: "/import-mac", label: "Export MAC", dot: "var(--ev-amber)" },
     ],
@@ -181,7 +181,7 @@ export function AppSidebar({
             />
           </div>
           <div className="text-[11px]" style={{ color: "var(--ev-text-tertiary)" }}>
-            {progression.faites} / {progression.total} numéros basculés
+            {progression.faites} / {progression.total} étapes faites
           </div>
         </div>
       )}

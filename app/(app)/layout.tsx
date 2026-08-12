@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { toucherPresence } from "@/lib/activite";
+import { STATUTS_ETAPE_RESOLUS } from "@/lib/domain/telephone/statuts";
 import { AppSidebar } from "@/components/AppSidebar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { logoutAction } from "./actions";
@@ -13,17 +14,25 @@ export default async function AppLayout({
   const session = await auth();
   if (session?.user?.email) await toucherPresence(session.user.email);
 
-  // Progression réelle des bascules sur les numéros actifs, pour le widget de la sidebar.
-  const [total, faites] = await Promise.all([
-    prisma.numero.count({ where: { archiveA: null, client: { archiveA: null } } }),
-    prisma.numero.count({
-      where: { archiveA: null, client: { archiveA: null }, statutBascule: "Fait" },
+  // Avancement du chantier = étapes de migration réellement cochées poste par poste (page
+  // Téléphone). C'est là que l'équipe travaille ; le statut de bascule par numéro n'est plus
+  // renseigné et laissait la jauge à 0 % en permanence.
+  const [postes, etapesActives, resolues] = await Promise.all([
+    prisma.utilisateur.count({ where: { archiveA: null, client: { archiveA: null } } }),
+    prisma.etapeModele.count({ where: { actif: true } }),
+    prisma.suiviEtape.count({
+      where: {
+        statut: { in: STATUTS_ETAPE_RESOLUS },
+        etape: { actif: true },
+        utilisateur: { archiveA: null, client: { archiveA: null } },
+      },
     }),
   ]);
+  const total = postes * etapesActives;
   const progression = {
-    faites,
+    faites: resolues,
     total,
-    pct: total > 0 ? Math.round((faites / total) * 100) : 0,
+    pct: total > 0 ? Math.round((resolues / total) * 100) : 0,
   };
 
   return (

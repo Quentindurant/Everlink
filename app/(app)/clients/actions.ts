@@ -17,7 +17,7 @@ async function garde(fn: () => Promise<Resultat | void>): Promise<Resultat> {
   if (!session?.user) return { success: false, error: "Non authentifié." };
   try {
     const r = await fn();
-    revalidatePath("/");
+    revalidatePath("/provisionning");
     revalidatePath("/clients");
     return r ?? { success: true };
   } catch (e) {

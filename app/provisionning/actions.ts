@@ -50,7 +50,7 @@ export async function updateNumeroCellAction(
     // champ: la règle d'unicité globale fait qu'une écriture peut changer le contrôle d'un
     // autre numéro, le coût d'un recalcul est négligeable devant celui de rater un cas.
     await recalculerControle(numeroId);
-    revalidatePath("/");
+    revalidatePath("/provisionning");
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
@@ -83,7 +83,7 @@ export async function forcerControleAction(
     if (result.count === 0) {
       return { success: false, error: INTROUVABLE };
     }
-    revalidatePath("/");
+    revalidatePath("/provisionning");
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
@@ -107,7 +107,7 @@ export async function updateEquipementMacAction(
     if (result.count === 0) {
       return { success: false, error: INTROUVABLE };
     }
-    revalidatePath("/");
+    revalidatePath("/provisionning");
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
@@ -141,7 +141,7 @@ export async function updateEquipementModeleAction(
     if (result.count === 0) {
       return { success: false, error: INTROUVABLE };
     }
-    revalidatePath("/");
+    revalidatePath("/provisionning");
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
@@ -165,7 +165,7 @@ export async function updateUtilisateurNomAction(
     if (result.count === 0) {
       return { success: false, error: INTROUVABLE };
     }
-    revalidatePath("/");
+    revalidatePath("/provisionning");
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
@@ -194,7 +194,7 @@ export async function ajouterLigneAction(
       await prisma.equipement.create({
         data: { clientId, macBrut: "", macNormalise: normaliserMac("") },
       });
-      revalidatePath("/");
+      revalidatePath("/provisionning");
       return { success: true };
     }
 
@@ -222,7 +222,7 @@ export async function ajouterLigneAction(
         return numero;
       });
       await recalculerControle(result.id);
-      revalidatePath("/");
+      revalidatePath("/provisionning");
       return { success: true, numeroId: result.id };
     }
 
@@ -235,7 +235,7 @@ export async function ajouterLigneAction(
     });
 
     await recalculerControle(numero.id);
-    revalidatePath("/");
+    revalidatePath("/provisionning");
     return { success: true, numeroId: numero.id };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
@@ -289,7 +289,7 @@ export async function supprimerLigneAction(cibles: {
         }
       }
     });
-    revalidatePath("/");
+    revalidatePath("/provisionning");
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };
@@ -327,7 +327,7 @@ export async function actionMasseAction(
         where: { id: { in: clientIds }, archiveA: null },
         data: { hebergeurCible: action.valeur },
       });
-      revalidatePath("/");
+      revalidatePath("/provisionning");
       return { success: true, count: result.count };
     }
 
@@ -339,7 +339,7 @@ export async function actionMasseAction(
       if (result.count === 0) {
         return { success: false, error: INTROUVABLE };
       }
-      revalidatePath("/");
+      revalidatePath("/provisionning");
       return { success: true, count: result.count };
     }
 
@@ -350,7 +350,7 @@ export async function actionMasseAction(
     if (result.count === 0) {
       return { success: false, error: INTROUVABLE };
     }
-    revalidatePath("/");
+    revalidatePath("/provisionning");
     return { success: true, count: result.count };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Erreur inconnue." };

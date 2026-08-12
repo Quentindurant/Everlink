@@ -14,7 +14,7 @@ interface Resultat {
 
 const PAGES: Resultat[] = [
   { type: "Page", libelle: "Accueil — vue du jour", detail: "", href: "/accueil" },
-  { type: "Page", libelle: "Provisionning", detail: "", href: "/" },
+  { type: "Page", libelle: "Provisionning — saisie des numéros", detail: "", href: "/provisionning" },
   { type: "Page", libelle: "Clients", detail: "", href: "/clients" },
   { type: "Page", libelle: "Téléphone", detail: "", href: "/telephone" },
   { type: "Page", libelle: "Chef projet — préparation", detail: "", href: "/chef-projet" },

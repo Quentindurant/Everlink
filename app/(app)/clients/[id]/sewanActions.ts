@@ -39,7 +39,7 @@ export async function validerSewanAction(
   if (!session?.user) return { success: false, error: "Non authentifié." };
   try {
     const resultat = await importUtilisateursSewan(clientId, rows, dokoIndices);
-    revalidatePath("/");
+    revalidatePath("/provisionning");
     revalidatePath(`/clients/${clientId}`);
     return { success: true, resultat };
   } catch (e) {

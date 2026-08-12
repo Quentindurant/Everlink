@@ -66,7 +66,7 @@ export async function envoyerMailAction(
   }
 
   revalidatePath("/clients");
-  revalidatePath("/");
+  revalidatePath("/provisionning");
   if (!envoi.success) return { success: false, error: envoi.error };
   return { success: true };
 }

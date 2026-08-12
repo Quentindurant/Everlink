@@ -182,7 +182,7 @@ export async function recalculerControleGlobalAction(): Promise<{
   if (!admin) return { success: false, error: "Réservé aux administrateurs." };
   const nb = await recalculerControleGlobal();
   revalidatePath("/parametres");
-  revalidatePath("/");
+  revalidatePath("/provisionning");
   return { success: true, nb };
 }
 

@@ -43,7 +43,7 @@ export async function validerDevicesAction(
   if (!session?.user) return { success: false, error: "Non authentifié." };
   try {
     const resultat = await importDevicesSewan(clientId, rows);
-    revalidatePath("/");
+    revalidatePath("/provisionning");
     revalidatePath(`/clients/${clientId}`);
     return { success: true, resultat };
   } catch (e) {
