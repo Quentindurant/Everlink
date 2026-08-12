@@ -3,6 +3,7 @@
 // modifiés, ni côté Sheet ni côté app (voir lib/domain/zoho/rapprochement).
 // Un champ vide côté Sheet ne touche jamais la valeur de l'app.
 import { prisma } from "@/lib/prisma";
+import { normaliserNomTech } from "@/lib/domain/technicien/disponibilite";
 import { lireLignesSheet } from "@/lib/zoho/zohoClient";
 import {
   parseDateSheet,
@@ -55,20 +56,27 @@ export async function runZohoPull(): Promise<ZohoPullResultat> {
   const parId = new Map(clients.map((c) => [c.id, c]));
 
   // Le Sheet fait foi pour les affectations : un technicien qu'il cite mais que l'annuaire
-  // ignore est créé, sinon l'affectation ne remonterait jamais dans l'app.
+  // ignore est créé, sinon l'affectation ne remonterait jamais dans l'app. La comparaison
+  // ignore casse et accents — le Sheet contient « Bruce », « BRUCE » et « bruce » pour la
+  // même personne, et des cases de service (« / », « - ») qui ne sont pas des noms.
   let techniciensCrees = 0;
+  const estNomPlausible = (t: string) => t.length >= 2 && /\p{L}{2,}/u.test(t);
+
   const techParNom = async (nom: string): Promise<string | null> => {
     const t = nom.trim();
-    const n = t.toLowerCase();
-    if (!n) return null;
-    const exacts = techniciens.filter((x) => x.nom.toLowerCase() === n);
+    if (!t) return null;
+    const n = normaliserNomTech(t);
+    const exacts = techniciens.filter((x) => normaliserNomTech(x.nom) === n);
     if (exacts.length === 1) return exacts[0].id;
-    const prefixes = techniciens.filter(
-      (x) => x.nom.toLowerCase().startsWith(n) || n.startsWith(x.nom.toLowerCase())
-    );
+    const prefixes = techniciens.filter((x) => {
+      const xn = normaliserNomTech(x.nom);
+      return xn.startsWith(n) || n.startsWith(xn);
+    });
     if (prefixes.length === 1) return prefixes[0].id;
     // Plusieurs candidats : ambigu, on laisse l'ADV trancher plutôt que de créer un doublon.
     if (prefixes.length > 1) return null;
+    // Case de service ou saisie parasite : surtout ne pas la transformer en technicien.
+    if (!estNomPlausible(t)) return null;
     const cree = await prisma.technicien.create({ data: { nom: t, departements: [] } });
     techniciens.push({ id: cree.id, nom: cree.nom });
     techniciensCrees++;
