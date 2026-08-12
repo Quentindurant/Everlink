@@ -544,14 +544,6 @@ export function GestionDossiers({
           </TableBody>
         </Table>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Tout est éditable ici : statut ADV (code couleur du tableau de suivi), date impérative,
-        étape, tentative de contact (+1 au clic), date/créneau, technicien, lien (clic = commandé
-        puis livré), P/C = mails prévenance/confirmation, Zoho = ajouter la ligne au tableau,
-        matériel reçu, n° Chrono, infos facturation, commentaire libre. Les dossiers sont
-        regroupés par lot : cliquez un lot pour l'ouvrir. Un technicien absent de l'annuaire
-        est créé à la saisie.
-      </p>
     </div>
   );
 }
