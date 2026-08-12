@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { fetchTelephoneGrille } from "@/lib/repositories/telephoneRepository";
 import { listClientsActifs } from "@/lib/repositories/provisionningRepository";
+import { fetchNomsComptes } from "@/lib/repositories/parametresRepository";
 import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
 import { TelephoneFiltres } from "./TelephoneFiltres";
 import { TelephoneGrille } from "./TelephoneGrille";
@@ -14,10 +15,11 @@ export default async function TelephonePage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
-  const [grille, clients, session] = await Promise.all([
+  const [grille, clients, session, nomsComptes] = await Promise.all([
     fetchTelephoneGrille({ clientId: params.client, recherche: params.q }),
     listClientsActifs(),
     auth(),
+    fetchNomsComptes(),
   ]);
 
   const totalUtilisateurs = grille.utilisateurs.length;
@@ -51,7 +53,11 @@ export default async function TelephonePage({
         ]}
       />
       <TelephoneFiltres clients={clients} />
-      <TelephoneGrille grille={grille} monEmail={session?.user?.email ?? ""} />
+      <TelephoneGrille
+        grille={grille}
+        monEmail={session?.user?.email ?? ""}
+        nomsComptes={nomsComptes}
+      />
     </main>
   );
 }

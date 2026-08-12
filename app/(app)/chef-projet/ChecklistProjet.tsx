@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { CopiePuce } from "@/components/CopiePuce";
 import type { ChefProjetVue, DossierProjet } from "@/lib/repositories/chefProjetRepository";
 import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
+import { nomCompte } from "@/lib/domain/comptes";
 import {
   attribuerProjetAction,
   cloreProjetAction,
@@ -160,11 +161,13 @@ function Dossier({
   dossier,
   vue,
   monEmail,
+  nomsComptes,
   ouvertParDefaut,
 }: {
   dossier: DossierProjet;
   vue: ChefProjetVue;
   monEmail: string;
+  nomsComptes: Record<string, string>;
   ouvertParDefaut: boolean;
 }) {
   const router = useRouter();
@@ -260,12 +263,12 @@ function Dossier({
               aMoi
                 ? "Vous pilotez ce dossier — cliquer pour le libérer"
                 : pris
-                  ? `Pris par ${dossier.attribueA}`
+                  ? `Pris par ${nomCompte(dossier.attribueA, nomsComptes)} (${dossier.attribueA})`
                   : "S'attribuer ce dossier"
             }
           >
             {aMoi ? <X className="size-2.5" /> : <Hand className="size-2.5" />}
-            {aMoi ? "moi" : pris ? (dossier.attribueA ?? "").split("@")[0] : "prendre"}
+            {aMoi ? "moi" : pris ? nomCompte(dossier.attribueA, nomsComptes) : "prendre"}
           </button>
 
           <button
@@ -304,7 +307,16 @@ function Dossier({
   );
 }
 
-export function ChecklistProjet({ vue, monEmail }: { vue: ChefProjetVue; monEmail: string }) {
+export function ChecklistProjet({
+  vue,
+  monEmail,
+  nomsComptes,
+}: {
+  vue: ChefProjetVue;
+  monEmail: string;
+  // email → nom saisi à la création du compte.
+  nomsComptes: Record<string, string>;
+}) {
   if (vue.dossiers.length === 0) {
     return (
       <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
@@ -316,7 +328,14 @@ export function ChecklistProjet({ vue, monEmail }: { vue: ChefProjetVue; monEmai
     <div className="flex flex-col gap-3">
       {vue.dossiers.map((d, i) => (
         // Seul le dossier le plus urgent est déplié : la liste reste lisible.
-        <Dossier key={d.clientId} dossier={d} vue={vue} monEmail={monEmail} ouvertParDefaut={i === 0} />
+        <Dossier
+          key={d.clientId}
+          dossier={d}
+          vue={vue}
+          monEmail={monEmail}
+          nomsComptes={nomsComptes}
+          ouvertParDefaut={i === 0}
+        />
       ))}
     </div>
   );

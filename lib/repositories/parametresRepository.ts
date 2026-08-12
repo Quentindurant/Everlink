@@ -351,3 +351,10 @@ export async function ajouterEtapeProjet(libelle: string, phase: string): Promis
 export async function supprimerEtapeProjet(id: string): Promise<void> {
   await prisma.etapeProjet.delete({ where: { id } });
 }
+
+// Nom d'affichage des comptes, indexé par email : les attributions sont stockées par email
+// (identifiant stable), mais on montre partout le nom saisi à la création du compte.
+export async function fetchNomsComptes(): Promise<Record<string, string>> {
+  const comptes = await prisma.utilisateurApp.findMany({ select: { email: true, nom: true } });
+  return Object.fromEntries(comptes.map((c) => [c.email, c.nom]));
+}

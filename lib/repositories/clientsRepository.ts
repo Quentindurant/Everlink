@@ -136,7 +136,7 @@ export async function fetchClientDetail(id: string) {
           { entiteId: { in: client.utilisateurs.map((u) => u.id) } },
         ],
       },
-      include: { auteur: { select: { email: true } } },
+      include: { auteur: { select: { email: true, nom: true } } },
       orderBy: { creeLe: "desc" },
       take: 50,
     }),

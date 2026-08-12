@@ -342,7 +342,9 @@ export function FicheClient({
                     <TableCell className="max-w-48 truncate" title={log.apres ?? undefined}>
                       {log.apres ?? "—"}
                     </TableCell>
-                    <TableCell>{log.auteur?.email ?? "—"}</TableCell>
+                    <TableCell title={log.auteur?.email ?? undefined}>
+                      {log.auteur?.nom ?? log.auteur?.email ?? "—"}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

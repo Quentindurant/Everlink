@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import type { TelephoneGrille as Grille } from "@/lib/repositories/telephoneRepository";
 import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
+import { nomCompte } from "@/lib/domain/comptes";
 import {
   affecterSiteAction,
   affecterSiteRestantsAction,
@@ -125,17 +126,19 @@ function AttributionClient({
   clientId,
   attribueA,
   monEmail,
+  nomsComptes,
 }: {
   clientId: string;
   attribueA: string | null;
   monEmail: string;
+  nomsComptes: Record<string, string>;
 }) {
   const [isPending, startTransition] = useTransition();
   const agir = (prendre: boolean) =>
     startTransition(async () => {
       await attribuerClientTelephoneAction(clientId, prendre);
     });
-  const prenom = (email: string) => email.split("@")[0];
+
 
   if (!attribueA) {
     return (
@@ -162,15 +165,19 @@ function AttributionClient({
           ? "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]"
           : "bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]"
       )}
-      title={aMoi ? "Ce client vous est attribué" : `Attribué à ${attribueA}`}
+      title={aMoi ? "Ce client vous est attribué" : `Attribué à ${nomCompte(attribueA, nomsComptes)} (${attribueA})`}
     >
       <Hand className="size-2.5" />
-      {aMoi ? "à moi" : prenom(attribueA)}
+      {aMoi ? "à moi" : nomCompte(attribueA, nomsComptes)}
       <button
         disabled={isPending}
         onClick={(e) => {
           e.stopPropagation();
-          if (aMoi || window.confirm(`Client attribué à ${attribueA}. Le libérer ?`)) agir(false);
+          if (
+            aMoi ||
+            window.confirm(`Client attribué à ${nomCompte(attribueA, nomsComptes)}. Le libérer ?`)
+          )
+            agir(false);
         }}
         className="ml-0.5 rounded-full hover:bg-black/10"
         title={aMoi ? "Libérer le client" : "Libérer (attribué à un autre tech)"}
@@ -281,7 +288,16 @@ function SitesClientBande({
   );
 }
 
-export function TelephoneGrille({ grille, monEmail }: { grille: Grille; monEmail: string }) {
+export function TelephoneGrille({
+  grille,
+  monEmail,
+  nomsComptes,
+}: {
+  grille: Grille;
+  monEmail: string;
+  // email → nom saisi à la création du compte, pour afficher un nom et pas un identifiant.
+  nomsComptes: Record<string, string>;
+}) {
   const { etapes, utilisateurs, valeursStatut, sitesParClient } = grille;
   // Bandes clients repliées par défaut (comme le Provisionning) : on ouvre le client
   // qu'on travaille, la grille reste légère.
@@ -405,6 +421,7 @@ export function TelephoneGrille({ grille, monEmail }: { grille: Grille; monEmail
                           clientId={clientId}
                           attribueA={rows[0].clientAttribueA}
                           monEmail={monEmail}
+                          nomsComptes={nomsComptes}
                         />
                         {(sitesParClient[clientId]?.length ?? 0) > 1 && (
                           <span onClick={(e) => e.stopPropagation()}>

@@ -78,7 +78,7 @@ export async function enregistrerEnvoi(data: {
 export async function fetchEnvois(clientId: string) {
   return prisma.mailEnvoi.findMany({
     where: { clientId },
-    include: { auteur: { select: { email: true } } },
+    include: { auteur: { select: { email: true, nom: true } } },
     orderBy: { creeLe: "desc" },
     take: 30,
   });

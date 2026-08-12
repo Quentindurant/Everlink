@@ -83,7 +83,7 @@ export default async function ClientDetailPage({
     succes: e.succes,
     erreur: e.erreur,
     creeLe: horodateParis(e.creeLe),
-    auteurEmail: e.auteur?.email ?? null,
+    auteurEmail: e.auteur?.nom ?? e.auteur?.email ?? null,
     suiviStatut: e.suiviStatut,
   }));
 

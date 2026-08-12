@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { fetchChefProjet } from "@/lib/repositories/chefProjetRepository";
+import { fetchNomsComptes } from "@/lib/repositories/parametresRepository";
 import { PageHero } from "@/components/PageHero";
 import { ChecklistProjet } from "./ChecklistProjet";
 import { FiltresProjet } from "./FiltresProjet";
@@ -12,9 +13,10 @@ export default async function ChefProjetPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
-  const [vue, session] = await Promise.all([
+  const [vue, session, nomsComptes] = await Promise.all([
     fetchChefProjet({ recherche: params.q, avecClos: params.clos === "1" }),
     auth(),
+    fetchNomsComptes(),
   ]);
 
   const monEmail = session?.user?.email ?? "";
@@ -34,7 +36,7 @@ export default async function ChefProjetPage({
         ]}
       />
       <FiltresProjet nbClos={vue.nbClos} />
-      <ChecklistProjet vue={vue} monEmail={monEmail} />
+      <ChecklistProjet vue={vue} monEmail={monEmail} nomsComptes={nomsComptes} />
     </main>
   );
 }
