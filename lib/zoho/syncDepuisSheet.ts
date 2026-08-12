@@ -15,6 +15,8 @@ export interface ZohoPullResultat {
   lignesSheet: number;
   rapproches: number;
   misAJour: number;
+  // Techniciens du Sheet ajoutés à l'annuaire lors de ce passage.
+  techniciensCrees?: number;
   lignesInconnues: string[];
   message?: string;
 }
@@ -52,15 +54,25 @@ export async function runZohoPull(): Promise<ZohoPullResultat> {
   const { apparies, lignesInconnues } = rapprocherLignes(lignes, clients);
   const parId = new Map(clients.map((c) => [c.id, c]));
 
-  const techParNom = (nom: string): string | null => {
-    const n = nom.trim().toLowerCase();
+  // Le Sheet fait foi pour les affectations : un technicien qu'il cite mais que l'annuaire
+  // ignore est créé, sinon l'affectation ne remonterait jamais dans l'app.
+  let techniciensCrees = 0;
+  const techParNom = async (nom: string): Promise<string | null> => {
+    const t = nom.trim();
+    const n = t.toLowerCase();
     if (!n) return null;
-    const exacts = techniciens.filter((t) => t.nom.toLowerCase() === n);
+    const exacts = techniciens.filter((x) => x.nom.toLowerCase() === n);
     if (exacts.length === 1) return exacts[0].id;
     const prefixes = techniciens.filter(
-      (t) => t.nom.toLowerCase().startsWith(n) || n.startsWith(t.nom.toLowerCase())
+      (x) => x.nom.toLowerCase().startsWith(n) || n.startsWith(x.nom.toLowerCase())
     );
-    return prefixes.length === 1 ? prefixes[0].id : null;
+    if (prefixes.length === 1) return prefixes[0].id;
+    // Plusieurs candidats : ambigu, on laisse l'ADV trancher plutôt que de créer un doublon.
+    if (prefixes.length > 1) return null;
+    const cree = await prisma.technicien.create({ data: { nom: t, departements: [] } });
+    techniciens.push({ id: cree.id, nom: cree.nom });
+    techniciensCrees++;
+    return cree.id;
   };
 
   let misAJour = 0;
@@ -80,7 +92,7 @@ export async function runZohoPull(): Promise<ZohoPullResultat> {
     const heure = a.ligne.heure.trim();
     if (heure && heure !== (c.creneauIntervention ?? "")) data.creneauIntervention = heure;
 
-    const techId = techParNom(a.ligne.nomTech);
+    const techId = await techParNom(a.ligne.nomTech);
     if (techId && techId !== c.technicienId) data.technicienId = techId;
 
     if (Object.keys(data).length === 0) continue;
@@ -94,6 +106,7 @@ export async function runZohoPull(): Promise<ZohoPullResultat> {
     lignesSheet: lignes.length,
     rapproches: apparies.length,
     misAJour,
+    techniciensCrees,
     lignesInconnues,
   };
 }
