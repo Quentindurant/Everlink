@@ -27,6 +27,7 @@ import { marquerLienCommandeAction, marquerLienLivreAction } from "@/app/(app)/c
 import { pousserVersZohoAction } from "@/app/(app)/clients/[id]/zohoActions";
 import { couleurStatutSuivi, STATUTS_SUIVI } from "@/lib/domain/zoho/suiviSheet";
 import { SuiviColisBadge } from "@/components/SuiviColisBadge";
+import { useEtatMemorise } from "@/components/useEtatMemorise";
 import {
   affecterTechnicienParNomAction,
   basculerMailManuelAction,
@@ -509,7 +510,8 @@ export function GestionDossiers({
 }) {
   const [recherche, setRecherche] = useState("");
   // Les ADV pilotent lot par lot : un lot ouvert à la fois garde le tableau lisible.
-  const [lotOuvert, setLotOuvert] = useState<string | null>(null);
+  // Mémorisé dans l'onglet : un aller-retour vers une fiche client ne referme rien.
+  const [lotOuvert, setLotOuvert] = useEtatMemorise<string | null>("adv:lot-ouvert", null);
   const techsActifs = techniciens.filter((t) => t.actif);
   const idListeTechs = "annuaire-techniciens";
   const visibles = dossiers.filter((d) =>

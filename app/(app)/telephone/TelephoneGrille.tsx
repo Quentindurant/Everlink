@@ -23,6 +23,7 @@ import {
 import type { TelephoneGrille as Grille } from "@/lib/repositories/telephoneRepository";
 import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
 import { nomCompte } from "@/lib/domain/comptes";
+import { useEtatMemorise } from "@/components/useEtatMemorise";
 import {
   affecterSiteAction,
   affecterSiteRestantsAction,
@@ -301,9 +302,14 @@ export function TelephoneGrille({
   const { etapes, utilisateurs, valeursStatut, sitesParClient } = grille;
   // Bandes clients repliées par défaut (comme le Provisionning) : on ouvre le client
   // qu'on travaille, la grille reste légère.
-  const [deplies, setDeplies] = useState<Set<string>>(new Set());
+  // Mémorisés dans l'onglet : un aller-retour vers une fiche client ne referme rien.
+  const [deplies, setDeplies] = useEtatMemorise<Set<string>>(
+    "tel:clients-deplies",
+    new Set(),
+    (brut) => new Set(Array.isArray(brut) ? (brut as string[]) : [])
+  );
   // Le chantier avance lot par lot : un seul lot ouvert à la fois.
-  const [lotOuvert, setLotOuvert] = useState<string | null>(null);
+  const [lotOuvert, setLotOuvert] = useEtatMemorise<string | null>("tel:lot-ouvert", null);
   const basculerRepli = (raisonSociale: string) =>
     setDeplies((prev) => {
       const n = new Set(prev);
