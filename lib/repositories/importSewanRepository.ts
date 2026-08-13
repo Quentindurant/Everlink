@@ -77,6 +77,15 @@ export async function importUtilisateursSewan(
     select: { id: true },
   });
 
+  // Équipements déjà connus du client (souvent importés via le CSV équipements avant les
+  // utilisateurs) : même MAC = même poste. On rattache la ligne existante à l'utilisateur
+  // plutôt que d'en créer une seconde — c'était la source des doublons de MAC à l'export.
+  const equipsExistants = await prisma.equipement.findMany({
+    where: { clientId, archiveA: null, macNormalise: { not: "" } },
+    select: { id: true, macNormalise: true, utilisateurId: true },
+  });
+  const equipParMac = new Map(equipsExistants.map((e) => [e.macNormalise, e]));
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const numeroNormalise = normaliserNumero(row.numeroBrut);
@@ -104,16 +113,30 @@ export async function importUtilisateursSewan(
 
     // Un ou plusieurs postes issus du CSV (un utilisateur peut avoir deux téléphones).
     for (const equip of row.equipements) {
+      const macNormalise = normaliserMac(equip.mac ?? "");
+      const dejaLa = macNormalise ? equipParMac.get(macNormalise) : undefined;
+      if (dejaLa) {
+        if (!dejaLa.utilisateurId) {
+          await prisma.equipement.update({
+            where: { id: dejaLa.id },
+            data: { utilisateurId: utilisateur.id },
+          });
+          dejaLa.utilisateurId = utilisateur.id;
+        }
+        continue;
+      }
       const modeleId = await resoudreModele(equip.modele, cacheModele, res.modelesCrees);
-      await prisma.equipement.create({
+      const cree = await prisma.equipement.create({
         data: {
           clientId,
           utilisateurId: utilisateur.id,
           modeleId,
           macBrut: equip.mac ?? "",
-          macNormalise: normaliserMac(equip.mac ?? ""),
+          macNormalise,
         },
       });
+      if (macNormalise)
+        equipParMac.set(macNormalise, { id: cree.id, macNormalise, utilisateurId: utilisateur.id });
       res.equipements++;
     }
 
