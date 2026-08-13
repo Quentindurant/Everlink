@@ -10,9 +10,14 @@ export interface ModeleLigne {
   libelle: string;
   marque: string;
   eligibleExport: boolean;
+  exportSepare: boolean;
   alias: string[];
   actif: boolean;
   nbEquipements: number;
+}
+
+export async function setModeleExportSepare(id: string, v: boolean): Promise<void> {
+  await prisma.modeleEquipement.update({ where: { id }, data: { exportSepare: v } });
 }
 
 export async function fetchModeles(): Promise<ModeleLigne[]> {
@@ -25,6 +30,7 @@ export async function fetchModeles(): Promise<ModeleLigne[]> {
     libelle: m.libelle,
     marque: m.marque,
     eligibleExport: m.eligibleExport,
+    exportSepare: m.exportSepare,
     alias: m.alias,
     actif: m.actif,
     nbEquipements: m._count.equipements,

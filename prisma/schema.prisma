@@ -470,6 +470,9 @@ model ModeleEquipement {
 
   // Pilote le filtre des exports SDA et MAC. Initialisé à vrai pour Yealink uniquement.
   eligibleExport Boolean  @default(false)
+  // Listé à part sur l'export MAC : pieuvres de conférence (Polycom IP5000, Trio…) et
+  // postes déclarés différemment côté UNYC (T42U…). Cochable dans Paramètres → Modèles.
+  exportSepare   Boolean  @default(false)
   // Variantes rencontrées dans les sources: "Yealnik w90B", "Yealink w73H", "Yealink W73H".
   alias          String[]
   actif          Boolean  @default(true)

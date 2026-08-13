@@ -7,6 +7,8 @@ import {
   repartitionParClient,
 } from "@/lib/exports/exportService";
 import { ExportPreviewTables, ExportScopeBar } from "../exports/ExportPreview";
+import { fetchEquipementsSepares } from "@/lib/repositories/syncRepository";
+import { EquipementsSepares } from "./EquipementsSepares";
 import { PageHero } from "@/components/PageHero";
 
 export const dynamic = "force-dynamic";
@@ -23,11 +25,13 @@ export default async function ImportMacPage({
     nomFichier,
     lots,
     clients,
+    separes,
   ] = await Promise.all([
     buildExport("mac", scope),
     nomFichierExport("mac", scope),
     fetchLots(),
     listClientsActifs(),
+    fetchEquipementsSepares(scope),
   ]);
 
   return (
@@ -45,6 +49,9 @@ export default async function ImportMacPage({
             label: "écartée",
             color: ecarts.length > 0 ? "var(--ev-red)" : undefined,
           },
+          ...(separes.length > 0
+            ? [{ value: separes.length, label: "à part", color: "var(--ev-purple)" }]
+            : []),
         ]}
       />
       <ExportScopeBar
@@ -61,6 +68,7 @@ export default async function ImportMacPage({
         reseauEntetes={previewEntetes}
         reseauRows={previewReseauRows}
       />
+      <EquipementsSepares lignes={separes} />
     </main>
   );
 }

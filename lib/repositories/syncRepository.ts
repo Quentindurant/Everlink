@@ -315,3 +315,47 @@ export async function fetchMacEcarts(scope: ExportScope = {}): Promise<ExportEca
   }
   return ecarts;
 }
+
+// Équipements listés à part sur l'export MAC : pieuvres de conférence et postes déclarés
+// différemment côté UNYC (T42U…). Le drapeau vit sur le modèle, cochable dans Paramètres.
+export interface EquipementSepareLigne {
+  clientId: string;
+  clientRaisonSociale: string;
+  modeleLibelle: string;
+  macBrut: string;
+  utilisateurNom: string | null;
+  numeros: string[];
+}
+
+export async function fetchEquipementsSepares(
+  scope: ExportScope = {}
+): Promise<EquipementSepareLigne[]> {
+  const clientWhere = await clientScopeWhere(scope);
+  const equipements = await prisma.equipement.findMany({
+    where: {
+      archiveA: null,
+      client: clientWhere,
+      modele: { exportSepare: true },
+      OR: [{ utilisateurId: null }, { utilisateur: { archiveA: null } }],
+    },
+    include: {
+      client: { select: { id: true, raisonSociale: true } },
+      modele: { select: { libelle: true } },
+      utilisateur: {
+        select: {
+          nom: true,
+          numeros: { where: { archiveA: null }, select: { numeroBrut: true } },
+        },
+      },
+    },
+    orderBy: [{ modele: { libelle: "asc" } }, { client: { raisonSociale: "asc" } }, { id: "asc" }],
+  });
+  return equipements.map((e) => ({
+    clientId: e.client.id,
+    clientRaisonSociale: e.client.raisonSociale,
+    modeleLibelle: e.modele?.libelle ?? "—",
+    macBrut: e.macBrut,
+    utilisateurNom: e.utilisateur?.nom ?? null,
+    numeros: e.utilisateur?.numeros.map((n) => n.numeroBrut) ?? [],
+  }));
+}

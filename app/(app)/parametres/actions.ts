@@ -32,6 +32,7 @@ import {
   setEtapeMigrationActif,
   setEtapeMigrationBloquant,
   setModeleEligibilite,
+  setModeleExportSepare,
   setValeurActif,
   supprimerEtapeMigration,
   supprimerValeur,
@@ -66,6 +67,9 @@ async function garde(fn: () => Promise<Resultat | void>): Promise<Resultat> {
 
 export async function setModeleEligibiliteAction(id: string, v: boolean): Promise<Resultat> {
   return garde(() => setModeleEligibilite(id, v));
+}
+export async function setModeleExportSepareAction(id: string, v: boolean): Promise<Resultat> {
+  return garde(() => setModeleExportSepare(id, v));
 }
 export async function creerModeleAction(libelle: string, marque: string): Promise<Resultat> {
   return garde(async () => {

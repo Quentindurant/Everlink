@@ -30,6 +30,7 @@ import {
   supprimerEtapeProjetAction,
   updateEtapeProjetAction,
   creerModeleMailAction,
+  setModeleExportSepareAction,
   supprimerModeleMailAction,
   updateModeleMailAction,
   updateParametreAppAction,
@@ -126,7 +127,7 @@ export function SectionModeles({ modeles }: { modeles: ModeleLigne[] }) {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              {["Libellé", "Marque", "Équipements", "Éligible export"].map((h) => (
+              {["Libellé", "Marque", "Équipements", "Éligible export", "À part (export MAC)"].map((h) => (
                 <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
               ))}
             </TableRow>
@@ -149,6 +150,24 @@ export function SectionModeles({ modeles }: { modeles: ModeleLigne[] }) {
                     />
                     <span className={cn("text-sm", m.eligibleExport ? "text-[color:var(--pal-green-fg)]" : "text-muted-foreground")}>
                       {m.eligibleExport ? "Oui" : "Non"}
+                    </span>
+                  </label>
+                </TableCell>
+                <TableCell>
+                  <label
+                    className="flex cursor-pointer items-center gap-2"
+                    title="Listé à part sur l'export MAC (pieuvres de conférence, postes déclarés différemment côté UNYC)"
+                  >
+                    <Checkbox
+                      checked={m.exportSepare}
+                      onCheckedChange={(v) =>
+                        startTransition(async () => {
+                          await setModeleExportSepareAction(m.id, Boolean(v));
+                        })
+                      }
+                    />
+                    <span className={cn("text-sm", m.exportSepare ? "text-[color:var(--pal-violet-fg)]" : "text-muted-foreground")}>
+                      {m.exportSepare ? "À part" : "—"}
                     </span>
                   </label>
                 </TableCell>
