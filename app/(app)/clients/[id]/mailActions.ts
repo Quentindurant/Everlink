@@ -6,12 +6,18 @@ import type { TypeMail } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { envoyerMail } from "@/lib/mail/mailer";
-import { enregistrerEnvoi, getParametreApp } from "@/lib/repositories/mailRepository";
+import {
+  compterSoftphones,
+  enregistrerEnvoi,
+  getParametreApp,
+} from "@/lib/repositories/mailRepository";
+import { listerGuides } from "@/lib/mail/guides";
 
 type Resultat = { success: boolean; error?: string };
 
-// Étape à laquelle avancer le client après un envoi réussi.
-const ETAPE_APRES_ENVOI: Record<TypeMail, string> = {
+// Étape à laquelle avancer le client après un envoi réussi. Une relance ne fait pas
+// avancer le dossier : elle répète une étape déjà franchie.
+const ETAPE_APRES_ENVOI: Partial<Record<TypeMail, string>> = {
   PREVENANCE: "Prévenance envoyée",
   CONFIRMATION: "RDV planifié",
 };
@@ -31,12 +37,18 @@ export async function envoyerMailAction(
   const customId = randomUUID();
   // Copie systématique (paramètre « copieMail »), sauf si c'est déjà le destinataire.
   const copie = (await getParametreApp("copieMail"))?.trim() || undefined;
+  // Guides Speek joints à la confirmation d'un client qui a des softphones à réinstaller.
+  const piecesJointes =
+    type === "CONFIRMATION" && (await compterSoftphones(clientId)) > 0
+      ? await listerGuides()
+      : [];
   const envoi = await envoyerMail({
     to: destinataire.trim(),
     subject: objet,
     text: corps,
     customId,
     cc: copie && copie.toLowerCase() !== destinataire.trim().toLowerCase() ? copie : undefined,
+    piecesJointes,
   });
 
   await enregistrerEnvoi({
@@ -52,9 +64,10 @@ export async function envoyerMailAction(
   });
 
   // Auto-avancement de l'étape de migration (uniquement si l'envoi a réussi).
-  if (envoi.success) {
+  const libelleEtape = ETAPE_APRES_ENVOI[type];
+  if (envoi.success && libelleEtape) {
     const etape = await prisma.etapeMigration.findFirst({
-      where: { libelle: ETAPE_APRES_ENVOI[type], actif: true },
+      where: { libelle: libelleEtape, actif: true },
       select: { id: true },
     });
     if (etape) {

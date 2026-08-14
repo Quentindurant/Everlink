@@ -319,6 +319,8 @@ model Technicien {
 
 enum TypeMail {
   PREVENANCE
+  // Relance d'une prévenance restée sans réponse.
+  RELANCE
   CONFIRMATION
 }
 
@@ -453,6 +455,9 @@ enum TypeEquipement {
   COMBINE_DECT
   BORNE_DECT
   FAX
+  // Softphone (DOKO chez Sewan, Speek chez UNYC) : pas de MAC, mais une installation à
+  // préparer sur le poste de travail du client avant l'intervention.
+  SOFTPHONE
   AUTRE
 }
 

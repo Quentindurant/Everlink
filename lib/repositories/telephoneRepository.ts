@@ -15,6 +15,8 @@ export interface TelephoneUtilisateurLigne {
   clientCreneau: string | null;
   // Site d'affectation du poste, pour les clients multi-établissements (null = non précisé).
   siteId: string | null;
+  // Softphone à réinstaller (DOKO chez Sewan → Speek chez UNYC) : à préparer avec le client.
+  softphone: boolean;
   // etapeId -> statut ("À faire" implicite si absent)
   statuts: Record<string, string>;
   // Infos du poste, copiables par les techniciens pendant la configuration.
@@ -82,7 +84,7 @@ export async function fetchTelephoneGrille(filtres: {
         equipements: {
           where: { archiveA: null },
           orderBy: { ordre: "asc" },
-          select: { macBrut: true, modele: { select: { libelle: true } } },
+          select: { macBrut: true, modele: { select: { libelle: true, type: true } } },
         },
       },
       // Même ordre que le Provisionning: interventions planifiées les plus proches d'abord.
@@ -116,6 +118,7 @@ export async function fetchTelephoneGrille(filtres: {
       clientDateIso: u.client.dateIntervention?.toISOString().slice(0, 10) ?? null,
       clientCreneau: u.client.creneauIntervention,
       siteId: u.siteId,
+      softphone: u.equipements.some((e) => e.modele?.type === "SOFTPHONE"),
       statuts: Object.fromEntries(u.suivis.map((s) => [s.etapeId, s.statut])),
       numeros: u.numeros.map((n) => ({ brut: n.numeroBrut, courts: n.numerosCourts })),
       equipements: u.equipements

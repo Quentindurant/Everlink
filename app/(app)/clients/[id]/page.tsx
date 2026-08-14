@@ -14,7 +14,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { fetchClientDetail } from "@/lib/repositories/clientsRepository";
 import { listEtapesMigration } from "@/lib/repositories/migrationRepository";
-import { fetchEnvois, listModelesMail } from "@/lib/repositories/mailRepository";
+import {
+  compterSoftphones,
+  fetchEnvois,
+  listModelesMail,
+} from "@/lib/repositories/mailRepository";
+import { listerGuides } from "@/lib/mail/guides";
 import { fetchTechniciensDisponibles } from "@/lib/repositories/technicienRepository";
 import { PageHero } from "@/components/PageHero";
 import { CopiePuce } from "@/components/CopiePuce";
@@ -58,12 +63,15 @@ export default async function ClientDetailPage({
 }) {
   const { id } = await params;
   const { onglet } = await searchParams;
-  const [detail, etapesMigration, modelesMail, envoisRaw] = await Promise.all([
-    fetchClientDetail(id),
-    listEtapesMigration(),
-    listModelesMail(),
-    fetchEnvois(id),
-  ]);
+  const [detail, etapesMigration, modelesMail, envoisRaw, nbSoftphones, guides] =
+    await Promise.all([
+      fetchClientDetail(id),
+      listEtapesMigration(),
+      listModelesMail(),
+      fetchEnvois(id),
+      compterSoftphones(id),
+      listerGuides(),
+    ]);
   if (!detail) notFound();
   const { client, etapes } = detail;
 
@@ -283,6 +291,8 @@ export default async function ClientDetailPage({
         modelesMail={modelesMail}
         envois={envois}
         numeroGc={process.env.NUMERO_GC ?? ""}
+        nbSoftphones={nbSoftphones}
+        nomsGuides={guides.map((g) => g.filename)}
         ongletInitial={onglet}
       />
     </main>

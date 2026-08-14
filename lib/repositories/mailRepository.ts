@@ -46,6 +46,18 @@ export function buildVariablesClient(
   };
 }
 
+// Utilisateurs équipés d'un softphone (DOKO à migrer vers Speek) : pilote le paragraphe de
+// préparation dans la prévenance et les guides joints à la confirmation.
+export async function compterSoftphones(clientId: string): Promise<number> {
+  return prisma.utilisateur.count({
+    where: {
+      clientId,
+      archiveA: null,
+      equipements: { some: { archiveA: null, modele: { type: "SOFTPHONE" } } },
+    },
+  });
+}
+
 // --- Paramètres applicatifs (signature, copie systématique) ---
 
 export async function getParametreApp(cle: string): Promise<string | null> {

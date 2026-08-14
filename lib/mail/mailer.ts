@@ -16,6 +16,7 @@ export async function envoyerMail({
   text,
   customId,
   cc,
+  piecesJointes,
 }: {
   to: string;
   subject: string;
@@ -25,6 +26,8 @@ export async function envoyerMail({
   customId?: string;
   // Adresse mise en copie (paramètre « copieMail » de l'app).
   cc?: string;
+  // Fichiers joints, lus sur le disque du serveur (guides Speek…).
+  piecesJointes?: { filename: string; path: string }[];
 }): Promise<{ success: boolean; error?: string }> {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_SECURE } = process.env;
 
@@ -46,13 +49,16 @@ export async function envoyerMail({
     // Version HTML (corps + signature EverLink avec logo inline) ; le texte brut reste en
     // fallback pour les clients mail qui n'affichent pas le HTML.
     const logo = pieceJointeLogo();
+    // Une seule liste de pièces jointes : le logo inline de la signature ET les documents
+    // (guides Speek). Deux clés `attachments` séparées s'écraseraient l'une l'autre.
+    const attachments = [...(logo ? [logo] : []), ...(piecesJointes ?? [])];
     await transport.sendMail({
       from: SMTP_FROM,
       to,
       subject,
       text: `${text}\n\n${SIGNATURE_TEXTE}`,
       html: corpsEnHtml(text) + signatureHtml(),
-      ...(logo ? { attachments: [logo] } : {}),
+      ...(attachments.length ? { attachments } : {}),
       ...(cc?.trim() ? { cc: cc.trim() } : {}),
       ...(customId ? { headers: { "X-MJ-CustomID": customId } } : {}),
     });

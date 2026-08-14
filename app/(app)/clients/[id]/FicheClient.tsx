@@ -91,12 +91,16 @@ export function FicheClient({
   modelesMail,
   envois,
   numeroGc,
+  nbSoftphones,
+  nomsGuides,
   ongletInitial,
 }: {
   detail: ClientDetail;
   modelesMail: ModeleMailLite[];
   envois: EnvoiLigne[];
   numeroGc: string;
+  nbSoftphones: number;
+  nomsGuides: string[];
   ongletInitial?: string;
 }) {
   const [onglet, setOnglet] = useState<Onglet>(
@@ -298,6 +302,8 @@ export function FicheClient({
           modeles={modelesMail}
           envois={envois}
           numeroGc={numeroGc}
+          nbSoftphones={nbSoftphones}
+          nomsGuides={nomsGuides}
         />
       )}
 

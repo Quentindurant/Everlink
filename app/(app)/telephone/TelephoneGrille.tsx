@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useTransition } from "react";
 import Link from "next/link";
-import { CalendarClock, ChevronDown, Hand, MapPin, X } from "lucide-react";
+import { CalendarClock, ChevronDown, Hand, Laptop, MapPin, X } from "lucide-react";
 import { CopiePuce } from "@/components/CopiePuce";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -517,6 +517,15 @@ export function TelephoneGrille({
                         <span className="text-xs text-muted-foreground tabular-nums">
                           {rows.length} utilisateur{rows.length > 1 ? "s" : ""}
                         </span>
+                        {rows.some((u) => u.softphone) && (
+                          <span
+                            className="ev-badge bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]"
+                            title="Postes avec softphone DOKO à réinstaller en Speek : à préparer avec le client avant l'intervention"
+                          >
+                            <Laptop className="size-2.5" />
+                            {rows.filter((u) => u.softphone).length} Speek
+                          </span>
+                        )}
                         <AttributionClient
                           clientId={clientId}
                           attribueA={rows[0].clientAttribueA}
@@ -559,6 +568,15 @@ export function TelephoneGrille({
                         >
                           {faitsUser}/{etapes.length}
                         </span>
+                        {u.softphone && (
+                          <span
+                            className="ev-badge bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]"
+                            title="Softphone DOKO à réinstaller en Speek sur le poste de travail"
+                          >
+                            <Laptop className="size-2.5" />
+                            Speek
+                          </span>
+                        )}
                         {(sitesParClient[u.clientId]?.length ?? 0) > 1 && (
                           <SitePoste
                             utilisateurId={u.utilisateurId}

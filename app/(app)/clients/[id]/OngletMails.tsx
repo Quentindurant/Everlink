@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { substituer, type VariablesMail } from "@/lib/domain/mail/substitution";
 import type { ModeleMailLite } from "@/lib/repositories/mailRepository";
 import { SUIVI_MAIL } from "@/lib/domain/mail/suiviStatuts";
+import { blocGuidesSpeek, blocPreparationSpeek } from "@/lib/domain/mail/softphone";
 import { envoyerMailAction, setCreneauInterventionAction } from "./mailActions";
 
 export interface EnvoiLigne {
@@ -26,6 +27,7 @@ export interface EnvoiLigne {
 
 const TYPE_LABEL: Record<string, string> = {
   PREVENANCE: "Prévenance",
+  RELANCE: "Relance",
   CONFIRMATION: "Confirmation RDV",
 };
 
@@ -80,6 +82,8 @@ export function OngletMails({
   modeles,
   envois,
   numeroGc,
+  nbSoftphones,
+  nomsGuides,
 }: {
   clientInfo: {
     id: string;
@@ -96,6 +100,10 @@ export function OngletMails({
   modeles: ModeleMailLite[];
   envois: EnvoiLigne[];
   numeroGc: string;
+  // Utilisateurs à migrer de DOKO vers Speek : declenche le paragraphe de preparation.
+  nbSoftphones: number;
+  // Guides joints automatiquement a la confirmation quand il y a des softphones.
+  nomsGuides: string[];
 }) {
   // Défaut: 1er template dont le scénario matche celui du client, sinon le 1er.
   const modeleParDefaut =
@@ -127,7 +135,19 @@ export function OngletMails({
   }, [clientInfo, date, creneau, numeroGc]);
 
   const objetModele = modele ? substituer(modele.objet, variables) : "";
-  const corpsModele = modele ? substituer(modele.corps, variables) : "";
+  // Softphones à réinstaller : la prévenance demande la préparation, la confirmation
+  // annonce les guides joints. Ajouté au corps proposé, donc modifiable avant envoi.
+  const complementSoftphone =
+    nbSoftphones === 0 || !modele
+      ? ""
+      : modele.type === "PREVENANCE"
+        ? `\n\n${blocPreparationSpeek(nbSoftphones)}`
+        : modele.type === "CONFIRMATION"
+          ? `\n\n${blocGuidesSpeek(nomsGuides.length)}`.trimEnd()
+          : "";
+  const corpsModele = modele
+    ? substituer(modele.corps, variables) + complementSoftphone
+    : "";
   const objet = objetEdite ?? objetModele;
   const corps = corpsEdite ?? corpsModele;
   const retouche = objetEdite !== null || corpsEdite !== null;
@@ -228,6 +248,25 @@ export function OngletMails({
         <p className="px-4 pb-2 text-[10.5px] text-muted-foreground">
           La signature EverLink (logo Pôle migration) est ajoutée automatiquement à l&apos;envoi.
         </p>
+
+        {/* Softphones : ce que l'envoi va ajouter, visible avant de cliquer. */}
+        {nbSoftphones > 0 && modele && (modele.type === "PREVENANCE" || modele.type === "CONFIRMATION") && (
+          <div
+            className="flex flex-wrap items-center gap-2 border-t px-4 py-2 text-[11.5px]"
+            style={{ borderColor: "var(--ev-card-border-light)", background: "var(--pal-violet-bg)" }}
+          >
+            <span className="font-semibold text-[color:var(--pal-violet-fg)]">
+              {nbSoftphones} poste{nbSoftphones > 1 ? "s" : ""} DOKO → Speek
+            </span>
+            <span className="text-muted-foreground">
+              {modele.type === "PREVENANCE"
+                ? "demande de préinstallation ajoutée au message"
+                : nomsGuides.length > 0
+                  ? `guide${nomsGuides.length > 1 ? "s" : ""} joint${nomsGuides.length > 1 ? "s" : ""} : ${nomsGuides.join(", ")}`
+                  : "aucun guide dans public/guides/speek — rien ne sera joint"}
+            </span>
+          </div>
+        )}
 
         {/* Barre d'envoi : date/créneau alimentent les variables du modèle. */}
         <div
