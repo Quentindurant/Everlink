@@ -35,7 +35,22 @@ for dir in prisma/migrations/*/; do
   # ON_ERROR_STOP=off : au premier passage, les migrations déjà présentes dans la base (baseline
   # appliquée avant ce script) rejouent leurs CREATE/ALTER qui échouent en "already exists" sans
   # bloquer. Les objets réellement manquants, eux, sont créés.
-  psql "$URL" -v ON_ERROR_STOP=off -q -f "$sql"
+  erreurs="$(psql "$URL" -v ON_ERROR_STOP=off -q -f "$sql" 2>&1 >/dev/null || true)"
+
+  # Seules les erreurs « existe déjà » sont attendues (rejeu d'une baseline). Toute autre
+  # erreur signifie que la migration n'a PAS fait ce qu'elle devait : on arrête le déploiement
+  # plutôt que de la marquer appliquée et de ne jamais la rejouer — un silence de ce type a
+  # déjà laissé passer une migration qui référençait une valeur d'enum pas encore créée.
+  # psql préfixe ses erreurs du fichier et de la ligne ("psql:migration.sql:7: ERROR: ..."),
+  # donc on cherche le mot n'importe où dans la ligne. La locale du serveur décide de la
+  # langue des messages : on couvre l'anglais et le français.
+  inattendues="$(printf '%s\n' "$erreurs" | grep -E "ERROR|ERREUR" | grep -viE "already exists|existe déjà" || true)"
+  if [ -n "$inattendues" ]; then
+    echo "ÉCHEC de la migration $name :" >&2
+    printf '%s\n' "$inattendues" >&2
+    exit 1
+  fi
+
   psql "$URL" -q -c "INSERT INTO \"_migrations_appliquees\"(name) VALUES ('$name') ON CONFLICT DO NOTHING"
 done
 
