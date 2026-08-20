@@ -47,9 +47,13 @@ jobs:
             NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
             # reload = zéro coupure si l'app tourne déjà; sinon on la démarre.
+            # --update-env est indispensable : sans lui, pm2 réinjecte l'environnement
+            # mémorisé au premier démarrage et l'app continue de tourner avec un ancien
+            # DATABASE_URL même après modification du .env (déjà vu en production, l'app
+            # échouait en P1000 sur un utilisateur qui n'existait plus).
             # -p 3005: next start ne lit pas PORT depuis .env, le port doit être
             # passé en argument. Le vhost nginx everlink.quentindurant.com proxifie dessus.
-            pm2 reload everlink || pm2 start npm --name everlink -- start -- -p 3005
+            pm2 reload everlink --update-env || pm2 start npm --name everlink -- start -- -p 3005
             pm2 save
 
             # Installe/rafraîchit le cron de suivi des colis (idempotent, ne touche pas les
