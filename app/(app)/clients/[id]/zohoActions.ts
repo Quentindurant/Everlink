@@ -24,6 +24,7 @@ import {
   moisDuDossier,
   trouverLigneCible,
 } from "@/lib/domain/suivi/ligneSuivi";
+import { ajouterTechAuReferentiel } from "@/lib/suivi/referentielTechniciens";
 import { suiviClient, suiviConfig, type SuiviClient } from "@/lib/suivi/suiviClient";
 
 /**
@@ -126,6 +127,12 @@ export async function pousserVersZohoAction(
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Échec du push vers le tableau de suivi." };
   }
+
+  // Référentiel commun : le technicien poussé doit figurer dans la liste de la colonne
+  // nom_tech du tableau (Paramètres → listes). Meilleur effort — la fonction ne lève
+  // JAMAIS (colonne encore TEXT pendant la transition, réseau, 4xx) : un échec est
+  // journalisé et le push reste réussi.
+  await ajouterTechAuReferentiel(suiviClient(), donnees.nom_tech);
 
   await prisma.client.update({
     where: { id: clientId },
