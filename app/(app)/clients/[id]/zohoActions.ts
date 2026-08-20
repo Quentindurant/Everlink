@@ -15,7 +15,21 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { journaliser } from "@/lib/activite";
 import { construireDonneesLigne, moisDuDossier } from "@/lib/domain/suivi/ligneSuivi";
-import { suiviClient, suiviConfig } from "@/lib/suivi/suiviClient";
+import { suiviClient, suiviConfig, type SuiviClient } from "@/lib/suivi/suiviClient";
+
+/**
+ * Le push est en deux temps (POST ligne vide puis PATCH des cellules) : si le PATCH
+ * échoue, la ligne vide resterait visible chez les ADV et chaque nouvel essai en
+ * créerait une autre. Compensation au mieux — un échec de la suppression elle-même
+ * n'a pas à masquer l'erreur d'origine.
+ */
+async function effacerLigneOrpheline(c: SuiviClient, id: string): Promise<void> {
+  try {
+    await c.supprimerLigne(id);
+  } catch {
+    // au mieux : l'erreur du PATCH reste celle remontée à l'utilisateur
+  }
+}
 
 export async function pousserVersZohoAction(
   clientId: string
@@ -60,8 +74,16 @@ export async function pousserVersZohoAction(
   try {
     const c = suiviClient();
     const ligne = await c.creerLigne(moisDuDossier(client.dateIntervention));
-    const r = await c.patcherLigne(ligne.id, ligne.version, donnees);
-    if (!r.success) return { success: false, error: r.error };
+    try {
+      const r = await c.patcherLigne(ligne.id, ligne.version, donnees);
+      if (!r.success) {
+        await effacerLigneOrpheline(c, ligne.id);
+        return { success: false, error: r.error };
+      }
+    } catch (e) {
+      await effacerLigneOrpheline(c, ligne.id);
+      throw e;
+    }
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Échec du push vers le tableau de suivi." };
   }

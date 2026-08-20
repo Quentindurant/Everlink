@@ -40,12 +40,16 @@ export interface OptionsSuiviClient {
   fetchImpl?: FetchLike;
   /** TTL du cache de lecture par mois (15 s par défaut, 0 = désactivé). */
   cacheMs?: number;
+  /** Abandon des requêtes réseau après ce délai (15 s par défaut). */
+  timeoutMs?: number;
 }
 
 export interface SuiviClient {
   lireLignesMois(mois: string): Promise<SuiviRow[]>;
   creerLigne(mois: string): Promise<SuiviRow>;
   patcherLigne(id: string, expectedVersion: number, patch: Record<string, ValeurCellule>): Promise<ResultatPatch>;
+  /** Compensation du push en deux temps : efface une ligne créée puis non remplie. */
+  supprimerLigne(id: string): Promise<void>;
 }
 
 /** "https://suivie.appgcd.fr/", ".../api", ".../api/" → "https://suivie.appgcd.fr". */
@@ -73,7 +77,11 @@ async function messageErreur(res: Response, contexte: string): Promise<string> {
 
 export function creerSuiviClient(options: OptionsSuiviClient): SuiviClient {
   const base = normaliserBaseUrl(options.baseUrl);
-  const f: FetchLike = options.fetchImpl ?? ((url, init) => fetch(url, init));
+  const timeoutMs = options.timeoutMs ?? 15_000;
+  // Sans signal, un tableau injoignable fait pendre push/pull/cron jusqu'au timeout de la
+  // plateforme : on préfère échouer vite et laisser les try/catch amont rendre la main.
+  const f: FetchLike =
+    options.fetchImpl ?? ((url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) }));
   const cacheMs = options.cacheMs ?? 15_000;
 
   // Session partagée par toutes les méthodes du client (process pm2 unique).
@@ -184,7 +192,15 @@ export function creerSuiviClient(options: OptionsSuiviClient): SuiviClient {
     return { success: true, row };
   }
 
-  return { lireLignesMois, creerLigne, patcherLigne };
+  async function supprimerLigne(id: string): Promise<void> {
+    const res = await requete(`/api/rows/${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (!res.ok) {
+      throw new Error(`Suppression de ligne refusée : ${await messageErreur(res, "DELETE /rows")}`);
+    }
+    cacheParMois.clear();
+  }
+
+  return { lireLignesMois, creerLigne, patcherLigne, supprimerLigne };
 }
 
 // --- Instance de production, configurée par l'environnement -------------------------------

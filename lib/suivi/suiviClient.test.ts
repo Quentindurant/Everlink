@@ -233,3 +233,33 @@ describe("suiviClient — écriture", () => {
     expect(appels.filter((a) => a.method === "PATCH")).toHaveLength(1);
   });
 });
+
+describe("suiviClient — supprimerLigne (compensation du push)", () => {
+  test("efface la ligne avec la session et vide le cache de lecture", async () => {
+    const { appels, fetchImpl } = fauxServeur([
+      { chemin: "/api/auth/login", rep: loginOk("j") },
+      { chemin: "/api/rows?month=2026-08", rep: reponse(200, [ligne()]) },
+      { chemin: "/api/rows/r1", rep: reponse(200, ligne()) },
+      { chemin: "/api/rows?month=2026-08", rep: reponse(200, []) },
+    ]);
+    const client = creerSuiviClient({ ...OPTIONS, cacheMs: 60_000, fetchImpl });
+
+    await client.lireLignesMois("2026-08");
+    await client.supprimerLigne("r1");
+
+    const suppression = appels.find((a) => a.method === "DELETE");
+    expect(suppression?.url).toContain("/api/rows/r1");
+    expect(suppression?.cookie).toBe("token=j");
+    // Cache invalidé : la relecture repart au serveur (4e réponse planifiée).
+    expect(await client.lireLignesMois("2026-08")).toHaveLength(0);
+  });
+
+  test("refus du serveur : erreur explicite pour le meilleur-effort de l'appelant", async () => {
+    const { fetchImpl } = fauxServeur([
+      { chemin: "/api/auth/login", rep: loginOk("j") },
+      { chemin: "/api/rows/r1", rep: reponse(404, { code: "NOT_FOUND", message: "Ligne introuvable." }) },
+    ]);
+    const client = creerSuiviClient({ ...OPTIONS, fetchImpl });
+    await expect(client.supprimerLigne("r1")).rejects.toThrow(/introuvable/i);
+  });
+});
