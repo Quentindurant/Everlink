@@ -1,43 +1,64 @@
-// ⚠️ DÉPRÉCIÉ (décision « Notre tableau seulement ») : remplacé par runSuiviPull
-// (lib/suivi/syncDepuisSuivi), qui lit le tableau de suivi maison au lieu du Zoho Sheet.
-// Plus aucun appelant dans l'app ; conservé le temps de la transition, ne pas réutiliser.
-//
-// Synchronisation Zoho Sheet → app : les champs de planification tenus par les ADV dans le
-// TABLEAU SUIVI COMMANDES redescendent sur les dossiers rapprochés. Les noms ne sont jamais
-// modifiés, ni côté Sheet ni côté app (voir lib/domain/zoho/rapprochement).
-// Un champ vide côté Sheet ne touche jamais la valeur de l'app.
+// Synchronisation tableau de suivi → app (remplace runZohoPull) : les champs de
+// planification tenus par les ADV dans le tableau maison (https://suivie.appgcd.fr)
+// redescendent sur les dossiers rapprochés. Les noms ne sont jamais modifiés, ni côté
+// tableau ni côté app (voir lib/domain/zoho/rapprochement, réutilisé tel quel).
+// Un champ vide côté tableau ne touche jamais la valeur de l'app
+// (voir champsAMettreAJour, lib/domain/suivi/ligneSuivi).
 import { prisma } from "@/lib/prisma";
 import { normaliserNomTech } from "@/lib/domain/technicien/disponibilite";
-import { lireLignesSheet } from "@/lib/zoho/zohoClient";
+import { rapprocherLignes } from "@/lib/domain/zoho/rapprochement";
 import {
-  parseDateSheet,
-  rapprocherLignes,
-} from "@/lib/domain/zoho/rapprochement";
+  champsAMettreAJour,
+  estLigneEverlink,
+  libelleMoisSuivi,
+  ligneDepuisRow,
+  moisCourant,
+} from "@/lib/domain/suivi/ligneSuivi";
+import { suiviClient, suiviConfig } from "./suiviClient";
 
-export interface ZohoPullResultat {
+/** Même forme que l'ancien ZohoPullResultat : l'UI (ZohoLiveView) le consomme tel quel. */
+export interface SuiviPullResultat {
   succes: boolean;
+  /** Libellé du mois synchronisé, ex "AOUT 2026" (ex-onglet du classeur). */
   onglet: string;
   lignesSheet: number;
   rapproches: number;
   misAJour: number;
-  // Techniciens du Sheet ajoutés à l'annuaire lors de ce passage.
+  // Techniciens du tableau ajoutés à l'annuaire lors de ce passage.
   techniciensCrees?: number;
   lignesInconnues: string[];
   message?: string;
 }
 
-export async function runZohoPull(): Promise<ZohoPullResultat> {
-  const { onglet, lignes } = await lireLignesSheet();
+function echec(onglet: string, message: string): SuiviPullResultat {
+  return {
+    succes: false,
+    onglet,
+    lignesSheet: 0,
+    rapproches: 0,
+    misAJour: 0,
+    lignesInconnues: [],
+    message,
+  };
+}
+
+export async function runSuiviPull(): Promise<SuiviPullResultat> {
+  const mois = moisCourant();
+  const onglet = libelleMoisSuivi(mois);
+
+  if (!suiviConfig().configure) {
+    return echec(onglet, "Tableau de suivi non configuré (variables SUIVI_API_* manquantes).");
+  }
+
+  let lignes;
+  try {
+    const rows = await suiviClient().lireLignesMois(mois);
+    lignes = rows.filter((r) => !r.archived && estLigneEverlink(r.data)).map((r) => ligneDepuisRow(r.data));
+  } catch (e) {
+    return echec(onglet, e instanceof Error ? e.message : "Tableau de suivi injoignable.");
+  }
   if (lignes.length === 0) {
-    return {
-      succes: false,
-      onglet,
-      lignesSheet: 0,
-      rapproches: 0,
-      misAJour: 0,
-      lignesInconnues: [],
-      message: "Aucune ligne EVERLINK lue dans le Sheet (Zoho indisponible ou onglet vide).",
-    };
+    return echec(onglet, "Aucune ligne EVERLINK lue dans le tableau de suivi pour ce mois.");
   }
 
   const [clients, techniciens] = await Promise.all([
@@ -59,10 +80,11 @@ export async function runZohoPull(): Promise<ZohoPullResultat> {
   const { apparies, lignesInconnues } = rapprocherLignes(lignes, clients);
   const parId = new Map(clients.map((c) => [c.id, c]));
 
-  // Le Sheet fait foi pour les affectations : un technicien qu'il cite mais que l'annuaire
-  // ignore est créé, sinon l'affectation ne remonterait jamais dans l'app. La comparaison
-  // ignore casse et accents — le Sheet contient « Bruce », « BRUCE » et « bruce » pour la
-  // même personne, et des cases de service (« / », « - ») qui ne sont pas des noms.
+  // Le tableau fait foi pour les affectations : un technicien qu'il cite mais que
+  // l'annuaire ignore est créé, sinon l'affectation ne remonterait jamais dans l'app.
+  // La comparaison ignore casse et accents — le tableau contient « Bruce », « BRUCE » et
+  // « bruce » pour la même personne, et des cases de service (« / », « - ») qui ne sont
+  // pas des noms.
   let techniciensCrees = 0;
   const estNomPlausible = (t: string) => t.length >= 2 && /\p{L}{2,}/u.test(t);
 
@@ -91,22 +113,8 @@ export async function runZohoPull(): Promise<ZohoPullResultat> {
   for (const a of apparies) {
     const c = parId.get(a.clientId);
     if (!c) continue;
-    const data: Record<string, unknown> = {};
-
-    if (c.zohoNomSheet !== a.nomSheet) data.zohoNomSheet = a.nomSheet;
-
-    const statut = a.ligne.installation.trim().toUpperCase();
-    if (statut && statut !== (c.statutSuivi ?? "")) data.statutSuivi = statut;
-
-    const date = parseDateSheet(a.ligne.date);
-    if (date && date.getTime() !== (c.dateIntervention?.getTime() ?? 0)) data.dateIntervention = date;
-
-    const heure = a.ligne.heure.trim();
-    if (heure && heure !== (c.creneauIntervention ?? "")) data.creneauIntervention = heure;
-
     const techId = await techParNom(a.ligne.nomTech);
-    if (techId && techId !== c.technicienId) data.technicienId = techId;
-
+    const data = champsAMettreAJour(c, a.ligne, a.nomSheet, techId);
     if (Object.keys(data).length === 0) continue;
     await prisma.client.update({ where: { id: a.clientId }, data });
     misAJour++;

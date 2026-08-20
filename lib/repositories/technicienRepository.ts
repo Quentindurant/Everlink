@@ -5,7 +5,7 @@ import {
   type Affectation,
   type TechnicienLite,
 } from "@/lib/domain/technicien/disponibilite";
-import { lireAffectationsSheet } from "@/lib/zoho/zohoClient";
+import { lireAffectationsSuivi } from "@/lib/suivi/vueSuivi";
 
 export interface TechnicienLigne {
   id: string;
@@ -216,7 +216,7 @@ export async function fetchTechniciensDisponibles(
   departement?: string,
   technicienDejaAffecteId?: string | null
 ): Promise<TechnicienLite[]> {
-  const [techs, affectations, affectationsZoho] = await Promise.all([
+  const [techs, affectations, affectationsSuivi] = await Promise.all([
     prisma.technicien.findMany({
       where: { actif: true },
       select: { id: true, nom: true, departements: true },
@@ -225,15 +225,15 @@ export async function fetchTechniciensDisponibles(
       where: { archiveA: null, technicienId: { not: null } },
       select: { technicienId: true, dateIntervention: true },
     }),
-    // Affectations déjà posées dans le Zoho Sheet (source opérationnelle réelle).
-    lireAffectationsSheet(),
+    // Affectations déjà posées dans le tableau de suivi (source opérationnelle réelle).
+    lireAffectationsSuivi(),
   ]);
   const affs: Affectation[] = affectations.map((a) => ({
     technicienId: a.technicienId as string,
     date: a.dateIntervention,
   }));
-  const occupesZoho = nomsTechOccupes(affectationsZoho, date);
-  const dispo = techniciensDisponibles(techs, affs, date, departement, occupesZoho);
+  const occupesSuivi = nomsTechOccupes(affectationsSuivi, date);
+  const dispo = techniciensDisponibles(techs, affs, date, departement, occupesSuivi);
   // Réintègre le technicien déjà affecté au client (sinon il disparaît de son propre select).
   if (technicienDejaAffecteId && !dispo.some((t) => t.id === technicienDejaAffecteId)) {
     const t = techs.find((x) => x.id === technicienDejaAffecteId);

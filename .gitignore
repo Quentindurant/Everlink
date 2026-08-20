@@ -42,8 +42,7 @@ yarn-error.log*
 next-env.d.ts
 .prisma/
 
-# Exports de configuration routeur Sewan (.rsc, autoprov) : contiennent la clé WiFi et le
-# mot de passe admin d'un client. Jamais versionnés.
-docs/F6500F9E1BEE
-docs/*.rsc
-docs/MikroTik_*
+# Documentation de travail : exports routeur Sewan (.rsc/autoprov avec clé WiFi et mot de
+# passe admin d'un client), captures, maquettes, guides générés. Rien de tout cela n'a à
+# être versionné, et un fichier client s'y glisse trop facilement.
+docs/

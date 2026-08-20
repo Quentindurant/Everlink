@@ -13,8 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { LigneZoho } from "@/lib/zoho/zohoClient";
-import type { ZohoPullResultat } from "@/lib/zoho/syncDepuisSheet";
+import type { LigneSuivi } from "@/lib/domain/suivi/ligneSuivi";
+import type { SuiviPullResultat } from "@/lib/suivi/syncDepuisSuivi";
 import { rafraichirZohoAction, synchroniserDepuisZohoAction } from "./zohoViewActions";
 
 // Couleurs des statuts d'installation (approx. de la feuille).
@@ -34,13 +34,13 @@ const RAFRAICHIR_MS = 30_000;
 
 export function ZohoLiveView() {
   const router = useRouter();
-  const [lignes, setLignes] = useState<LigneZoho[]>([]);
+  const [lignes, setLignes] = useState<LigneSuivi[]>([]);
   const [onglet, setOnglet] = useState("");
   const [configure, setConfigure] = useState(true);
   const [majIlYa, setMajIlYa] = useState(0);
   const [chargement, setChargement] = useState(false);
   const [syncEnCours, setSyncEnCours] = useState(false);
-  const [rapport, setRapport] = useState<ZohoPullResultat | null>(null);
+  const [rapport, setRapport] = useState<SuiviPullResultat | null>(null);
   const dernierMaj = useRef(Date.now());
 
   const synchroniser = async () => {
@@ -76,10 +76,10 @@ export function ZohoLiveView() {
     <section className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-lg font-semibold tracking-tight">
-          Tableau de suivi Zoho{onglet ? ` — ${onglet}` : ""}
+          Tableau de suivi{onglet ? ` — ${onglet}` : ""}
         </h2>
         <span className="text-xs text-muted-foreground tabular-nums">
-          {configure ? `${lignes.length} lignes · maj il y a ${majIlYa}s` : "Zoho non configuré"}
+          {configure ? `${lignes.length} lignes · maj il y a ${majIlYa}s` : "Tableau de suivi non configuré"}
         </span>
         <div className="ml-auto flex items-center gap-2">
           <Button variant="outline" size="xs" onClick={synchroniser} disabled={syncEnCours || !configure}>
@@ -121,7 +121,7 @@ export function ZohoLiveView() {
 
       {!configure ? (
         <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
-          Renseignez les variables ZOHO_* pour afficher le tableau de suivi en direct.
+          Renseignez les variables SUIVI_API_* pour afficher le tableau de suivi en direct.
         </div>
       ) : (
         <div className="max-h-[70vh] overflow-auto rounded-xl border bg-card shadow-xs">

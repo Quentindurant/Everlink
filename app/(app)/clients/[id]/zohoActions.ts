@@ -1,64 +1,34 @@
 "use server";
 
+// Push d'un dossier vers le tableau de suivi maison (https://suivie.appgcd.fr), qui
+// remplace le Zoho Sheet. Le nom de l'action est conservé (pousserVersZohoAction) pour ne
+// pas toucher les composants qui l'appellent (BoutonZoho, GestionDossiers).
+//
+// Le mapping dossier → 16 colonnes du tableau vit dans lib/domain/suivi/ligneSuivi
+// (construireDonneesLigne). La ligne part dans le mois de la date d'intervention (sinon le
+// mois courant), au format des ADV : client préfixé de la semaine de pose, statut au
+// vocabulaire du tableau. L'API impose une création en deux temps : POST /rows {month}
+// (ligne vide) puis PATCH des cellules avec la version fraîchement créée.
+
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { ajouterLigneSheet } from "@/lib/zoho/zohoClient";
 import { journaliser } from "@/lib/activite";
-import {
-  extraireCodePostal,
-  prefixeSemaine,
-  statutSheetPourEtape,
-} from "@/lib/domain/zoho/suiviSheet";
+import { construireDonneesLigne, moisDuDossier } from "@/lib/domain/suivi/ligneSuivi";
+import { suiviClient, suiviConfig, type SuiviClient } from "@/lib/suivi/suiviClient";
 
-// Mapping Everlink → colonnes du Zoho Sheet "TABLEAU SUIVI COMMANDES". Les clés doivent
-// correspondre EXACTEMENT aux en-têtes de la 1re ligne de l'onglet (espaces de fin compris,
-// vérifiés sur l'export du classeur). La ligne part complète, au format des ADV :
-// client préfixé de la semaine de pose, statut au vocabulaire du Sheet (leur code couleur
-// est une mise en forme conditionnelle sur la colonne INSTALLATION). IMPE, MATERIEL RECU,
-// N° CHRONO et INFOS FACTURATION restent à la main des ADV.
-function construireRecord(c: {
-  raisonSociale: string;
-  departement: string | null;
-  adresse: string | null;
-  scenario: string | null;
-  dateIntervention: Date | null;
-  creneauIntervention: string | null;
-  commentaire: string | null;
-  referenceClient: string | null;
-  contactNom: string | null;
-  contactPrenom: string | null;
-  etapeLibelle: string | null;
-  prestataireNom: string | null;
-  technicienNom: string | null;
-  statutSuivi: string | null;
-  dateImperative: Date | null;
-  materielRecu: string | null;
-  numeroChrono: string | null;
-  infosFacturation: string | null;
-}): Record<string, string> {
-  return {
-    IMPE: c.dateImperative ? c.dateImperative.toLocaleDateString("fr-FR") : "",
-    CLIENT: `${prefixeSemaine(c.dateIntervention)}${c.raisonSociale}`,
-    DPT: c.departement ?? "",
-    "CP CLIENT ": extraireCodePostal(c.adresse),
-    // Les dossiers gérés par GC pour Everlink portent le partenaire "EVERLINK".
-    PARTE: "EVERLINK",
-    DATE: c.dateIntervention ? c.dateIntervention.toLocaleDateString("fr-FR") : "",
-    "PORTA ET COMMENTAIRES IMPORTANT ": [c.scenario, c.referenceClient]
-      .filter(Boolean)
-      .join(" — "),
-    "HEURE ": c.creneauIntervention ?? "",
-    TECH: c.prestataireNom ?? "",
-    "NOM TECH": c.technicienNom ?? "",
-    "NOM CP ": [c.contactPrenom, c.contactNom].filter(Boolean).join(" "),
-    // Le statut saisi par les ADV prime ; sinon on le dérive de l'étape de migration.
-    INSTALLATION: c.statutSuivi ?? statutSheetPourEtape(c.etapeLibelle),
-    "COMMENTAIRES PLANIF ": c.commentaire ?? "",
-    "MATERIEL RECU ": c.materielRecu ?? "",
-    "N° CHRONO ": c.numeroChrono ?? "",
-    "INFOS FACTURATION ": c.infosFacturation ?? "",
-  };
+/**
+ * Le push est en deux temps (POST ligne vide puis PATCH des cellules) : si le PATCH
+ * échoue, la ligne vide resterait visible chez les ADV et chaque nouvel essai en
+ * créerait une autre. Compensation au mieux — un échec de la suppression elle-même
+ * n'a pas à masquer l'erreur d'origine.
+ */
+async function effacerLigneOrpheline(c: SuiviClient, id: string): Promise<void> {
+  try {
+    await c.supprimerLigne(id);
+  } catch {
+    // au mieux : l'erreur du PATCH reste celle remontée à l'utilisateur
+  }
 }
 
 export async function pousserVersZohoAction(
@@ -66,6 +36,10 @@ export async function pousserVersZohoAction(
 ): Promise<{ success: boolean; error?: string }> {
   const session = await auth();
   if (!session?.user) return { success: false, error: "Non authentifié." };
+
+  if (!suiviConfig().configure) {
+    return { success: false, error: "Tableau de suivi non configuré (variables SUIVI_API_* manquantes)." };
+  }
 
   const client = await prisma.client.findUnique({
     where: { id: clientId },
@@ -76,7 +50,7 @@ export async function pousserVersZohoAction(
   });
   if (!client) return { success: false, error: "Client introuvable." };
 
-  const record = construireRecord({
+  const donnees = construireDonneesLigne({
     raisonSociale: client.raisonSociale,
     departement: client.departement,
     adresse: client.adresse,
@@ -97,14 +71,33 @@ export async function pousserVersZohoAction(
     infosFacturation: client.infosFacturation,
   });
 
-  const r = await ajouterLigneSheet(record);
-  if (!r.success) return r;
+  try {
+    const c = suiviClient();
+    const ligne = await c.creerLigne(moisDuDossier(client.dateIntervention));
+    try {
+      const r = await c.patcherLigne(ligne.id, ligne.version, donnees);
+      if (!r.success) {
+        await effacerLigneOrpheline(c, ligne.id);
+        return { success: false, error: r.error };
+      }
+    } catch (e) {
+      await effacerLigneOrpheline(c, ligne.id);
+      throw e;
+    }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Échec du push vers le tableau de suivi." };
+  }
 
   await prisma.client.update({
     where: { id: clientId },
-    data: { zohoLignePousseeLe: new Date() },
+    data: {
+      zohoLignePousseeLe: new Date(),
+      // Mémorise le nom exact poussé : le pull rapprochera ce dossier immédiatement
+      // (priorité 1 du rapprochement), même si les ADV renomment plus tard.
+      zohoNomSheet: donnees.client ?? client.raisonSociale,
+    },
   });
-  await journaliser("Client", clientId, "Poussé vers Zoho");
+  await journaliser("Client", clientId, "Poussé vers le tableau de suivi");
   revalidatePath(`/clients/${clientId}`);
   return { success: true };
 }
