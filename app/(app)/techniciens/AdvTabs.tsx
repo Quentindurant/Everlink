@@ -26,14 +26,14 @@ import { GestionDossiers } from "./GestionDossiers";
 const ONGLETS = ["Dossiers", "Pilotage", "Tableau de suivi", "Techniciens"] as const;
 type Onglet = (typeof ONGLETS)[number];
 
-// URL d'édition du classeur Zoho — ouverte dans une fenêtre dédiée (les ADV sont déjà
-// connectées à Zoho: elles voient leur vrai tableau, en direct, éditable).
-const ZOHO_URL = "https://sheet.zoho.eu/sheet/open/36x6e6110bc0a380e4502aa19a2846f5908ba";
+// Tableau de suivi maison — ouvert dans une fenêtre dédiée (les ADV voient leur vrai
+// tableau, en direct, éditable). A remplacé le classeur Zoho Sheet.
+const SUIVI_URL = "https://suivie.appgcd.fr";
 
 function ouvrirFenetreZoho() {
   window.open(
-    ZOHO_URL,
-    "zoho-suivi",
+    SUIVI_URL,
+    "tableau-suivi",
     "width=1400,height=850,menubar=no,toolbar=no,location=no,status=no"
   );
 }
