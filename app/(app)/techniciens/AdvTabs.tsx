@@ -23,7 +23,7 @@ import { ImportTechniciens } from "./ImportTechniciens";
 import { ZohoLiveView } from "./ZohoLiveView";
 import { GestionDossiers } from "./GestionDossiers";
 
-const ONGLETS = ["Dossiers", "Pilotage", "Suivi Zoho", "Techniciens"] as const;
+const ONGLETS = ["Dossiers", "Pilotage", "Tableau de suivi", "Techniciens"] as const;
 type Onglet = (typeof ONGLETS)[number];
 
 // URL d'édition du classeur Zoho — ouverte dans une fenêtre dédiée (les ADV sont déjà
@@ -83,7 +83,7 @@ export function AdvTabs({
           onClick={ouvrirFenetreZoho}
         >
           <ExternalLink data-icon="inline-start" />
-          Ouvrir le tableau Zoho
+          Ouvrir le tableau de suivi
         </Button>
       </div>
 
@@ -165,16 +165,16 @@ export function AdvTabs({
         </div>
       )}
 
-      {onglet === "Suivi Zoho" && (
+      {onglet === "Tableau de suivi" && (
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4 shadow-xs">
             <div className="flex-1 text-sm text-muted-foreground">
-              Le tableau s&apos;ouvre dans sa propre fenêtre, tel quel, en direct (connexion Zoho
-              requise). Ci-dessous, un aperçu lecture seule rafraîchi automatiquement.
+              Le tableau s&apos;ouvre dans sa propre fenêtre, tel quel, en direct (connexion au
+              tableau de suivi requise). Ci-dessous, un aperçu lecture seule rafraîchi automatiquement.
             </div>
             <Button onClick={ouvrirFenetreZoho}>
               <ExternalLink data-icon="inline-start" />
-              Ouvrir le tableau Zoho
+              Ouvrir le tableau de suivi
             </Button>
           </div>
           <ZohoLiveView />

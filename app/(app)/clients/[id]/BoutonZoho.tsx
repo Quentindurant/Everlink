@@ -17,14 +17,14 @@ export function BoutonZoho({
   const [isPending, startTransition] = useTransition();
 
   const pousser = () => {
-    if (pousse && !window.confirm("Une ligne a déjà été ajoutée au Sheet pour ce client. En ajouter une autre ?")) {
+    if (pousse && !window.confirm("Une ligne a déjà été ajoutée au tableau de suivi pour ce client. En ajouter une autre ?")) {
       return;
     }
     setMessage(null);
     startTransition(async () => {
       const r = await pousserVersZohoAction(clientId);
       if (r.success) {
-        setMessage({ ok: true, texte: "Ligne ajoutée au suivi Zoho." });
+        setMessage({ ok: true, texte: "Ligne ajoutée au tableau de suivi." });
         setPousse(new Date().toLocaleDateString("fr-FR"));
       } else {
         setMessage({ ok: false, texte: r.error ?? "Échec." });
