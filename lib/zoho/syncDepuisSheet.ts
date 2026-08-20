@@ -1,3 +1,7 @@
+// ⚠️ DÉPRÉCIÉ (décision « Notre tableau seulement ») : remplacé par runSuiviPull
+// (lib/suivi/syncDepuisSuivi), qui lit le tableau de suivi maison au lieu du Zoho Sheet.
+// Plus aucun appelant dans l'app ; conservé le temps de la transition, ne pas réutiliser.
+//
 // Synchronisation Zoho Sheet → app : les champs de planification tenus par les ADV dans le
 // TABLEAU SUIVI COMMANDES redescendent sur les dossiers rapprochés. Les noms ne sont jamais
 // modifiés, ni côté Sheet ni côté app (voir lib/domain/zoho/rapprochement).

@@ -1,3 +1,8 @@
+// ⚠️ DÉPRÉCIÉ (décision « Notre tableau seulement ») : l'app ne lit ni n'écrit plus dans le
+// Zoho Sheet. Le tableau de suivi maison (lib/suivi/suiviClient) est l'unique cible.
+// Ce module est conservé le temps de la transition (diagnostic scripts/zoho-verifier.ts,
+// éventuels usages Zoho CRM futurs) — ne pas ajouter de nouvel appelant.
+//
 // Client Zoho Sheet (data center EU). Authentification OAuth via refresh token, ajout de ligne
 // dans la feuille de suivi des commandes. Config en environnement (jamais de secret committé) :
 //   ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET, ZOHO_REFRESH_TOKEN
@@ -68,6 +73,7 @@ const CACHE_MS = 120_000;
 // Lit les affectations (NOM TECH + DATE) de l'onglet du mois pour calculer la disponibilité.
 // Renvoie [] si Zoho n'est pas configuré ou en cas d'erreur (la dispo retombe alors sur les
 // seules affectations de l'app).
+/** @deprecated Remplacé par lireAffectationsSuivi (lib/suivi/vueSuivi). Plus aucun appelant. */
 export async function lireAffectationsSheet(): Promise<{ nomTech: string; date: string }[]> {
   const c = zohoConfig();
   if (!c.configure) return [];
@@ -118,6 +124,7 @@ let cacheLignes: { at: number; onglet: string; data: LigneZoho[] } | null = null
 const CACHE_LIGNES_MS = 15_000;
 
 // Lit les lignes de l'onglet du mois pour la vue live (read-only). Colonnes utiles seulement.
+/** @deprecated Remplacé par lireVueSuivi (lib/suivi/vueSuivi). Seul scripts/zoho-verifier.ts l'utilise encore (diagnostic legacy). */
 export async function lireLignesSheet(): Promise<{ onglet: string; lignes: LigneZoho[] }> {
   const c = zohoConfig();
   const onglet = c.worksheet as string;
@@ -165,6 +172,7 @@ export async function lireLignesSheet(): Promise<{ onglet: string; lignes: Ligne
 
 // Ajoute une ligne au tableau (l'onglet est traité comme une table dont la 1re ligne porte les
 // noms de colonnes). `record` est indexé par nom de colonne.
+/** @deprecated Remplacé par creerLigne + patcherLigne (lib/suivi/suiviClient). Plus aucun appelant. */
 export async function ajouterLigneSheet(
   record: Record<string, string>
 ): Promise<{ success: boolean; error?: string }> {
