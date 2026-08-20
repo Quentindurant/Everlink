@@ -207,12 +207,13 @@ function PastilleMail({
   manuelLe,
   onBasculer,
 }: {
-  lettre: "P" | "C";
+  lettre: "P" | "R" | "C";
   envoyeLe: string | null;
   manuelLe: string | null;
   onBasculer: () => void;
 }) {
-  const libelle = lettre === "P" ? "prévenance" : "confirmation";
+  const libelle =
+    lettre === "P" ? "prévenance" : lettre === "R" ? "relance" : "confirmation";
   if (envoyeLe) {
     return (
       <span
@@ -426,6 +427,12 @@ function LigneDossier({
             envoyeLe={d.mailPrevenanceLe}
             manuelLe={d.mailPrevenanceManuelLe}
             onBasculer={() => agir(() => basculerMailManuelAction(d.clientId, "PREVENANCE"))}
+          />
+          <PastilleMail
+            lettre="R"
+            envoyeLe={d.mailRelanceLe}
+            manuelLe={d.mailRelanceManuelLe}
+            onBasculer={() => agir(() => basculerMailManuelAction(d.clientId, "RELANCE"))}
           />
           <PastilleMail
             lettre="C"

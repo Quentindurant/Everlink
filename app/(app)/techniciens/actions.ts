@@ -190,13 +190,22 @@ export async function affecterTechnicienParNomAction(
 // n'est pas effaçable ici — c'est un fait, pas une case.
 export async function basculerMailManuelAction(
   clientId: string,
-  type: "PREVENANCE" | "CONFIRMATION"
+  type: "PREVENANCE" | "RELANCE" | "CONFIRMATION"
 ): Promise<Resultat> {
   return garde(async () => {
-    const champ = type === "PREVENANCE" ? "mailPrevenanceManuelLe" : "mailConfirmationManuelLe";
+    const champ =
+      type === "PREVENANCE"
+        ? "mailPrevenanceManuelLe"
+        : type === "RELANCE"
+          ? "mailRelanceManuelLe"
+          : "mailConfirmationManuelLe";
     const c = await prisma.client.findUnique({
       where: { id: clientId },
-      select: { mailPrevenanceManuelLe: true, mailConfirmationManuelLe: true },
+      select: {
+        mailPrevenanceManuelLe: true,
+        mailRelanceManuelLe: true,
+        mailConfirmationManuelLe: true,
+      },
     });
     if (!c) return { success: false, error: "Client introuvable." };
     const actif = c[champ] !== null;

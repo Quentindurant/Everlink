@@ -108,6 +108,7 @@ model Client {
   // Mail envoyé hors application (appel, mail perso) : l'ADV coche la case sans rien envoyer.
   // Un envoi réel depuis l'app prime sur ce marquage.
   mailPrevenanceManuelLe   DateTime?
+  mailRelanceManuelLe      DateTime?
   mailConfirmationManuelLe DateTime?
 
   // Préparation chef de projet : qui pilote le dossier, et clôture de la checklist.
