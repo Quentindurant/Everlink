@@ -46,14 +46,14 @@ jobs:
             pkill -f "[n]ext build" || true
             NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
-            # reload = zéro coupure si l'app tourne déjà; sinon on la démarre.
-            # --update-env est indispensable : sans lui, pm2 réinjecte l'environnement
-            # mémorisé au premier démarrage et l'app continue de tourner avec un ancien
-            # DATABASE_URL même après modification du .env (déjà vu en production, l'app
-            # échouait en P1000 sur un utilisateur qui n'existait plus).
+            # reload SANS --update-env, volontairement. L'app lit son .env elle-même au
+            # démarrage (Next charge les fichiers .env) : pm2 n'a aucune variable à lui
+            # fournir. --update-env injecterait l'environnement du shell de déploiement dans
+            # l'app — c'est ce qui a fait tourner la production sur un DATABASE_URL parasite
+            # hérité d'un shell, en échec P1000, alors que le .env était correct.
             # -p 3005: next start ne lit pas PORT depuis .env, le port doit être
             # passé en argument. Le vhost nginx everlink.quentindurant.com proxifie dessus.
-            pm2 reload everlink --update-env || pm2 start npm --name everlink -- start -- -p 3005
+            pm2 reload everlink || pm2 start npm --name everlink -- start -- -p 3005
             pm2 save
 
             # Installe/rafraîchit le cron de suivi des colis (idempotent, ne touche pas les
