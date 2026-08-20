@@ -10,6 +10,7 @@ import {
   ligneDepuisRow,
   moisCourant,
   moisDuDossier,
+  trouverLigneCible,
   type DossierPourSuivi,
 } from "./ligneSuivi";
 
@@ -179,6 +180,82 @@ describe("affectationsDepuisRows (disponibilité techniciens)", () => {
       { nomTech: "Momo", date: "13/08/2026" },
       { nomTech: "", date: "14/08/2026" },
     ]);
+  });
+});
+
+describe("trouverLigneCible (push : upsert au lieu de créer un doublon)", () => {
+  const row = (id: string, client: string, surcharges: Partial<{ archived: boolean; version: number }> = {}) => ({
+    id,
+    version: surcharges.version ?? 0,
+    archived: surcharges.archived ?? false,
+    data: { client },
+  });
+
+  test("match par le nom mémorisé, prioritaire même si le nom actuel a changé", () => {
+    // Le dossier a été renommé côté app : le nom mémorisé retrouve quand même SA ligne,
+    // y compris quand une autre ligne porte le nom actuel.
+    const lignes = [
+      row("r1", "S33 - ART PHOTO LAB"),
+      row("r2", "S34 - PHOTO LAB EXPRESS"),
+    ];
+    const r = trouverLigneCible(lignes, "S33 - ART PHOTO LAB", "S34 - PHOTO LAB EXPRESS");
+    expect(r).toEqual({ type: "unique", ligne: lignes[0] });
+  });
+
+  test("le préfixe semaine est ignoré : S33 et S34 désignent la même ligne", () => {
+    const lignes = [row("r1", "S34 - ART PHOTO LAB")];
+    const r = trouverLigneCible(lignes, "S33 - ART PHOTO LAB", "S35 - ART PHOTO LAB");
+    expect(r).toEqual({ type: "unique", ligne: lignes[0] });
+  });
+
+  test("match par le nom actuel quand aucun nom n'est mémorisé", () => {
+    const lignes = [row("r1", "S33 - ART PHOTO LAB"), row("r2", "AUTRE CLIENT")];
+    const r = trouverLigneCible(lignes, null, "S33 - ART PHOTO LAB");
+    expect(r).toEqual({ type: "unique", ligne: lignes[0] });
+  });
+
+  test("nom mémorisé introuvable (ligne renommée par les ADV) : repli sur le nom actuel", () => {
+    const lignes = [row("r1", "S33 - ART PHOTO LAB")];
+    const r = trouverLigneCible(lignes, "ANCIEN NOM DISPARU", "S33 - ART PHOTO LAB");
+    expect(r).toEqual({ type: "unique", ligne: lignes[0] });
+  });
+
+  test("casse, accents conservés et espaces multiples : même normalisation que le rapprochement", () => {
+    const lignes = [row("r1", "  café  du  Théâtre ")];
+    const r = trouverLigneCible(lignes, null, "S33 - CAFÉ DU THÉÂTRE");
+    expect(r).toEqual({ type: "unique", ligne: lignes[0] });
+  });
+
+  test("plusieurs lignes au même nom : ambigu avec le nombre, on n'écrit rien", () => {
+    const lignes = [
+      row("r1", "S33 - ART PHOTO LAB"),
+      row("r2", "S34 - ART PHOTO LAB"),
+      row("r3", "AUTRE CLIENT"),
+    ];
+    expect(trouverLigneCible(lignes, null, "ART PHOTO LAB")).toEqual({ type: "ambigu", nombre: 2 });
+    // Même verdict quand c'est le nom mémorisé qui est dupliqué.
+    expect(trouverLigneCible(lignes, "ART PHOTO LAB", "NOM TOUT NEUF")).toEqual({ type: "ambigu", nombre: 2 });
+  });
+
+  test("aucune correspondance : absente (le push créera la ligne)", () => {
+    const lignes = [row("r1", "AUTRE CLIENT")];
+    expect(trouverLigneCible(lignes, null, "ART PHOTO LAB")).toEqual({ type: "absente" });
+    expect(trouverLigneCible([], "ART PHOTO LAB", "ART PHOTO LAB")).toEqual({ type: "absente" });
+  });
+
+  test("les lignes archivées sont ignorées", () => {
+    const archivee = row("r1", "S33 - ART PHOTO LAB", { archived: true });
+    // Seule une archivée porte le nom : absente, on recrée une ligne vivante.
+    expect(trouverLigneCible([archivee], null, "ART PHOTO LAB")).toEqual({ type: "absente" });
+    // Une archivée + une vivante : la vivante gagne, pas d'ambigu.
+    const vivante = row("r2", "S34 - ART PHOTO LAB");
+    expect(trouverLigneCible([archivee, vivante], null, "ART PHOTO LAB")).toEqual({ type: "unique", ligne: vivante });
+  });
+
+  test("cellules client vides : jamais appariées, même à un nom qui se normalise à vide", () => {
+    const lignes = [row("r1", ""), row("r2", "   ")];
+    expect(trouverLigneCible(lignes, null, "ART PHOTO LAB")).toEqual({ type: "absente" });
+    expect(trouverLigneCible(lignes, null, "  ")).toEqual({ type: "absente" });
   });
 });
 

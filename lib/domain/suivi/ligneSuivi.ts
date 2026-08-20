@@ -12,7 +12,7 @@ import {
   prefixeSemaine,
   statutSheetPourEtape,
 } from "@/lib/domain/zoho/suiviSheet";
-import { parseDateSheet } from "@/lib/domain/zoho/rapprochement";
+import { normaliserNomSheet, parseDateSheet } from "@/lib/domain/zoho/rapprochement";
 
 /** Valeur d'une cellule du tableau (contrat RowDTO.data de l'API suivi). */
 export type ValeurCellule = string | number | null;
@@ -112,6 +112,40 @@ export function construireDonneesLigne(c: DossierPourSuivi): Record<string, stri
     if (valeur !== "") donnees[cle] = valeur;
   }
   return donnees;
+}
+
+/** Verdict de la recherche de la ligne d'un dossier dans son mois (upsert du push). */
+export type ResultatLigneCible<L> =
+  | { type: "unique"; ligne: L }
+  | { type: "ambigu"; nombre: number }
+  | { type: "absente" };
+
+/**
+ * PUSH : retrouve la ligne du mois qui appartient déjà à ce dossier, pour la METTRE À JOUR
+ * au lieu d'en créer un doublon. Comparaison au nom normalisé du rapprochement (préfixe
+ * semaine retiré, casse et espaces ignorés) : priorité au nom mémorisé `zohoNomSheet` —
+ * il survit à un renommage du dossier côté app —, repli sur le nom actuel si le mémorisé
+ * ne retrouve rien (ligne renommée par les ADV). Les lignes archivées et les cellules
+ * client vides ne comptent jamais. Plusieurs correspondances → « ambigu » : l'appelant ne
+ * doit RIEN écrire (fusion à faire côté tableau), surtout pas créer un doublon de plus.
+ */
+export function trouverLigneCible<L extends { data: DonneesLigne; archived?: boolean }>(
+  lignes: L[],
+  nomMemorise: string | null,
+  nomActuel: string
+): ResultatLigneCible<L> {
+  const vivantes = lignes.filter((l) => !l.archived);
+  const correspondantes = (nom: string | null): L[] => {
+    const norme = nom ? normaliserNomSheet(nom) : "";
+    if (!norme) return [];
+    return vivantes.filter((l) => normaliserNomSheet(S(l.data["client"])) === norme);
+  };
+  for (const nom of [nomMemorise, nomActuel]) {
+    const trouvees = correspondantes(nom);
+    if (trouvees.length === 1) return { type: "unique", ligne: trouvees[0] };
+    if (trouvees.length > 1) return { type: "ambigu", nombre: trouvees.length };
+  }
+  return { type: "absente" };
 }
 
 /** Ligne du tableau vue par l'app — même forme que l'ancienne LigneZoho (UI, pull, dispo). */
