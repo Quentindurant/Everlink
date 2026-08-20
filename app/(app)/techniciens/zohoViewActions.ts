@@ -1,24 +1,28 @@
 "use server";
 
+// Vue live et synchronisation du tableau de suivi maison (remplace le Zoho Sheet). Les
+// noms des actions sont conservés (rafraichirZohoAction, synchroniserDepuisZohoAction)
+// pour ne pas toucher les composants appelants ; les formes retournées sont identiques.
+
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { lireLignesSheet, type LigneZoho } from "@/lib/zoho/zohoClient";
-import { runZohoPull, type ZohoPullResultat } from "@/lib/zoho/syncDepuisSheet";
+import type { LigneSuivi } from "@/lib/domain/suivi/ligneSuivi";
+import { lireVueSuivi } from "@/lib/suivi/vueSuivi";
+import { runSuiviPull, type SuiviPullResultat } from "@/lib/suivi/syncDepuisSuivi";
 import { journaliser } from "@/lib/activite";
 
 export async function rafraichirZohoAction(): Promise<{
   configure: boolean;
   onglet: string;
-  lignes: LigneZoho[];
+  lignes: LigneSuivi[];
 }> {
   const session = await auth();
   if (!session?.user) return { configure: false, onglet: "", lignes: [] };
-  const { onglet, lignes } = await lireLignesSheet();
-  return { configure: lignes.length > 0 || !!process.env.ZOHO_REFRESH_TOKEN, onglet, lignes };
+  return lireVueSuivi();
 }
 
-// Synchronise le Sheet vers l'app (statut, date, heure, technicien des dossiers rapprochés).
-export async function synchroniserDepuisZohoAction(): Promise<ZohoPullResultat> {
+// Synchronise le tableau vers l'app (statut, date, heure, technicien des dossiers rapprochés).
+export async function synchroniserDepuisZohoAction(): Promise<SuiviPullResultat> {
   const session = await auth();
   if (!session?.user) {
     return {
@@ -26,9 +30,9 @@ export async function synchroniserDepuisZohoAction(): Promise<ZohoPullResultat> 
       lignesInconnues: [], message: "Non authentifié.",
     };
   }
-  const r = await runZohoPull();
+  const r = await runSuiviPull();
   if (r.succes && r.misAJour > 0) {
-    await journaliser("Zoho", "sheet", "Sync Zoho → app", `${r.misAJour} dossier(s)`);
+    await journaliser("Suivi", "tableau", "Sync tableau → app", `${r.misAJour} dossier(s)`);
   }
   revalidatePath("/techniciens");
   revalidatePath("/clients");
