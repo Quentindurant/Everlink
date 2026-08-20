@@ -1,0 +1,202 @@
+// Mapping Everlink ↔ tableau de suivi maison (https://suivie.appgcd.fr), qui remplace le
+// Zoho Sheet "TABLEAU SUIVI COMMANDES". Le tableau expose 16 colonnes identifiées par une
+// clé stable (spec §2.1 du repo TableauSuivieGcDev, ordre A..P) :
+//   impe, client, dpt, cp_client, partenaire, date, porta_commentaires, heure,
+//   tech, nom_tech, nom_cp, statut, commentaires_planif, materiel_recu,
+//   num_chrono, infos_facturation
+// Les colonnes DATE y sont stockées en ISO "AAAA-MM-JJ" ; l'app et son historique Zoho
+// travaillent en "JJ/MM/AAAA" : ce module fait la conversion aux frontières, si bien que
+// rapprochement.ts et disponibilite.ts sont réutilisés tels quels.
+import {
+  extraireCodePostal,
+  prefixeSemaine,
+  statutSheetPourEtape,
+} from "@/lib/domain/zoho/suiviSheet";
+import { parseDateSheet } from "@/lib/domain/zoho/rapprochement";
+
+/** Valeur d'une cellule du tableau (contrat RowDTO.data de l'API suivi). */
+export type ValeurCellule = string | number | null;
+export type DonneesLigne = Record<string, ValeurCellule>;
+
+const MOIS_LIBELLES = [
+  "JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN",
+  "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE",
+];
+
+/** Date → "AAAA-MM-JJ" (UTC, format des colonnes DATE du tableau) ; null → "". */
+export function dateVersIso(d: Date | null): string {
+  if (!d || isNaN(d.getTime())) return "";
+  const a = String(d.getUTCFullYear()).padStart(4, "0");
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const j = String(d.getUTCDate()).padStart(2, "0");
+  return `${a}-${m}-${j}`;
+}
+
+/** "AAAA-MM-JJ" → "JJ/MM/AAAA" ; toute autre saisie (cellule libre) repart telle quelle. */
+export function isoVersFr(valeur: string): string {
+  const v = valeur.trim();
+  const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : v;
+}
+
+/** Mois "AAAA-MM" d'une date (UTC). */
+export function moisCourant(d = new Date()): string {
+  return `${String(d.getUTCFullYear()).padStart(4, "0")}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Mois cible d'un dossier : celui de la date d'intervention, sinon le mois courant. */
+export function moisDuDossier(dateIntervention: Date | null, maintenant = new Date()): string {
+  return moisCourant(dateIntervention ?? maintenant);
+}
+
+/** "2026-08" → "AOUT 2026", le libellé des onglets mensuels historiques (affichage). */
+export function libelleMoisSuivi(mois: string): string {
+  const m = mois.match(/^(\d{4})-(\d{2})$/);
+  if (!m) return mois;
+  const index = Number(m[2]) - 1;
+  if (index < 0 || index > 11) return mois;
+  return `${MOIS_LIBELLES[index]} ${m[1]}`;
+}
+
+/** Champs du dossier Everlink nécessaires pour composer une ligne du tableau. */
+export interface DossierPourSuivi {
+  raisonSociale: string;
+  departement: string | null;
+  adresse: string | null;
+  scenario: string | null;
+  dateIntervention: Date | null;
+  creneauIntervention: string | null;
+  commentaire: string | null;
+  referenceClient: string | null;
+  contactNom: string | null;
+  contactPrenom: string | null;
+  etapeLibelle: string | null;
+  prestataireNom: string | null;
+  technicienNom: string | null;
+  statutSuivi: string | null;
+  dateImperative: Date | null;
+  materielRecu: string | null;
+  numeroChrono: string | null;
+  infosFacturation: string | null;
+}
+
+/**
+ * PUSH : dossier Everlink → cellules de la ligne, au format des ADV (client préfixé de la
+ * semaine de pose, statut au vocabulaire du tableau). Les champs vides sont omis : une
+ * cellule absente reste vide côté tableau. IMPE, MATERIEL RECU, N° CHRONO et INFOS
+ * FACTURATION partent s'ils sont connus mais restent ensuite à la main des ADV.
+ */
+export function construireDonneesLigne(c: DossierPourSuivi): Record<string, string> {
+  const brut: Record<string, string> = {
+    impe: dateVersIso(c.dateImperative),
+    client: `${prefixeSemaine(c.dateIntervention)}${c.raisonSociale}`,
+    dpt: c.departement ?? "",
+    cp_client: extraireCodePostal(c.adresse),
+    // Les dossiers gérés par GC pour Everlink portent le partenaire "EVERLINK".
+    partenaire: "EVERLINK",
+    date: dateVersIso(c.dateIntervention),
+    porta_commentaires: [c.scenario, c.referenceClient].filter(Boolean).join(" — "),
+    heure: c.creneauIntervention ?? "",
+    tech: c.prestataireNom ?? "",
+    nom_tech: c.technicienNom ?? "",
+    nom_cp: [c.contactPrenom, c.contactNom].filter(Boolean).join(" "),
+    // Le statut saisi par les ADV prime ; sinon on le dérive de l'étape de migration.
+    statut: c.statutSuivi ?? statutSheetPourEtape(c.etapeLibelle),
+    commentaires_planif: c.commentaire ?? "",
+    materiel_recu: c.materielRecu ?? "",
+    num_chrono: c.numeroChrono ?? "",
+    infos_facturation: c.infosFacturation ?? "",
+  };
+  const donnees: Record<string, string> = {};
+  for (const [cle, valeur] of Object.entries(brut)) {
+    if (valeur !== "") donnees[cle] = valeur;
+  }
+  return donnees;
+}
+
+/** Ligne du tableau vue par l'app — même forme que l'ancienne LigneZoho (UI, pull, dispo). */
+export interface LigneSuivi {
+  client: string;
+  dpt: string;
+  /** Format "JJ/MM/AAAA" (converti depuis l'ISO du tableau) pour l'affichage et le pull. */
+  date: string;
+  heure: string;
+  tech: string;
+  nomTech: string;
+  installation: string;
+  commentaires: string;
+}
+
+const S = (v: unknown) => (v == null ? "" : String(v));
+
+/** Vrai si la ligne appartient à Everlink (colonne partenaire), casse/espaces ignorés. */
+export function estLigneEverlink(data: Record<string, unknown>): boolean {
+  return S(data["partenaire"]).trim().toUpperCase() === "EVERLINK";
+}
+
+/** PULL : cellules d'une ligne du tableau → forme historique consommée par l'app. */
+export function ligneDepuisRow(data: DonneesLigne): LigneSuivi {
+  return {
+    client: S(data["client"]),
+    dpt: S(data["dpt"]),
+    date: isoVersFr(S(data["date"])),
+    heure: S(data["heure"]),
+    tech: S(data["tech"]),
+    nomTech: S(data["nom_tech"]),
+    installation: S(data["statut"]),
+    commentaires: S(data["porta_commentaires"]),
+  };
+}
+
+/**
+ * Affectations (NOM TECH + DATE) de TOUTES les lignes du mois, tous partenaires : un
+ * technicien occupé sur un dossier GC n'est pas disponible pour Everlink. Dates au format
+ * FR pour nomsTechOccupes (lib/domain/technicien/disponibilite).
+ */
+export function affectationsDepuisRows(rows: { data: DonneesLigne }[]): { nomTech: string; date: string }[] {
+  return rows.map((r) => ({
+    nomTech: S(r.data["nom_tech"]),
+    date: isoVersFr(S(r.data["date"])),
+  }));
+}
+
+/** Champs du dossier comparés lors du pull (sous-ensemble du client Prisma). */
+export interface DossierRapproche {
+  zohoNomSheet: string | null;
+  statutSuivi: string | null;
+  dateIntervention: Date | null;
+  creneauIntervention: string | null;
+  technicienId: string | null;
+}
+
+/**
+ * PULL : champs à écrire sur le dossier pour refléter la ligne rapprochée. Règle d'or :
+ * un champ vide (ou illisible) côté tableau ne touche JAMAIS la valeur de l'app ; une
+ * valeur identique n'est pas réécrite. `techIdResolu` est résolu en amont (annuaire +
+ * création éventuelle), null = ne pas toucher l'affectation.
+ */
+export function champsAMettreAJour(
+  dossier: DossierRapproche,
+  ligne: Pick<LigneSuivi, "date" | "heure" | "installation">,
+  nomSheet: string,
+  techIdResolu: string | null
+): Record<string, unknown> {
+  const data: Record<string, unknown> = {};
+
+  if (dossier.zohoNomSheet !== nomSheet) data.zohoNomSheet = nomSheet;
+
+  const statut = ligne.installation.trim().toUpperCase();
+  if (statut && statut !== (dossier.statutSuivi ?? "")) data.statutSuivi = statut;
+
+  const date = parseDateSheet(ligne.date);
+  if (date && date.getTime() !== (dossier.dateIntervention?.getTime() ?? 0)) {
+    data.dateIntervention = date;
+  }
+
+  const heure = ligne.heure.trim();
+  if (heure && heure !== (dossier.creneauIntervention ?? "")) data.creneauIntervention = heure;
+
+  if (techIdResolu && techIdResolu !== dossier.technicienId) data.technicienId = techIdResolu;
+
+  return data;
+}
