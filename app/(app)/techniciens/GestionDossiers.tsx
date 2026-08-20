@@ -451,7 +451,7 @@ function LigneDossier({
             "inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] hover:bg-muted",
             d.zohoPousseLe ? "text-[color:var(--pal-green-fg)]" : "text-muted-foreground"
           )}
-          title={d.zohoPousseLe ? `déjà poussé le ${d.zohoPousseLe} — re-cliquer ajoute une nouvelle ligne` : "ajouter au tableau Zoho"}
+          title={d.zohoPousseLe ? `déjà poussé le ${d.zohoPousseLe} — re-cliquer ajoute une nouvelle ligne` : "ajouter au tableau de suivi"}
         >
           {d.zohoPousseLe ? <Sheet className="size-3" /> : <Send className="size-3" />}
           {d.zohoPousseLe ? "poussé" : "pousser"}
@@ -552,7 +552,7 @@ export function GestionDossiers({
         <Table>
           <TableHeader className="sticky top-0 z-10">
             <TableRow className="hover:bg-transparent">
-              {["Client", "Statut ADV", "Impératif", "Étape", "Contact", "Intervention", "Technicien", "Lien", "Mails", "Zoho", "Colis", "Matériel reçu", "N° Chrono", "Facturation", "Commentaire", "Routeur"].map((h) => (
+              {["Client", "Statut ADV", "Impératif", "Étape", "Contact", "Intervention", "Technicien", "Lien", "Mails", "Suivi", "Colis", "Matériel reçu", "N° Chrono", "Facturation", "Commentaire", "Routeur"].map((h) => (
                 <TableHead key={h} className="h-9 whitespace-nowrap">
                   {h}
                 </TableHead>

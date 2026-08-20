@@ -269,7 +269,7 @@ export default async function ClientDetailPage({
       <SectionStaging
         couleur="var(--ev-green)"
         icone={<FileUp className="size-4" />}
-        titre="Imports Sewan · Zoho"
+        titre="Imports Sewan · Tableau de suivi"
       >
         <div className="flex flex-wrap items-center gap-3 p-4">
           <ImportSewanUsers clientId={client.id} />

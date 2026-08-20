@@ -29,7 +29,7 @@ export function SectionActivite({ activite }: { activite: ActiviteEquipe }) {
         <h2 className="text-lg font-semibold tracking-tight">Activité de l&apos;équipe</h2>
         <p className="text-sm text-muted-foreground">
           {enLigne} connecté{enLigne > 1 ? "s" : ""} maintenant · classement sur les actions
-          tracées (étapes, statuts, contacts, expéditions, Zoho…)
+          tracées (étapes, statuts, contacts, expéditions, tableau de suivi…)
         </p>
       </div>
 
