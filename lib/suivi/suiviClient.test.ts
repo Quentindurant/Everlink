@@ -263,3 +263,113 @@ describe("suiviClient — supprimerLigne (compensation du push)", () => {
     await expect(client.supprimerLigne("r1")).rejects.toThrow(/introuvable/i);
   });
 });
+
+// --- Référentiel : colonnes et choix -----------------------------------------
+
+const choix = (label: string) => ({
+  id: `ch-${label}`,
+  columnId: "c-tech",
+  label,
+  bgColor: null,
+  textColor: null,
+  bold: false,
+  position: 0,
+  archived: false,
+});
+
+const colonneTech = (choices: unknown[] = []) => ({
+  id: "c-tech",
+  key: "nom_tech",
+  label: "NOM TECH",
+  type: "SELECT",
+  position: 6,
+  width: 150,
+  visible: true,
+  choices,
+});
+
+describe("suiviClient — lireColonnes", () => {
+  test("lit les colonnes avec leurs choix, avec la session, puis sert le cache", async () => {
+    const { appels, fetchImpl } = fauxServeur([
+      { chemin: "/api/auth/login", rep: loginOk("j") },
+      { chemin: "/api/columns", rep: reponse(200, [colonneTech([choix("BRUCE")])]) },
+    ]);
+    const client = creerSuiviClient({ ...OPTIONS, cacheMs: 60_000, fetchImpl });
+
+    const colonnes = await client.lireColonnes();
+    await client.lireColonnes();
+
+    expect(colonnes).toHaveLength(1);
+    expect(colonnes[0].key).toBe("nom_tech");
+    expect(colonnes[0].choices.map((c) => c.label)).toEqual(["BRUCE"]);
+    const lectures = appels.filter((a) => a.url.endsWith("/api/columns"));
+    expect(lectures).toHaveLength(1);
+    expect(lectures[0].cookie).toBe("token=j");
+  });
+
+  test("erreur serveur : échec explicite", async () => {
+    const { fetchImpl } = fauxServeur([
+      { chemin: "/api/auth/login", rep: loginOk("j") },
+      { chemin: "/api/columns", rep: reponse(500, { message: "boom" }) },
+    ]);
+    const client = creerSuiviClient({ ...OPTIONS, fetchImpl });
+    await expect(client.lireColonnes()).rejects.toThrow(/boom/);
+  });
+});
+
+describe("suiviClient — ajouterChoix (référentiel techniciens)", () => {
+  test("poste le libellé avec les couleurs par défaut du tableau", async () => {
+    const { appels, fetchImpl } = fauxServeur([
+      { chemin: "/api/auth/login", rep: loginOk("j") },
+      { chemin: "/choices", rep: reponse(201, choix("Marc")) },
+    ]);
+    const client = creerSuiviClient({ ...OPTIONS, fetchImpl });
+
+    await client.ajouterChoix("c-tech", "Marc");
+
+    const creation = appels.find((a) => a.method === "POST" && a.url.includes("/choices"));
+    expect(creation?.url).toBe("https://suivie.appgcd.fr/api/columns/c-tech/choices");
+    // Mêmes valeurs que le formulaire « nouveau choix » des Paramètres du tableau
+    // (FOND_DEFAUT / TEXTE_DEFAUT / gras décoché).
+    expect(creation?.corps).toEqual({ label: "Marc", bgColor: "#ffffff", textColor: "#000000", bold: false });
+    expect(creation?.cookie).toBe("token=j");
+  });
+
+  test("422 « existe déjà » (course entre deux pushs) : succès silencieux", async () => {
+    const { fetchImpl } = fauxServeur([
+      { chemin: "/api/auth/login", rep: loginOk("j") },
+      {
+        chemin: "/choices",
+        rep: reponse(422, { code: "VALIDATION_FAILED", message: "La valeur « Marc » existe déjà dans cette liste." }),
+      },
+    ]);
+    const client = creerSuiviClient({ ...OPTIONS, fetchImpl });
+    await expect(client.ajouterChoix("c-tech", "Marc")).resolves.toBeUndefined();
+  });
+
+  test("autre 422 (validation) : erreur explicite", async () => {
+    const { fetchImpl } = fauxServeur([
+      { chemin: "/api/auth/login", rep: loginOk("j") },
+      { chemin: "/choices", rep: reponse(422, { code: "VALIDATION_FAILED", message: "Données invalides." }) },
+    ]);
+    const client = creerSuiviClient({ ...OPTIONS, fetchImpl });
+    await expect(client.ajouterChoix("c-tech", "")).rejects.toThrow(/invalides/i);
+  });
+
+  test("ajout réussi : le cache des colonnes est invalidé", async () => {
+    const { appels, fetchImpl } = fauxServeur([
+      { chemin: "/api/auth/login", rep: loginOk("j") },
+      { chemin: "/api/columns", rep: reponse(200, [colonneTech()]) },
+      { chemin: "/choices", rep: reponse(201, choix("Marc")) },
+      { chemin: "/api/columns", rep: reponse(200, [colonneTech([choix("Marc")])]) },
+    ]);
+    const client = creerSuiviClient({ ...OPTIONS, cacheMs: 60_000, fetchImpl });
+
+    await client.lireColonnes();
+    await client.ajouterChoix("c-tech", "Marc");
+    const colonnes = await client.lireColonnes();
+
+    expect(colonnes[0].choices).toHaveLength(1);
+    expect(appels.filter((a) => a.method === "GET" && a.url.endsWith("/api/columns"))).toHaveLength(2);
+  });
+});

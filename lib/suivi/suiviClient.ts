@@ -5,7 +5,10 @@
 //     (serveur → serveur), et on se reconnecte automatiquement sur 401 ;
 //   - GET /api/rows?month=AAAA-MM, POST /api/rows {month}, PATCH /api/rows/:id
 //     {expectedVersion, patch} ; un 409 VERSION_CONFLICT porte details.current (la ligne
-//     relue) : on retente UNE fois avec la version relue, puis on abandonne proprement.
+//     relue) : on retente UNE fois avec la version relue, puis on abandonne proprement ;
+//   - GET /api/columns renvoie les colonnes AVEC leurs choix (contrat ColumnDTO/ChoiceDTO) ;
+//     POST /api/columns/:columnId/choices {label, bgColor?, textColor?, bold?} crée un
+//     choix ; un doublon exact renvoie 422 VALIDATION_FAILED « ... existe déjà ... ».
 // Config en environnement (jamais de secret committé) :
 //   SUIVI_API_URL, SUIVI_API_EMAIL, SUIVI_API_PASSWORD
 import type { DonneesLigne, ValeurCellule } from "@/lib/domain/suivi/ligneSuivi";
@@ -18,6 +21,22 @@ export interface SuiviRow {
   data: DonneesLigne;
   version: number;
   archived: boolean;
+}
+
+/** Choix d'une colonne SELECT (contrat ChoiceDTO, champs utiles). */
+export interface SuiviChoice {
+  id: string;
+  label: string;
+  archived: boolean;
+}
+
+/** Colonne du tableau (contrat ColumnDTO, champs utiles). */
+export interface SuiviColumn {
+  id: string;
+  key: string;
+  label: string;
+  type: string;
+  choices: SuiviChoice[];
 }
 
 interface ApiErreur {
@@ -50,6 +69,10 @@ export interface SuiviClient {
   patcherLigne(id: string, expectedVersion: number, patch: Record<string, ValeurCellule>): Promise<ResultatPatch>;
   /** Compensation du push en deux temps : efface une ligne créée puis non remplie. */
   supprimerLigne(id: string): Promise<void>;
+  /** Colonnes du tableau avec leurs choix (référentiel des listes), cache court. */
+  lireColonnes(): Promise<SuiviColumn[]>;
+  /** Ajoute une valeur à une liste ; un 422 « existe déjà » est un succès silencieux. */
+  ajouterChoix(columnId: string, label: string): Promise<void>;
 }
 
 /** "https://suivie.appgcd.fr/", ".../api", ".../api/" → "https://suivie.appgcd.fr". */
@@ -200,7 +223,48 @@ export function creerSuiviClient(options: OptionsSuiviClient): SuiviClient {
     cacheParMois.clear();
   }
 
-  return { lireLignesMois, creerLigne, patcherLigne, supprimerLigne };
+  // Colonnes + choix : même TTL court que les lignes — le push relit la liste des
+  // techniciens à chaque dossier, inutile de marteler l'API entre deux pushs rapprochés.
+  let cacheColonnes: { at: number; colonnes: SuiviColumn[] } | null = null;
+
+  async function lireColonnes(): Promise<SuiviColumn[]> {
+    if (cacheMs > 0 && cacheColonnes && Date.now() - cacheColonnes.at < cacheMs) {
+      return cacheColonnes.colonnes;
+    }
+    const res = await requete(`/api/columns`);
+    if (!res.ok) {
+      throw new Error(`Lecture des colonnes du tableau impossible : ${await messageErreur(res, "GET /columns")}`);
+    }
+    const colonnes = (await res.json()) as SuiviColumn[];
+    cacheColonnes = { at: Date.now(), colonnes };
+    return colonnes;
+  }
+
+  async function ajouterChoix(columnId: string, label: string): Promise<void> {
+    const res = await requete(`/api/columns/${encodeURIComponent(columnId)}/choices`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      // Couleurs et gras : mêmes valeurs par défaut que le formulaire « nouveau choix »
+      // des Paramètres du tableau (FOND_DEFAUT/TEXTE_DEFAUT de parametres/listes.tsx).
+      body: JSON.stringify({ label, bgColor: "#ffffff", textColor: "#000000", bold: false }),
+    });
+    if (res.status === 422) {
+      const message = await messageErreur(res, "POST /choices");
+      // Doublon = l'état visé (le choix présent dans la liste) est déjà atteint :
+      // course bénigne entre deux pushs simultanés, succès silencieux.
+      if (/existe déjà/i.test(message)) {
+        cacheColonnes = null;
+        return;
+      }
+      throw new Error(`Ajout au référentiel du tableau refusé : ${message}`);
+    }
+    if (!res.ok) {
+      throw new Error(`Ajout au référentiel du tableau refusé : ${await messageErreur(res, "POST /choices")}`);
+    }
+    cacheColonnes = null;
+  }
+
+  return { lireLignesMois, creerLigne, patcherLigne, supprimerLigne, lireColonnes, ajouterChoix };
 }
 
 // --- Instance de production, configurée par l'environnement -------------------------------
