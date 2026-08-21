@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { STATUTS_ETAPE_RESOLUS } from "@/lib/domain/telephone/statuts";
+import { estEtapeResolue, STATUTS_ETAPE_RESOLUS } from "@/lib/domain/telephone/statuts";
 
 export interface TelephoneUtilisateurLigne {
   utilisateurId: string;
@@ -32,9 +32,14 @@ export interface TelephoneGrille {
   sitesParClient: Record<string, { id: string; nom: string }[]>;
 }
 
+// Avancement d'un client, du point de vue du technicien : rien de coché, travail entamé,
+// ou toutes les étapes résolues sur tous ses postes.
+export type FiltreAvancement = "non_commence" | "en_cours" | "termine";
+
 export async function fetchTelephoneGrille(filtres: {
   clientId?: string;
   recherche?: string;
+  avancement?: FiltreAvancement;
 } = {}): Promise<TelephoneGrille> {
   const [etapes, valeurs, utilisateurs] = await Promise.all([
     prisma.etapeModele.findMany({ where: { actif: true }, orderBy: { ordre: "asc" } }),
@@ -98,9 +103,30 @@ export async function fetchTelephoneGrille(filtres: {
     }),
   ]);
 
+  // Filtre d'avancement : il porte sur le client entier, pas sur le poste. Un technicien
+  // cherche « ce qui n'est pas commencé » ou « ce qui reste à finir » à l'échelle du dossier.
+  let retenus = utilisateurs;
+  if (filtres.avancement) {
+    const parClient = new Map<string, { faits: number; total: number }>();
+    for (const u of utilisateurs) {
+      const e = parClient.get(u.clientId) ?? { faits: 0, total: 0 };
+      e.faits += etapes.filter((et) => estEtapeResolue(u.suivis.find((s) => s.etapeId === et.id)?.statut)).length;
+      e.total += etapes.length;
+      parClient.set(u.clientId, e);
+    }
+    const garde = (clientId: string) => {
+      const e = parClient.get(clientId);
+      if (!e || e.total === 0) return false;
+      if (filtres.avancement === "non_commence") return e.faits === 0;
+      if (filtres.avancement === "termine") return e.faits === e.total;
+      return e.faits > 0 && e.faits < e.total;
+    };
+    retenus = utilisateurs.filter((u) => garde(u.clientId));
+  }
+
   // Un client n'apparaît ici que s'il a plusieurs adresses : sinon rien à affecter.
   const sitesParClient: Record<string, { id: string; nom: string }[]> = {};
-  for (const u of utilisateurs) {
+  for (const u of retenus) {
     if (u.client.sites.length > 1) sitesParClient[u.client.id] = u.client.sites;
   }
 
@@ -108,7 +134,7 @@ export async function fetchTelephoneGrille(filtres: {
     etapes: etapes.map((e) => ({ id: e.id, libelle: e.libelle })),
     valeursStatut: valeurs.map((v) => v.valeur),
     sitesParClient,
-    utilisateurs: utilisateurs.map((u) => ({
+    utilisateurs: retenus.map((u) => ({
       utilisateurId: u.id,
       utilisateurNom: u.nom,
       clientId: u.client.id,

@@ -14,6 +14,13 @@ import {
 
 const TOUS = "tous";
 
+// Où en est le dossier, du point de vue du technicien qui cherche quoi attaquer.
+const AVANCEMENTS = [
+  { value: "non_commence", label: "Pas commencés" },
+  { value: "en_cours", label: "En cours" },
+  { value: "termine", label: "Terminés (100 %)" },
+];
+
 export function TelephoneFiltres({
   clients,
 }: {
@@ -47,6 +54,26 @@ export function TelephoneFiltres({
           }}
         />
       </div>
+      <Select
+        items={[
+          { value: TOUS, label: "Avancement : tous" },
+          ...AVANCEMENTS.map((a) => ({ value: a.value, label: a.label })),
+        ]}
+        defaultValue={searchParams.get("avancement") ?? TOUS}
+        onValueChange={(v) => setParam("avancement", v === TOUS || v === null ? "" : (v as string))}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={TOUS}>Avancement : tous</SelectItem>
+          {AVANCEMENTS.map((a) => (
+            <SelectItem key={a.value} value={a.value}>
+              {a.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <Select
         items={[
           { value: TOUS, label: "Client : tous" },

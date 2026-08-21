@@ -1,5 +1,8 @@
 import { auth } from "@/auth";
-import { fetchTelephoneGrille } from "@/lib/repositories/telephoneRepository";
+import {
+  fetchTelephoneGrille,
+  type FiltreAvancement,
+} from "@/lib/repositories/telephoneRepository";
 import { listClientsActifs } from "@/lib/repositories/provisionningRepository";
 import { fetchNomsComptes } from "@/lib/repositories/parametresRepository";
 import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
@@ -16,7 +19,11 @@ export default async function TelephonePage({
 }) {
   const params = await searchParams;
   const [grille, clients, session, nomsComptes] = await Promise.all([
-    fetchTelephoneGrille({ clientId: params.client, recherche: params.q }),
+    fetchTelephoneGrille({
+      clientId: params.client,
+      recherche: params.q,
+      avancement: params.avancement as FiltreAvancement | undefined,
+    }),
     listClientsActifs(),
     auth(),
     fetchNomsComptes(),
