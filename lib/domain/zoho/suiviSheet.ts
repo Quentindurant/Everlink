@@ -15,7 +15,7 @@ export const STATUTS_SUIVI: { statut: string; couleur: string }[] = [
   { statut: "ATT PARTE", couleur: "#F8B5C8" },
   { statut: "A SUIVRE", couleur: "#FFA600" },
   { statut: "STAND BY", couleur: "#85C1E9" },
-  { statut: "COLLECTE", couleur: "#F9E79F" },
+  { statut: "EN COLLECTE", couleur: "#F9E79F" },
   { statut: "TECHNIQUE", couleur: "#F1C40F" },
   { statut: "STAGING", couleur: "#F8B5C8" },
   { statut: "INSTALLATION", couleur: "#9BDEB4" },
