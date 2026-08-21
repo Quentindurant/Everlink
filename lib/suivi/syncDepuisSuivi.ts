@@ -79,8 +79,14 @@ export async function runSuiviPull(): Promise<SuiviPullResultat> {
         technicienId: true,
       },
     }),
-    prisma.technicien.findMany({ where: { actif: true }, select: { id: true, nom: true } }),
+    // L'annuaire complet, désactivés compris : la déduplication du référentiel et le
+    // rapprochement doivent les connaître, sinon un technicien désactivé encore
+    // présent dans la colonne nom_tech serait recréé actif à chaque pull — annulant
+    // la décision admin. Un dossier qui le cite lui est rattaché tel quel : la
+    // réactivation reste un geste d'admin, jamais un effet de bord du cron.
+    prisma.technicien.findMany({ select: { id: true, nom: true } }),
   ]);
+  const nomsConnus = techniciens.map((t) => t.nom);
 
   // Référentiel commun : les techniciens ajoutés côté tableau (Paramètres → listes,
   // choix de la colonne nom_tech) redescendent dans l'annuaire, même sans dossier
@@ -89,7 +95,7 @@ export async function runSuiviPull(): Promise<SuiviPullResultat> {
   // référentiel illisible laisse le pull classique inchangé (liste vide).
   let techniciensCrees = 0;
   const labelsReferentiel = await lireLabelsReferentiel(suiviClient());
-  for (const nom of techniciensManquantsDuReferentiel(labelsReferentiel, techniciens.map((t) => t.nom))) {
+  for (const nom of techniciensManquantsDuReferentiel(labelsReferentiel, nomsConnus)) {
     const cree = await prisma.technicien.create({ data: { nom, departements: [] } });
     techniciens.push({ id: cree.id, nom: cree.nom });
     techniciensCrees++;
