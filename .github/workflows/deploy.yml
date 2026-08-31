@@ -44,12 +44,14 @@ jobs:
             # matcher CE script (sa propre ligne de commande contient le texte du pattern) —
             # sans ça, pkill tuait la session SSH elle-même (exit 143).
             pkill -f "[n]ext build" || true
-            # Plafond mémoire du build. Contre-intuitif : une valeur TROP HAUTE tue le
-            # build sur un petit VPS. Node laisse son tas grossir jusqu'au plafond avant de
-            # collecter sérieusement ; si le plafond dépasse la RAM disponible, c'est le
-            # noyau qui tue le processus (exit 137, "Killed") au lieu que Node fasse le
-            # ménage. 2 Go tient sur la machine et force le ramasse-miettes à travailler.
-            NODE_OPTIONS="--max-old-space-size=2048" npm run build
+            # Plafond du tas JavaScript pour le build. La machine n'a que 3,7 Go de RAM et
+            # fait tourner plusieurs applications : le build ne tient que grâce au swap.
+            # Historique de ce réglage, pour ne pas refaire le tour :
+            #   - à 4096 sans swap suffisant : le noyau tuait le processus (exit 137).
+            #   - à 2048 avec swap : Node butait sur son propre plafond (heap out of memory).
+            # 4096 avec 6 Go de swap laisse le build aboutir. Turbopack alloue en plus hors
+            # du tas V8 (code Rust), que ce réglage ne plafonne pas : seul le swap l'absorbe.
+            NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
             # reload SANS --update-env, volontairement. L'app lit son .env elle-même au
             # démarrage (Next charge les fichiers .env) : pm2 n'a aucune variable à lui
