@@ -2,7 +2,17 @@
 
 import { Fragment, useState, useTransition } from "react";
 import Link from "next/link";
-import { CalendarClock, ChevronDown, Hand, Laptop, MapPin, X } from "lucide-react";
+import {
+  CalendarClock,
+  ChevronDown,
+  Hand,
+  Laptop,
+  Lock,
+  LockOpen,
+  MapPin,
+  ShieldAlert,
+  X,
+} from "lucide-react";
 import { CopiePuce } from "@/components/CopiePuce";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,6 +37,8 @@ import { useEtatMemorise } from "@/components/useEtatMemorise";
 import {
   affecterSiteAction,
   affecterSiteRestantsAction,
+  bloquerClientAction,
+  debloquerClientAction,
   attribuerClientTelephoneAction,
   setEtapeClientAction,
   setSuiviEtapeAction,
@@ -289,6 +301,78 @@ function SitesClientBande({
   );
 }
 
+// Met le dossier en pause ou le relance. Un dossier bloqué reste visible — on doit savoir
+// qu'il existe et pourquoi il n'avance pas — mais sa bande passe en gris barré.
+function BlocageClient({
+  clientId,
+  bloque,
+  motif,
+}: {
+  clientId: string;
+  bloque: boolean;
+  motif: string | null;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [saisie, setSaisie] = useState(false);
+  const [texte, setTexte] = useState("");
+
+  if (bloque) {
+    return (
+      <button
+        disabled={isPending}
+        onClick={(e) => {
+          e.stopPropagation();
+          startTransition(async () => {
+            await debloquerClientAction(clientId);
+          });
+        }}
+        className="ev-badge bg-[var(--pal-gray-bg,var(--ev-thead))] text-muted-foreground hover:cursor-pointer"
+        title={motif ? `Bloqué : ${motif} — cliquer pour débloquer` : "Cliquer pour débloquer"}
+      >
+        <Lock className="size-2.5" />
+        bloqué
+      </button>
+    );
+  }
+
+  if (saisie) {
+    return (
+      <span onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
+        <input
+          value={texte}
+          autoFocus
+          placeholder="motif du blocage…"
+          onChange={(e) => setTexte(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setSaisie(false);
+            if (e.key === "Enter") {
+              setSaisie(false);
+              startTransition(async () => {
+                await bloquerClientAction(clientId, texte);
+              });
+            }
+          }}
+          onBlur={() => setSaisie(false)}
+          className="w-44 rounded-md border border-input bg-white px-1.5 py-0.5 text-[11.5px] outline-none focus:border-ring"
+        />
+      </span>
+    );
+  }
+
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        setSaisie(true);
+      }}
+      className="rounded-full p-1 text-muted-foreground opacity-0 transition-opacity group-hover/bande:opacity-100 hover:bg-muted"
+      title="Mettre ce dossier en pause"
+    >
+      <LockOpen className="size-3" />
+    </button>
+  );
+}
+
 export function TelephoneGrille({
   grille,
   monEmail,
@@ -458,7 +542,12 @@ export function TelephoneGrille({
             return (
               <Fragment key={raisonSociale}>
                 <TableRow
-                  className="cursor-pointer bg-[var(--ev-thead)] hover:bg-[var(--ev-row-hover)]"
+                  className={cn(
+                    "group/bande cursor-pointer hover:bg-[var(--ev-row-hover)]",
+                    rows[0].clientBloque
+                      ? "bg-[var(--pal-gray-bg,#f1f3f5)] opacity-70"
+                      : "bg-[var(--ev-thead)]"
+                  )}
                   onClick={() => basculerRepli(raisonSociale)}
                 >
                   <TableCell colSpan={nbColonnes} className="py-2">
@@ -473,10 +562,40 @@ export function TelephoneGrille({
                         <Link
                           href={`/clients/${clientId}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="text-[13.5px] font-bold hover:underline"
+                          className={cn(
+                            "text-[13.5px] font-bold hover:underline",
+                            rows[0].clientBloque && "text-muted-foreground line-through"
+                          )}
                         >
                           {raisonSociale}
                         </Link>
+                        <BlocageClient
+                          clientId={clientId}
+                          bloque={rows[0].clientBloque}
+                          motif={rows[0].clientBloqueMotif}
+                        />
+                        {rows[0].prestatairesTotal > 0 && (
+                          <Link
+                            href={`/clients/${clientId}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className={cn(
+                              "ev-badge",
+                              rows[0].prestatairesATraiter > 0
+                                ? "bg-[var(--pal-red-bg)] text-[color:var(--pal-red-fg)]"
+                                : "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]"
+                            )}
+                            title={
+                              rows[0].prestatairesATraiter > 0
+                                ? "Prestataires externes à joindre avant l'intervention"
+                                : "Tous les prestataires externes ont été traités"
+                            }
+                          >
+                            <ShieldAlert className="size-2.5" />
+                            {rows[0].prestatairesATraiter > 0
+                              ? `${rows[0].prestatairesATraiter} prestataire${rows[0].prestatairesATraiter > 1 ? "s" : ""}`
+                              : "prestataires OK"}
+                          </Link>
+                        )}
                         <span
                           className="h-[5px] w-24 overflow-hidden rounded-full"
                           style={{ background: "oklch(0.92 0.008 240)" }}

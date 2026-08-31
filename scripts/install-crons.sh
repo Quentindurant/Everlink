@@ -32,9 +32,10 @@ fi
 # délivrabilité des mails Mailjet (livré/ouvert/bounce) toutes les 2 heures décalé de 45 min.
 LINE_TRACKING="0 */2 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/tracking-sync >/dev/null 2>&1 ${TAG}"
 LINE_ZOHO="30 */2 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/zoho-pull >/dev/null 2>&1 ${TAG}"
+LINE_ALERTE="15 8,14 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/alerte-prestataires >/dev/null 2>&1 ${TAG}"
 LINE_MAIL="45 */2 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/mail-suivi >/dev/null 2>&1 ${TAG}"
 
 # Réécrit le crontab : toutes les lignes sauf les nôtres, plus les nôtres à jour. Le secret
 # n'est jamais imprimé (pas d'echo des lignes) pour ne pas fuiter dans les logs du déploiement.
-{ crontab -l 2>/dev/null | grep -vF "$TAG" || true; printf '%s\n' "$LINE_TRACKING" "$LINE_ZOHO" "$LINE_MAIL"; } | crontab -
-echo "install-crons: crons tracking-sync, zoho-pull et mail-suivi installés (toutes les 2h, port ${PORT})."
+{ crontab -l 2>/dev/null | grep -vF "$TAG" || true; printf '%s\n' "$LINE_TRACKING" "$LINE_ZOHO" "$LINE_MAIL" "$LINE_ALERTE"; } | crontab -
+echo "install-crons: crons tracking-sync, zoho-pull, mail-suivi et alerte-prestataires installés (toutes les 2h, port ${PORT})."

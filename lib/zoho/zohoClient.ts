@@ -116,6 +116,7 @@ export interface LigneZoho {
   heure: string;
   tech: string;
   nomTech: string;
+  nomCp: string;
   installation: string;
   commentaires: string;
 }
@@ -160,6 +161,7 @@ export async function lireLignesSheet(): Promise<{ onglet: string; lignes: Ligne
         heure: S(r["HEURE "] ?? r["HEURE"]),
         tech: S(r["TECH"]),
         nomTech: S(r["NOM TECH"]),
+        nomCp: S(r["NOM CP"]),
         installation: S(r["INSTALLATION"]),
         commentaires: S(r["PORTA ET COMMENTAIRES IMPORTANT "] ?? r["PORTA ET COMMENTAIRES IMPORTANT"]),
       }));

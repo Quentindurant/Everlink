@@ -105,6 +105,17 @@ model Client {
   // deux techniciens travaillent le même dossier en parallèle.
   telephoneAttribueA  String?
   telephoneAttribueLe DateTime?
+  // Chef de projet GC en charge du dossier, repris de la colonne nom_cp du tableau de suivi.
+  // Sert à savoir qui alerter quand un prestataire du client reste sans réponse.
+  chefProjetNom String?
+
+  // Dossier mis en pause côté téléphonie (client injoignable, litige, attente client) :
+  // il reste visible mais signalé, et sort des dossiers à travailler.
+  telephoneBloque      Boolean   @default(false)
+  telephoneBloqueLe    DateTime?
+  telephoneBloquePar   String?
+  telephoneBloqueMotif String?
+
   // Mail envoyé hors application (appel, mail perso) : l'ADV coche la case sans rien envoyer.
   // Un envoi réel depuis l'app prime sur ce marquage.
   mailPrevenanceManuelLe   DateTime?
@@ -143,6 +154,8 @@ model Client {
   majLe    DateTime  @updatedAt
 
   sites        Site[]
+  prestataires PrestataireClient[]
+  notifications Notification[]
   utilisateurs Utilisateur[]
   suivisProjet SuiviProjet[]
   numeros      Numero[]
@@ -223,6 +236,71 @@ model Site {
   utilisateurs Utilisateur[]
 
   @@index([clientId])
+}
+
+// Prestataire externe intervenant chez le client (alarme, vidéosurveillance, contrôle
+// d'accès, pare-feu, TPE...). Saisi par l'ADV, appelé par le technicien avant l'intervention :
+// leurs équipements sont branchés sur l'accès qu'on remplace, et personne d'autre ne peut les
+// reconfigurer. Un prestataire non joint le jour J bloque la migration.
+model PrestataireClient {
+  id       String @id @default(cuid())
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+
+  // Ce qu'il gère chez le client ("Alarme", "Vidéosurveillance", "TPE"...). Texte libre :
+  // la liste réelle du terrain ne tient pas dans une énumération figée.
+  metier      String
+  societe     String
+  contactNom  String?
+  telephone   String?
+  email       String?
+  commentaire String?
+
+  // Prise de contact par le technicien. A_CONTACTER | CONTACTE | INJOIGNABLE | SANS_OBJET
+  statutContact String    @default("A_CONTACTER")
+  contacteLe    DateTime?
+  contactePar   String?
+  noteContact   String?
+
+  creePar String?
+  creeLe  DateTime @default(now())
+  majLe   DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([statutContact])
+}
+
+// Notification interne, une ligne par destinataire : « lu » est ainsi propre à chacun.
+model Notification {
+  id String @id @default(cuid())
+
+  destinataireEmail String
+  // PRESTATAIRE_AJOUTE | PRESTATAIRE_NON_CONTACTE
+  type    String
+  titre   String
+  message String
+  lien    String?
+
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String?
+
+  luLe   DateTime?
+  creeLe DateTime  @default(now())
+
+  @@index([destinataireEmail, luLe])
+  @@index([clientId, type])
+}
+
+// Chefs de projet GC et leur téléphone professionnel : destinataires des alertes J-3.
+// Rapprochés des dossiers par le nom porté par la colonne nom_cp du tableau de suivi.
+model ChefProjet {
+  id        String   @id @default(cuid())
+  nom       String   @unique
+  telephone String
+  email     String?
+  actif     Boolean  @default(true)
+  creeLe    DateTime @default(now())
+  majLe     DateTime @updatedAt
 }
 
 // Inventaire du staging (roulement des routeurs 4G, box, SIM...). On reçoit du matériel, on le

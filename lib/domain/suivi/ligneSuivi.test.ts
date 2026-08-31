@@ -11,11 +11,13 @@ import {
   moisCourant,
   moisDuDossier,
   trouverLigneCible,
+  type DonneesLigne,
   type DossierPourSuivi,
 } from "./ligneSuivi";
 
 const dossierComplet: DossierPourSuivi = {
   raisonSociale: "ART PHOTO LAB",
+  chefProjetNom: "Quentin",
   departement: "49",
   adresse: "12 rue des Lilas 49000 ANGERS",
   scenario: "Scénario 2",
@@ -85,13 +87,25 @@ describe("construireDonneesLigne (push : mapping 16 colonnes)", () => {
       heure: "14h",
       tech: "GC DEV",
       nom_tech: "Bruce",
-      nom_cp: "Quentin DURANT",
+      nom_cp: "Quentin",
       statut: "INSTALLATION", // dérivé de l'étape « RDV planifié »
       commentaires_planif: "Prévoir échelle",
       materiel_recu: "OUI",
       num_chrono: "XX123456789FR",
       infos_facturation: "Acompte reçu",
     });
+  });
+
+  test("nom_cp porte le chef de projet GC, pas le contact du client", () => {
+    // Le contact client s'appelle « Quentin DURANT », le chef de projet « Korantin » :
+    // c'est le second qui doit sortir, c'est lui qu'on alerte à J-3.
+    const d = construireDonneesLigne({
+      ...dossierComplet,
+      chefProjetNom: "Korantin",
+      contactPrenom: "Quentin",
+      contactNom: "DURANT",
+    });
+    expect(d.nom_cp).toBe("Korantin");
   });
 
   test("le statut saisi par les ADV prime sur l'étape", () => {
@@ -102,6 +116,7 @@ describe("construireDonneesLigne (push : mapping 16 colonnes)", () => {
   test("les champs vides sont omis (une cellule absente reste vide dans le tableau)", () => {
     const d = construireDonneesLigne({
       ...dossierComplet,
+      chefProjetNom: null,
       dateImperative: null,
       adresse: null,
       scenario: null,
@@ -148,6 +163,7 @@ describe("ligneDepuisRow / estLigneEverlink (pull : mapping inverse)", () => {
       heure: "14h",
       tech: "GC DEV",
       nomTech: "Bruce",
+      nomCp: "",
       installation: "INSTALLATION",
       commentaires: "Scénario 2 — REF-42",
     });
@@ -170,7 +186,9 @@ describe("ligneDepuisRow / estLigneEverlink (pull : mapping inverse)", () => {
 
 describe("affectationsDepuisRows (disponibilité techniciens)", () => {
   test("remonte NOM TECH + DATE (format FR) de toutes les lignes, tous partenaires", () => {
-    const rows = [
+    // Annoté : sans type explicite, TypeScript infère une union où « partenaire » est
+    // absent de la dernière ligne, incompatible avec l'index signature de DonneesLigne.
+    const rows: { data: DonneesLigne }[] = [
       { data: { nom_tech: "Bruce", date: "2026-08-12", partenaire: "EVERLINK" } },
       { data: { nom_tech: "Momo", date: "2026-08-13", partenaire: "OR-TEL" } },
       { data: { nom_tech: "", date: "2026-08-14" } },
@@ -266,8 +284,16 @@ describe("champsAMettreAJour (pull : un champ vide n'écrase jamais)", () => {
     dateIntervention: new Date(Date.UTC(2026, 7, 12)),
     creneauIntervention: "14h",
     technicienId: "t1",
+    chefProjetNom: null,
+};
+  const ligneVide = {
+    date: "",
+    heure: "",
+    nomTech: "",
+    nomCp: "",
+    installation: "",
+    client: "S33 - ART PHOTO LAB",
   };
-  const ligneVide = { date: "", heure: "", nomTech: "", installation: "", client: "S33 - ART PHOTO LAB" };
 
   test("ligne entièrement vide : aucun champ à mettre à jour", () => {
     expect(champsAMettreAJour(dossier, ligneVide, "S33 - ART PHOTO LAB", null)).toEqual({});
@@ -281,7 +307,7 @@ describe("champsAMettreAJour (pull : un champ vide n'écrase jamais)", () => {
   test("statut, date, heure et technicien redescendent quand ils diffèrent", () => {
     const data = champsAMettreAJour(
       dossier,
-      { ...ligneVide, installation: " installation ", date: "20/08/2026", heure: "9H", nomTech: "Momo" },
+      { ...ligneVide, installation: " installation ", date: "20/08/2026", heure: "9H" },
       "S33 - ART PHOTO LAB",
       "t2"
     );

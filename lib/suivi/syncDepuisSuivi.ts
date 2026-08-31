@@ -77,6 +77,7 @@ export async function runSuiviPull(): Promise<SuiviPullResultat> {
         dateIntervention: true,
         creneauIntervention: true,
         technicienId: true,
+        chefProjetNom: true,
       },
     }),
     // L'annuaire complet, désactivés compris : la déduplication du référentiel et le

@@ -8,6 +8,7 @@ import {
   PencilLine,
   MapPinned,
   Route,
+  ShieldAlert,
   Wrench,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,8 @@ import {
   listModelesMail,
 } from "@/lib/repositories/mailRepository";
 import { listerGuides } from "@/lib/mail/guides";
+import { fetchPrestataires } from "@/lib/repositories/prestatairesRepository";
+import { PrestatairesClient } from "./PrestatairesClient";
 import { fetchTechniciensDisponibles } from "@/lib/repositories/technicienRepository";
 import { PageHero } from "@/components/PageHero";
 import { CopiePuce } from "@/components/CopiePuce";
@@ -63,7 +66,7 @@ export default async function ClientDetailPage({
 }) {
   const { id } = await params;
   const { onglet } = await searchParams;
-  const [detail, etapesMigration, modelesMail, envoisRaw, nbSoftphones, guides] =
+  const [detail, etapesMigration, modelesMail, envoisRaw, nbSoftphones, guides, prestataires] =
     await Promise.all([
       fetchClientDetail(id),
       listEtapesMigration(),
@@ -71,6 +74,7 @@ export default async function ClientDetailPage({
       fetchEnvois(id),
       compterSoftphones(id),
       listerGuides(),
+      fetchPrestataires(id),
     ]);
   if (!detail) notFound();
   const { client, etapes } = detail;
@@ -264,6 +268,16 @@ export default async function ClientDetailPage({
           />
         </SectionStaging>
       </div>
+
+      {/* Prestataires externes : saisis par l'ADV, appelés par le technicien avant le jour J. */}
+      <SectionStaging
+        couleur="var(--ev-red)"
+        icone={<ShieldAlert className="size-4" />}
+        titre="Prestataires externes"
+        compteur={prestataires.length}
+      >
+        <PrestatairesClient clientId={client.id} prestataires={prestataires} />
+      </SectionStaging>
 
       {/* Imports Sewan + push Zoho : les actions qui alimentent le dossier. */}
       <SectionStaging

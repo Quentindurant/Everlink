@@ -10,7 +10,7 @@ const ligne = (client: string, installation = "ATT CLIENT"): LigneSheetLite => (
   client,
   date: "",
   heure: "",
-  nomTech: "",
+  nomTech: "", nomCp: "",
   installation,
 });
 

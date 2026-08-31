@@ -62,6 +62,7 @@ export async function pousserVersZohoAction(
 
   const donnees = construireDonneesLigne({
     raisonSociale: client.raisonSociale,
+    chefProjetNom: client.chefProjetNom,
     departement: client.departement,
     adresse: client.adresse,
     scenario: client.scenario,

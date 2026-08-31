@@ -70,6 +70,8 @@ export interface DossierPourSuivi {
   referenceClient: string | null;
   contactNom: string | null;
   contactPrenom: string | null;
+  /** Chef de projet GC du dossier, écrit dans la colonne nom_cp. */
+  chefProjetNom: string | null;
   etapeLibelle: string | null;
   prestataireNom: string | null;
   technicienNom: string | null;
@@ -99,7 +101,8 @@ export function construireDonneesLigne(c: DossierPourSuivi): Record<string, stri
     heure: c.creneauIntervention ?? "",
     tech: c.prestataireNom ?? "",
     nom_tech: c.technicienNom ?? "",
-    nom_cp: [c.contactPrenom, c.contactNom].filter(Boolean).join(" "),
+    // nom_cp = chef de projet GC qui pilote le dossier (pas le contact chez le client).
+    nom_cp: c.chefProjetNom ?? "",
     // Le statut saisi par les ADV prime ; sinon on le dérive de l'étape de migration.
     statut: c.statutSuivi ?? statutSheetPourEtape(c.etapeLibelle),
     commentaires_planif: c.commentaire ?? "",
@@ -157,6 +160,8 @@ export interface LigneSuivi {
   heure: string;
   tech: string;
   nomTech: string;
+  /** Chef de projet GC en charge du dossier (colonne nom_cp). */
+  nomCp: string;
   installation: string;
   commentaires: string;
 }
@@ -177,6 +182,7 @@ export function ligneDepuisRow(data: DonneesLigne): LigneSuivi {
     heure: S(data["heure"]),
     tech: S(data["tech"]),
     nomTech: S(data["nom_tech"]),
+    nomCp: S(data["nom_cp"]),
     installation: S(data["statut"]),
     commentaires: S(data["porta_commentaires"]),
   };
@@ -201,6 +207,7 @@ export interface DossierRapproche {
   dateIntervention: Date | null;
   creneauIntervention: string | null;
   technicienId: string | null;
+  chefProjetNom: string | null;
 }
 
 /**
@@ -211,7 +218,7 @@ export interface DossierRapproche {
  */
 export function champsAMettreAJour(
   dossier: DossierRapproche,
-  ligne: Pick<LigneSuivi, "date" | "heure" | "installation">,
+  ligne: Pick<LigneSuivi, "date" | "heure" | "installation" | "nomCp">,
   nomSheet: string,
   techIdResolu: string | null
 ): Record<string, unknown> {
@@ -231,6 +238,11 @@ export function champsAMettreAJour(
   if (heure && heure !== (dossier.creneauIntervention ?? "")) data.creneauIntervention = heure;
 
   if (techIdResolu && techIdResolu !== dossier.technicienId) data.technicienId = techIdResolu;
+
+  // Le chef de projet vient du tableau : c'est lui qu'on alertera si un prestataire du
+  // client reste sans réponse à l'approche de l'intervention. Une case vide ne l'efface pas.
+  const cp = ligne.nomCp.trim();
+  if (cp && cp !== (dossier.chefProjetNom ?? "")) data.chefProjetNom = cp;
 
   return data;
 }

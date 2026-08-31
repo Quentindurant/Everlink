@@ -15,6 +15,8 @@ export interface LigneSheetLite {
   date: string;
   heure: string;
   nomTech: string;
+  /** Chef de projet GC (colonne nom_cp) : destinataire des alertes prestataires. */
+  nomCp: string;
   installation: string;
 }
 

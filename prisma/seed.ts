@@ -253,6 +253,25 @@ async function main() {
     await prisma.prestataire.upsert({ where: { nom }, update: {}, create: { nom } });
   }
 
+  // Chefs de projet GC et leur téléphone professionnel : destinataires des alertes J-3
+  // quand un prestataire externe d'un dossier reste sans réponse. Le rapprochement se fait
+  // sur le nom porté par la colonne nom_cp du tableau de suivi.
+  const chefsProjet = [
+    { nom: "Quentin", telephone: "0756254978" },
+    { nom: "Korantin", telephone: "0756254975" },
+    { nom: "Laurent", telephone: "0625331426" },
+    { nom: "Adrien", telephone: "0605413793" },
+    { nom: "Geoffroy", telephone: "0634493250" },
+  ];
+  for (const c of chefsProjet) {
+    await prisma.chefProjet.upsert({
+      where: { nom: c.nom },
+      // Le numéro se corrige dans Paramètres : le seed ne l'écrase pas à chaque déploiement.
+      update: {},
+      create: c,
+    });
+  }
+
   console.log("Seed complete.");
 }
 

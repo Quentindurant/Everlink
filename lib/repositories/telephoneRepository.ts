@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { estEtapeResolue, STATUTS_ETAPE_RESOLUS } from "@/lib/domain/telephone/statuts";
+import { estPrestataireTraite } from "@/lib/domain/prestataires/statuts";
 
 export interface TelephoneUtilisateurLigne {
   utilisateurId: string;
@@ -17,6 +18,12 @@ export interface TelephoneUtilisateurLigne {
   siteId: string | null;
   // Softphone à réinstaller (DOKO chez Sewan → Speek chez UNYC) : à préparer avec le client.
   softphone: boolean;
+  // Dossier mis en pause : visible mais signalé, sorti des dossiers à travailler.
+  clientBloque: boolean;
+  clientBloqueMotif: string | null;
+  // Prestataires externes restant à joindre avant l'intervention.
+  prestatairesATraiter: number;
+  prestatairesTotal: number;
   // etapeId -> statut ("À faire" implicite si absent)
   statuts: Record<string, string>;
   // Infos du poste, copiables par les techniciens pendant la configuration.
@@ -73,7 +80,10 @@ export async function fetchTelephoneGrille(filtres: {
             dateIntervention: true,
             telephoneAttribueA: true,
             creneauIntervention: true,
+            telephoneBloque: true,
+            telephoneBloqueMotif: true,
             lot: { select: { nom: true } },
+            prestataires: { select: { statutContact: true } },
             sites: {
               select: { id: true, nom: true },
               orderBy: [{ ordre: "asc" }, { creeLe: "asc" }],
@@ -145,6 +155,12 @@ export async function fetchTelephoneGrille(filtres: {
       clientCreneau: u.client.creneauIntervention,
       siteId: u.siteId,
       softphone: u.equipements.some((e) => e.modele?.type === "SOFTPHONE"),
+      clientBloque: u.client.telephoneBloque,
+      clientBloqueMotif: u.client.telephoneBloqueMotif,
+      prestatairesATraiter: u.client.prestataires.filter(
+        (p) => !estPrestataireTraite(p.statutContact)
+      ).length,
+      prestatairesTotal: u.client.prestataires.length,
       statuts: Object.fromEntries(u.suivis.map((s) => [s.etapeId, s.statut])),
       numeros: u.numeros.map((n) => ({ brut: n.numeroBrut, courts: n.numerosCourts })),
       equipements: u.equipements
