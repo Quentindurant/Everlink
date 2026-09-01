@@ -1,8 +1,13 @@
-// URL d'autoprovision UNYC d'un poste : le chef de projet la colle dans le téléphone après
-// reset. Forme attendue : https://titan.eqinoxe.com/sip-ps/{MODEL}-{MAC}.cfg
+// URL d'autoprovision UNYC d'un poste PANASONIC : chaque poste a son propre fichier, nommé
+// d'après son modèle et sa MAC. Forme attendue :
+//   https://titan.eqinoxe.com/sip-ps/{MODEL}-{MAC}.cfg
+// Les autres marques (Yealink…) utilisent l'URL générique du serveur, sans nom de fichier :
+// leur donner un lien personnalisé serait faux.
 //
 // Le modèle vient du catalogue ("Yealink T54W"), la MAC de l'équipement, écrite tantôt
 // "80:5E:0C:D1:A6:4A" tantôt "805E0CD1A64A" selon la source d'import. On normalise les deux.
+
+import { estPanasonic } from "./panasonic";
 
 export const BASE_AUTOPROVISION = "https://titan.eqinoxe.com/sip-ps";
 
@@ -20,9 +25,14 @@ export function macPourAutoprovision(mac: string): string {
   return mac.replace(/[^0-9A-Fa-f]/g, "").toUpperCase();
 }
 
-// null quand on ne peut pas construire une URL fiable : sans MAC (softphone, poste non
-// renseigné) il n'y a pas de fichier de configuration à pointer.
-export function urlAutoprovision(libelleModele: string | null, mac: string | null): string | null {
+// null dès que l'URL personnalisée n'a pas lieu d'être : marque autre que Panasonic, ou
+// absence de MAC (softphone, combiné DECT dont l'identifiant n'est pas une MAC).
+export function urlAutoprovision(
+  marque: string | null,
+  libelleModele: string | null,
+  mac: string | null
+): string | null {
+  if (!estPanasonic(marque)) return null;
   const modele = modelePourAutoprovision(libelleModele ?? "");
   const m = macPourAutoprovision(mac ?? "");
   if (!modele || m.length !== 12) return null;

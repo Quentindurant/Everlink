@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
 import { urlAutoprovision } from "@/lib/domain/projet/autoprovision";
+import { estPanasonic } from "@/lib/domain/projet/panasonic";
 
 // Checklist de préparation d'un dossier, au niveau client : ce que le chef de projet doit
 // avoir bouclé avant et pendant l'intervention. Un dossier clos disparaît de la liste
@@ -17,8 +18,10 @@ export interface EtapeProjetLite {
 export interface PosteProjet {
   utilisateurNom: string | null;
   modele: string | null;
+  marque: string | null;
   mac: string | null;
-  /** URL du fichier de configuration UNYC, null pour un poste sans MAC (softphone, DECT). */
+  /** URL du fichier de configuration UNYC. Panasonic uniquement : les autres marques
+   *  s'autoprovisionnent par l'URL générique du serveur. */
   urlAutoprovision: string | null;
   /** Softphone à réinstaller (DOKO → Speek) : pas de reset, une installation sur le PC. */
   softphone: boolean;
@@ -32,6 +35,8 @@ export interface DossierProjet {
   /** Marques présentes chez le client : un Panasonic ne se configure pas comme un Yealink. */
   marques: string[];
   nbSoftphones: number;
+  /** Vrai si au moins un Panasonic : déclenche l'affichage de la procédure de reset. */
+  aPanasonic: boolean;
   dateInterventionIso: string | null;
   creneau: string | null;
   scenario: string | null;
@@ -111,11 +116,13 @@ export async function fetchChefProjet(
 
     const postes: PosteProjet[] = c.equipements.map((e) => {
       const modele = e.modele?.libelle ?? e.modeleLibelleBrut;
+      const marque = e.modele?.marque ?? null;
       return {
         utilisateurNom: e.utilisateur?.nom ?? null,
         modele,
+        marque,
         mac: e.macBrut || null,
-        urlAutoprovision: urlAutoprovision(modele, e.macBrut),
+        urlAutoprovision: urlAutoprovision(marque, modele, e.macBrut),
         softphone: e.modele?.type === "SOFTPHONE",
       };
     });
@@ -136,6 +143,7 @@ export async function fetchChefProjet(
         ),
       ] as string[],
       nbSoftphones: postes.filter((p) => p.softphone).length,
+      aPanasonic: postes.some((p) => estPanasonic(p.marque)),
       dateInterventionIso: c.dateIntervention?.toISOString().slice(0, 10) ?? null,
       creneau: c.creneauIntervention,
       scenario: c.scenario,

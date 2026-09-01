@@ -19,6 +19,7 @@ import type { ChefProjetVue, DossierProjet } from "@/lib/repositories/chefProjet
 import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
 import { nomCompte } from "@/lib/domain/comptes";
 import { useEtatMemorise } from "@/components/useEtatMemorise";
+import { estPanasonic, RESET_PANASONIC } from "@/lib/domain/projet/panasonic";
 import {
   attribuerProjetAction,
   cloreProjetAction,
@@ -165,12 +166,22 @@ function LigneEtape({
 function PostesDossier({ dossier }: { dossier: DossierProjet }) {
   if (dossier.postes.length === 0) {
     return (
-      <div className="border-t px-4 py-2 text-[11.5px] text-muted-foreground" style={{ borderColor: "var(--ev-card-border-light)" }}>
+      <div
+        className="border-t px-4 py-2 text-[11.5px] text-muted-foreground"
+        style={{ borderColor: "var(--ev-card-border-light)" }}
+      >
         Aucun équipement importé pour ce client.
       </div>
     );
   }
-  const avecUrl = dossier.postes.filter((p) => p.urlAutoprovision);
+
+  // Les Panasonic remontent en premier : ce sont eux qui demandent un traitement à part
+  // (reset au clavier, fichier d'autoprovision par poste).
+  const postes = [...dossier.postes].sort(
+    (a, b) => Number(estPanasonic(b.marque)) - Number(estPanasonic(a.marque))
+  );
+  const urlsPanasonic = postes.filter((p) => p.urlAutoprovision);
+
   return (
     <div className="border-t" style={{ borderColor: "var(--ev-card-border-light)" }}>
       <div
@@ -180,7 +191,15 @@ function PostesDossier({ dossier }: { dossier: DossierProjet }) {
         Postes
         <span className="font-mono">{dossier.postes.length}</span>
         {dossier.marques.map((m) => (
-          <span key={m} className="ev-badge bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)] normal-case">
+          <span
+            key={m}
+            className={cn(
+              "ev-badge normal-case",
+              estPanasonic(m)
+                ? "bg-[var(--pal-amber-bg)] text-[color:var(--pal-amber-fg)]"
+                : "bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)]"
+            )}
+          >
             {m}
           </span>
         ))}
@@ -195,14 +214,48 @@ function PostesDossier({ dossier }: { dossier: DossierProjet }) {
         )}
       </div>
 
-      {dossier.postes.map((p, i) => (
+      {/* Procédure de reset Panasonic : elle ne s'affiche que si le client en a. */}
+      {dossier.aPanasonic && (
+        <div
+          className="border-t px-4 py-2.5"
+          style={{ borderColor: "var(--ev-row-border)", background: "var(--pal-amber-bg)" }}
+        >
+          <div className="mb-1.5 text-[11px] font-bold text-[color:var(--pal-amber-fg)]">
+            Reset d&apos;un poste Panasonic
+          </div>
+          <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
+            {RESET_PANASONIC.map((etape, i) => (
+              <li key={i} className="flex items-center gap-1.5">
+                <span className="grid size-4 shrink-0 place-items-center rounded-full bg-[color:var(--pal-amber-fg)] font-mono text-[9px] font-bold text-white">
+                  {i + 1}
+                </span>
+                <span>{etape}</span>
+                {i < RESET_PANASONIC.length - 1 && (
+                  <span className="text-[color:var(--pal-amber-fg)]">›</span>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {postes.map((p, i) => (
         <div
           key={i}
           className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-1.5"
           style={{ borderColor: "var(--ev-row-border)" }}
         >
-          <span className="w-44 truncate text-[12.5px]">{p.utilisateurNom ?? "—"}</span>
-          <span className="w-48 truncate text-[12px] text-muted-foreground">{p.modele ?? "—"}</span>
+          <span className="w-40 truncate text-[12.5px]">{p.utilisateurNom ?? "—"}</span>
+          <span
+            className={cn(
+              "w-44 truncate text-[12px]",
+              estPanasonic(p.marque)
+                ? "font-semibold text-[color:var(--pal-amber-fg)]"
+                : "text-muted-foreground"
+            )}
+          >
+            {p.modele ?? "—"}
+          </span>
           {p.mac && <CopiePuce valeur={p.mac} titre="MAC" />}
           {p.softphone ? (
             <span className="ev-badge bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]">
@@ -210,18 +263,24 @@ function PostesDossier({ dossier }: { dossier: DossierProjet }) {
               Speek — installation sur le PC
             </span>
           ) : p.urlAutoprovision ? (
-            <CopiePuce valeur={p.urlAutoprovision} titre="URL d'autoprovision du poste" />
+            <CopiePuce
+              valeur={p.urlAutoprovision}
+              libelle={`copier le .cfg de ce poste`}
+              titre={p.urlAutoprovision}
+            />
           ) : (
-            <span className="text-[11px] text-muted-foreground">pas d&apos;URL (MAC absente)</span>
+            <span className="text-[11px] text-muted-foreground">
+              autoprovision par l&apos;URL générique
+            </span>
           )}
         </div>
       ))}
 
-      {avecUrl.length > 1 && (
+      {urlsPanasonic.length > 1 && (
         <div className="border-t px-4 py-1.5" style={{ borderColor: "var(--ev-row-border)" }}>
           <CopiePuce
-            valeur={avecUrl.map((p) => p.urlAutoprovision).join("\n")}
-            libelle={`copier les ${avecUrl.length} URL d'autoprovision`}
+            valeur={urlsPanasonic.map((p) => p.urlAutoprovision).join("\n")}
+            libelle={`copier les ${urlsPanasonic.length} .cfg Panasonic`}
             titre="Une URL par ligne, dans l'ordre des postes"
           />
         </div>

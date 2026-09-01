@@ -29,20 +29,21 @@ describe("macPourAutoprovision", () => {
 });
 
 describe("urlAutoprovision", () => {
-  test("construit l'URL du fichier de configuration", () => {
-    expect(urlAutoprovision("Yealink T54W", "80:5E:0C:D1:A6:4A")).toBe(
-      "https://titan.eqinoxe.com/sip-ps/T54W-805E0CD1A64A.cfg"
+  test("Panasonic : chaque poste a son fichier de configuration", () => {
+    expect(urlAutoprovision("Panasonic", "Panasonic TGP600", "4C:36:4E:5B:8E:A4")).toBe(
+      "https://titan.eqinoxe.com/sip-ps/TGP600-4C364E5B8EA4.cfg"
     );
   });
 
-  test("sans MAC exploitable, pas d'URL : un softphone n'a pas de fichier", () => {
-    expect(urlAutoprovision("DOKO", "")).toBeNull();
-    expect(urlAutoprovision("Yealink T54W", null)).toBeNull();
-    // Identifiant DECT (10 caractères) : ce n'est pas une MAC de 12.
-    expect(urlAutoprovision("Yealink W73H", "0291EBE5EF")).toBeNull();
+  test("les autres marques n'ont pas d'URL personnalisée", () => {
+    // Un Yealink s'autoprovisionne par l'URL générique du serveur : lui fabriquer un lien
+    // par poste serait faux, c'était le bug signalé.
+    expect(urlAutoprovision("Yealink", "Yealink T54W", "80:5E:0C:D1:A6:4A")).toBeNull();
+    expect(urlAutoprovision(null, "T54W", "805E0CD1A64A")).toBeNull();
   });
 
-  test("sans modèle, pas d'URL", () => {
-    expect(urlAutoprovision(null, "805E0CD1A64A")).toBeNull();
+  test("Panasonic sans MAC exploitable : pas d'URL", () => {
+    expect(urlAutoprovision("Panasonic", "Panasonic TGP600", "")).toBeNull();
+    expect(urlAutoprovision("Panasonic", "Panasonic TGP600", null)).toBeNull();
   });
 });
