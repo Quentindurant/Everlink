@@ -12,10 +12,11 @@ import {
   updateModeleMail,
 } from "@/lib/repositories/mailRepository";
 import {
+  ajouterEtape,
   ajouterEtapeProjet,
+  deplacerEtapeProjet,
   supprimerEtapeProjet,
   updateEtapeProjet,
-  ajouterEtape,
   ajouterEtapeMigration,
   ajouterValeur,
   creerCompte,
@@ -232,23 +233,46 @@ export async function updateParametreAppAction(
   return garde(() => setParametreApp(cle, valeur.trim()));
 }
 
-// --- Checklist chef de projet ---
-
-export async function updateEtapeProjetAction(
-  id: string,
-  data: { libelle?: string; phase?: string; aide?: string; actif?: boolean }
-): Promise<Resultat> {
-  return garde(() => updateEtapeProjet(id, data));
-}
+// --- Étapes de préparation du chef de projet ---
 
 export async function ajouterEtapeProjetAction(libelle: string, phase: string): Promise<Resultat> {
   return garde(async () => {
     if (!libelle.trim() || !phase.trim())
       return { success: false, error: "Libellé et phase obligatoires." };
     await ajouterEtapeProjet(libelle.trim(), phase.trim());
+    revalidatePath("/chef-projet");
+  });
+}
+
+export async function updateEtapeProjetAction(
+  id: string,
+  data: { libelle?: string; phase?: string; aide?: string; actif?: boolean }
+): Promise<Resultat> {
+  return garde(async () => {
+    await updateEtapeProjet(id, {
+      ...(data.libelle !== undefined ? { libelle: data.libelle.trim() } : {}),
+      ...(data.phase !== undefined ? { phase: data.phase.trim() } : {}),
+      ...(data.aide !== undefined ? { aide: data.aide } : {}),
+      ...(data.actif !== undefined ? { actif: data.actif } : {}),
+    });
+    revalidatePath("/chef-projet");
+  });
+}
+
+export async function deplacerEtapeProjetAction(
+  id: string,
+  direction: "haut" | "bas"
+): Promise<Resultat> {
+  return garde(async () => {
+    await deplacerEtapeProjet(id, direction);
+    revalidatePath("/chef-projet");
   });
 }
 
 export async function supprimerEtapeProjetAction(id: string): Promise<Resultat> {
-  return garde(() => supprimerEtapeProjet(id));
+  return garde(async () => {
+    const r = await supprimerEtapeProjet(id);
+    if (!r.success) return r;
+    revalidatePath("/chef-projet");
+  });
 }

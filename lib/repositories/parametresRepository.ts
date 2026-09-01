@@ -323,10 +323,15 @@ export interface EtapeProjetLigne {
   aide: string | null;
   ordre: number;
   actif: boolean;
+  /** Dossiers ayant déjà un suivi sur cette étape : la supprimer perdrait leur historique. */
+  utilisee: number;
 }
 
 export async function fetchEtapesProjetParam(): Promise<EtapeProjetLigne[]> {
-  const etapes = await prisma.etapeProjet.findMany({ orderBy: { ordre: "asc" } });
+  const etapes = await prisma.etapeProjet.findMany({
+    orderBy: { ordre: "asc" },
+    include: { _count: { select: { suivis: true } } },
+  });
   return etapes.map((e) => ({
     id: e.id,
     libelle: e.libelle,
@@ -334,6 +339,7 @@ export async function fetchEtapesProjetParam(): Promise<EtapeProjetLigne[]> {
     aide: e.aide,
     ordre: e.ordre,
     actif: e.actif,
+    utilisee: e._count.suivis,
   }));
 }
 
@@ -354,8 +360,34 @@ export async function ajouterEtapeProjet(libelle: string, phase: string): Promis
   });
 }
 
-export async function supprimerEtapeProjet(id: string): Promise<void> {
+// Échange l'ordre avec l'étape voisine. C'est en réordonnant qu'on regroupe les étapes
+// d'une même phase : l'affichage suit l'ordre, pas le nom de la phase.
+export async function deplacerEtapeProjet(id: string, direction: "haut" | "bas"): Promise<void> {
+  const etapes = await prisma.etapeProjet.findMany({ orderBy: { ordre: "asc" } });
+  const index = etapes.findIndex((e) => e.id === id);
+  if (index === -1) return;
+  const cible = direction === "haut" ? index - 1 : index + 1;
+  if (cible < 0 || cible >= etapes.length) return;
+  await prisma.$transaction([
+    prisma.etapeProjet.update({ where: { id: etapes[index].id }, data: { ordre: etapes[cible].ordre } }),
+    prisma.etapeProjet.update({ where: { id: etapes[cible].id }, data: { ordre: etapes[index].ordre } }),
+  ]);
+}
+
+// Une étape déjà suivie sur des dossiers ne se supprime pas : on la désactive, l'historique
+// reste consultable et elle disparaît des checklists.
+export async function supprimerEtapeProjet(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  const n = await prisma.suiviProjet.count({ where: { etapeId: id } });
+  if (n > 0) {
+    return {
+      success: false,
+      error: `Étape suivie sur ${n} dossier(s) : désactivez-la plutôt que de la supprimer.`,
+    };
+  }
   await prisma.etapeProjet.delete({ where: { id } });
+  return { success: true };
 }
 
 // Nom d'affichage des comptes, indexé par email : les attributions sont stockées par email

@@ -27,11 +27,12 @@ import type { ModeleMailLigne } from "@/lib/repositories/mailRepository";
 import type { EtapeProjetLigne } from "@/lib/repositories/parametresRepository";
 import {
   ajouterEtapeProjetAction,
-  supprimerEtapeProjetAction,
-  updateEtapeProjetAction,
   creerModeleMailAction,
+  deplacerEtapeProjetAction,
   setModeleExportSepareAction,
+  supprimerEtapeProjetAction,
   supprimerModeleMailAction,
+  updateEtapeProjetAction,
   updateModeleMailAction,
   updateParametreAppAction,
 } from "./actions";
@@ -302,7 +303,7 @@ export function SectionEtapesProjet({ etapes }: { etapes: EtapeProjetLigne[] }) 
   return (
     <Section
       titre="Checklist chef de projet"
-      description="Les étapes de préparation d'un dossier, regroupées par phase. L'aide s'affiche sous le libellé (identifiant, URL, piège connu)."
+      description="Les étapes de préparation d'un dossier. La phase les regroupe en onglets sur la page Chef projet, les flèches fixent leur ordre, et l'aide s'affiche en infobulle sur la checklist."
     >
       <div className="flex flex-col gap-3">
         {phases.map((p) => (
@@ -315,6 +316,32 @@ export function SectionEtapesProjet({ etapes }: { etapes: EtapeProjetLigne[] }) 
                 .filter((e) => e.phase === p)
                 .map((e) => (
                   <div key={e.id} className="flex flex-wrap items-center gap-2">
+                    <span className="flex items-center gap-0.5">
+                      <button
+                        disabled={etapes[0]?.id === e.id}
+                        onClick={() =>
+                          startTransition(async () => {
+                            await deplacerEtapeProjetAction(e.id, "haut");
+                          })
+                        }
+                        className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-30"
+                        title="Monter dans l'ordre d'affichage"
+                      >
+                        <ArrowUp className="size-3" />
+                      </button>
+                      <button
+                        disabled={etapes[etapes.length - 1]?.id === e.id}
+                        onClick={() =>
+                          startTransition(async () => {
+                            await deplacerEtapeProjetAction(e.id, "bas");
+                          })
+                        }
+                        className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-30"
+                        title="Descendre dans l'ordre d'affichage"
+                      >
+                        <ArrowDown className="size-3" />
+                      </button>
+                    </span>
                     <Checkbox
                       checked={e.actif}
                       onCheckedChange={(v) =>
@@ -347,6 +374,11 @@ export function SectionEtapesProjet({ etapes }: { etapes: EtapeProjetLigne[] }) 
                     <Button
                       variant="ghost"
                       size="icon-xs"
+                      title={
+                        e.utilisee > 0
+                          ? `Suivie sur ${e.utilisee} dossier(s) : décochez la case plutôt que de supprimer`
+                          : "Supprimer cette étape"
+                      }
                       onClick={() =>
                         startTransition(async () => {
                           const r = await supprimerEtapeProjetAction(e.id);
@@ -651,6 +683,7 @@ export function SectionEnvoiMail({ copie }: { copie: string }) {
     </Section>
   );
 }
+
 
 export function SectionModelesMail({ modeles }: { modeles: ModeleMailLigne[] }) {
   const [erreur, setErreur] = useState<string | null>(null);
