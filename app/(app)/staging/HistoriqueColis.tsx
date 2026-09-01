@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Pencil, RefreshCw, Undo2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SuiviColisBadge } from "@/components/SuiviColisBadge";
 import { transporteurAvecSuiviApi } from "@/lib/domain/tracking/laposte";
+import { BarreRecherche, correspond } from "@/components/BarreRecherche";
 import type { ColisExpedie } from "@/lib/repositories/stockRepository";
 import {
   annulerExpeditionAction,
@@ -88,6 +89,27 @@ export function HistoriqueColis({ colis }: { colis: ColisExpedie[] }) {
   const [clientNom, setClientNom] = useState("");
   const [confirmationCle, setConfirmationCle] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [recherche, setRecherche] = useState("");
+
+  // Filtre local sur le destinataire, le transporteur, le N° de suivi et les N° de série
+  // des articles du colis — c'est par l'un de ces quatre qu'on retrouve une expédition.
+  const visibles = useMemo(
+    () =>
+      colis.filter((c) =>
+        correspond(
+          [
+            c.clientFinal,
+            c.transporteur,
+            c.numeroSuivi,
+            c.suiviLibelle,
+            ...c.articles.map((a) => a.numeroSerie),
+            ...c.articles.map((a) => a.type),
+          ],
+          recherche
+        )
+      ),
+    [colis, recherche]
+  );
 
   const ouvrirEdition = (c: ColisExpedie) => {
     setEditionCle(c.cle);
@@ -114,13 +136,24 @@ export function HistoriqueColis({ colis }: { colis: ColisExpedie[] }) {
 
   return (
     <div>
+      <BarreRecherche
+        valeur={recherche}
+        onChange={setRecherche}
+        placeholder="Client, transporteur, N° de suivi, N° de série…"
+        nbVisibles={visibles.length}
+        nbTotal={colis.length}
+      />
       {colis.length === 0 ? (
         <p className="px-4 py-8 text-center text-sm text-muted-foreground">
           Aucune expédition pour l&apos;instant.
         </p>
+      ) : visibles.length === 0 ? (
+        <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+          Aucun colis ne correspond à cette recherche.
+        </p>
       ) : (
         <div className="flex flex-col">
-          {colis.map((c) => {
+          {visibles.map((c) => {
             const enEdition = editionCle === c.cle;
             const toutInstalle = c.articles.every((a) => a.statut === "INSTALLE");
             return (
