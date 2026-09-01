@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Hand,
+  Laptop,
   MessageSquare,
   RotateCcw,
   X,
@@ -17,6 +18,7 @@ import { CopiePuce } from "@/components/CopiePuce";
 import type { ChefProjetVue, DossierProjet } from "@/lib/repositories/chefProjetRepository";
 import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
 import { nomCompte } from "@/lib/domain/comptes";
+import { useEtatMemorise } from "@/components/useEtatMemorise";
 import {
   attribuerProjetAction,
   cloreProjetAction,
@@ -157,6 +159,77 @@ function LigneEtape({
   );
 }
 
+// Ce que le chef de projet a en face de lui : les postes du client, leur modèle, et l'URL
+// d'autoprovision à coller dans chacun après reset. Un softphone n'a pas de fichier de
+// configuration — c'est une installation sur le PC, signalée à part.
+function PostesDossier({ dossier }: { dossier: DossierProjet }) {
+  if (dossier.postes.length === 0) {
+    return (
+      <div className="border-t px-4 py-2 text-[11.5px] text-muted-foreground" style={{ borderColor: "var(--ev-card-border-light)" }}>
+        Aucun équipement importé pour ce client.
+      </div>
+    );
+  }
+  const avecUrl = dossier.postes.filter((p) => p.urlAutoprovision);
+  return (
+    <div className="border-t" style={{ borderColor: "var(--ev-card-border-light)" }}>
+      <div
+        className="flex flex-wrap items-center gap-2 px-4 py-1.5 text-[10.5px] font-bold uppercase tracking-wide text-[color:var(--ev-accent-text)]"
+        style={{ background: "var(--ev-surface)" }}
+      >
+        Postes
+        <span className="font-mono">{dossier.postes.length}</span>
+        {dossier.marques.map((m) => (
+          <span key={m} className="ev-badge bg-[var(--pal-blue-bg)] text-[color:var(--pal-blue-fg)] normal-case">
+            {m}
+          </span>
+        ))}
+        {dossier.nbSoftphones > 0 && (
+          <span
+            className="ev-badge bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)] normal-case"
+            title="Softphones DOKO à réinstaller en Speek sur le poste de travail"
+          >
+            <Laptop className="size-2.5" />
+            {dossier.nbSoftphones} Speek
+          </span>
+        )}
+      </div>
+
+      {dossier.postes.map((p, i) => (
+        <div
+          key={i}
+          className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-1.5"
+          style={{ borderColor: "var(--ev-row-border)" }}
+        >
+          <span className="w-44 truncate text-[12.5px]">{p.utilisateurNom ?? "—"}</span>
+          <span className="w-48 truncate text-[12px] text-muted-foreground">{p.modele ?? "—"}</span>
+          {p.mac && <CopiePuce valeur={p.mac} titre="MAC" />}
+          {p.softphone ? (
+            <span className="ev-badge bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]">
+              <Laptop className="size-2.5" />
+              Speek — installation sur le PC
+            </span>
+          ) : p.urlAutoprovision ? (
+            <CopiePuce valeur={p.urlAutoprovision} titre="URL d'autoprovision du poste" />
+          ) : (
+            <span className="text-[11px] text-muted-foreground">pas d&apos;URL (MAC absente)</span>
+          )}
+        </div>
+      ))}
+
+      {avecUrl.length > 1 && (
+        <div className="border-t px-4 py-1.5" style={{ borderColor: "var(--ev-row-border)" }}>
+          <CopiePuce
+            valeur={avecUrl.map((p) => p.urlAutoprovision).join("\n")}
+            libelle={`copier les ${avecUrl.length} URL d'autoprovision`}
+            titre="Une URL par ligne, dans l'ordre des postes"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Dossier({
   dossier,
   vue,
@@ -282,6 +355,8 @@ function Dossier({
         </div>
       </div>
 
+      {ouvert && <PostesDossier dossier={dossier} />}
+
       {ouvert &&
         vue.phases.map((phase) => (
           <div key={phase}>
@@ -317,6 +392,10 @@ export function ChecklistProjet({
   // email → nom saisi à la création du compte.
   nomsComptes: Record<string, string>;
 }) {
+  // Même organisation que l'onglet Téléphone : le chantier avance lot par lot, un seul lot
+  // ouvert à la fois, et l'état d'ouverture survit à un aller-retour vers une fiche client.
+  const [lotOuvert, setLotOuvert] = useEtatMemorise<string | null>("projet:lot-ouvert", null);
+
   if (vue.dossiers.length === 0) {
     return (
       <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
@@ -324,19 +403,89 @@ export function ChecklistProjet({
       </p>
     );
   }
+
+  const parLot = new Map<string, DossierProjet[]>();
+  for (const d of vue.dossiers) {
+    const cle = d.lotNom ?? "Sans lot";
+    const liste = parLot.get(cle);
+    if (liste) liste.push(d);
+    else parLot.set(cle, [d]);
+  }
+  const lots = [...parLot.entries()].sort(([a], [b]) =>
+    a === "Sans lot" ? 1 : b === "Sans lot" ? -1 : a.localeCompare(b, "fr", { numeric: true })
+  );
+  const lotUnique = lots.length === 1 ? lots[0][0] : null;
+
   return (
-    <div className="flex flex-col gap-3">
-      {vue.dossiers.map((d, i) => (
-        // Seul le dossier le plus urgent est déplié : la liste reste lisible.
-        <Dossier
-          key={d.clientId}
-          dossier={d}
-          vue={vue}
-          monEmail={monEmail}
-          nomsComptes={nomsComptes}
-          ouvertParDefaut={i === 0}
-        />
-      ))}
+    <div className="flex flex-col gap-2">
+      <span className="text-xs text-muted-foreground tabular-nums">
+        {lots.length} lot{lots.length > 1 ? "s" : ""} · {vue.dossiers.length} dossier
+        {vue.dossiers.length > 1 ? "s" : ""} · cliquez une bande pour ouvrir
+      </span>
+
+      {lots.map(([lot, dossiers]) => {
+        const ouvert = lotUnique === lot || lotOuvert === lot;
+        const faits = dossiers.reduce((n, d) => n + d.nbResolues, 0);
+        const total = dossiers.length * vue.etapes.length;
+        const pct = total > 0 ? Math.round((faits / total) * 100) : 0;
+        return (
+          <div key={lot} className="flex flex-col gap-2">
+            {lots.length > 1 && (
+              <button
+                onClick={() => setLotOuvert(ouvert ? null : lot)}
+                className="flex items-center gap-2.5 rounded-xl border bg-card px-4 py-2.5 text-left shadow-xs hover:bg-[var(--ev-row-hover)]"
+                style={{ borderColor: "var(--ev-card-border)" }}
+              >
+                <ChevronDown
+                  className={cn(
+                    "size-4 text-muted-foreground transition-transform",
+                    !ouvert && "-rotate-90"
+                  )}
+                />
+                <span className="text-[14px] font-bold tracking-tight">{lot}</span>
+                <span
+                  className="h-[5px] w-24 overflow-hidden rounded-full"
+                  style={{ background: "oklch(0.92 0.008 240)" }}
+                >
+                  <span
+                    className="block h-full rounded-full"
+                    style={{
+                      background: pct === 100 ? "var(--pal-green-dot)" : "var(--ev-blue)",
+                      width: `${pct}%`,
+                    }}
+                  />
+                </span>
+                <span
+                  className={cn(
+                    "font-mono text-[11.5px] font-bold tabular-nums",
+                    pct === 100
+                      ? "text-[color:var(--pal-green-fg)]"
+                      : "text-[color:var(--ev-accent-text)]"
+                  )}
+                >
+                  {pct} %
+                </span>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {dossiers.length} dossier{dossiers.length > 1 ? "s" : ""}
+                </span>
+              </button>
+            )}
+
+            {ouvert &&
+              dossiers.map((d, i) => (
+                // Seul le dossier le plus urgent du lot est déplié : la liste reste lisible.
+                <Dossier
+                  key={d.clientId}
+                  dossier={d}
+                  vue={vue}
+                  monEmail={monEmail}
+                  nomsComptes={nomsComptes}
+                  ouvertParDefaut={i === 0}
+                />
+              ))}
+          </div>
+        );
+      })}
     </div>
   );
 }

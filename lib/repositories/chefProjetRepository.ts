@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
+import { urlAutoprovision } from "@/lib/domain/projet/autoprovision";
 
 // Checklist de préparation d'un dossier, au niveau client : ce que le chef de projet doit
 // avoir bouclé avant et pendant l'intervention. Un dossier clos disparaît de la liste
@@ -12,9 +13,25 @@ export interface EtapeProjetLite {
   aide: string | null;
 }
 
+// Un poste du client, vu par le chef de projet : ce qu'il doit reconfigurer après reset.
+export interface PosteProjet {
+  utilisateurNom: string | null;
+  modele: string | null;
+  mac: string | null;
+  /** URL du fichier de configuration UNYC, null pour un poste sans MAC (softphone, DECT). */
+  urlAutoprovision: string | null;
+  /** Softphone à réinstaller (DOKO → Speek) : pas de reset, une installation sur le PC. */
+  softphone: boolean;
+}
+
 export interface DossierProjet {
   clientId: string;
   raisonSociale: string;
+  lotNom: string | null;
+  postes: PosteProjet[];
+  /** Marques présentes chez le client : un Panasonic ne se configure pas comme un Yealink. */
+  marques: string[];
+  nbSoftphones: number;
   dateInterventionIso: string | null;
   creneau: string | null;
   scenario: string | null;
@@ -61,6 +78,17 @@ export async function fetchChefProjet(
         projetAttribueA: true,
         projetClosLe: true,
         technicien: { select: { nom: true } },
+        lot: { select: { nom: true } },
+        equipements: {
+          where: { archiveA: null },
+          select: {
+            macBrut: true,
+            modele: { select: { libelle: true, marque: true, type: true } },
+            modeleLibelleBrut: true,
+            utilisateur: { select: { nom: true } },
+          },
+          orderBy: { ordre: "asc" },
+        },
         suivisProjet: {
           where: { etape: { actif: true } },
           select: { etapeId: true, statut: true, commentaire: true },
@@ -80,9 +108,34 @@ export async function fetchChefProjet(
       c.suivisProjet.map((s) => [s.etapeId, { statut: s.statut, commentaire: s.commentaire }])
     );
     const nbResolues = etapes.filter((e) => estEtapeResolue(suivis[e.id]?.statut)).length;
+
+    const postes: PosteProjet[] = c.equipements.map((e) => {
+      const modele = e.modele?.libelle ?? e.modeleLibelleBrut;
+      return {
+        utilisateurNom: e.utilisateur?.nom ?? null,
+        modele,
+        mac: e.macBrut || null,
+        urlAutoprovision: urlAutoprovision(modele, e.macBrut),
+        softphone: e.modele?.type === "SOFTPHONE",
+      };
+    });
+
     return {
       clientId: c.id,
       raisonSociale: c.raisonSociale,
+      lotNom: c.lot?.nom ?? null,
+      postes,
+      // Marques réellement présentes : le chef de projet sait d'avance s'il aura du
+      // Panasonic à traiter, qui ne se configure pas comme un Yealink.
+      marques: [
+        ...new Set(
+          c.equipements
+            .filter((e) => e.modele?.type !== "SOFTPHONE")
+            .map((e) => e.modele?.marque)
+            .filter(Boolean)
+        ),
+      ] as string[],
+      nbSoftphones: postes.filter((p) => p.softphone).length,
       dateInterventionIso: c.dateIntervention?.toISOString().slice(0, 10) ?? null,
       creneau: c.creneauIntervention,
       scenario: c.scenario,

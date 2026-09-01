@@ -6,7 +6,16 @@ import { cn } from "@/lib/utils";
 
 // Valeur copiable en un clic (numéro, MAC, clé WiFi, plage DHCP…) : le technicien colle
 // directement dans l'outil de configuration. Feedback ✓ une seconde.
-export function CopiePuce({ valeur, titre }: { valeur: string; titre?: string }) {
+export function CopiePuce({
+  valeur,
+  titre,
+  libelle,
+}: {
+  valeur: string;
+  titre?: string;
+  /** Texte affiché à la place de la valeur, quand celle-ci est trop longue à lire. */
+  libelle?: string;
+}) {
   const [copie, setCopie] = useState(false);
   return (
     <button
@@ -25,7 +34,7 @@ export function CopiePuce({ valeur, titre }: { valeur: string; titre?: string })
       )}
     >
       {copie ? <Check className="size-2.5" /> : <Copy className="size-2.5 opacity-50" />}
-      {valeur}
+      {libelle ?? valeur}
     </button>
   );
 }
