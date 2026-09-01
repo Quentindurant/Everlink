@@ -249,9 +249,25 @@ export interface ProgressionChantier {
   clientsTotal: number;
 }
 
+// L'avancement est relu à chaque affichage de page (barre latérale) alors qu'il bouge
+// lentement : on le garde en mémoire deux minutes. Sans ce cache, une navigation de vingt
+// pages coûtait quatre-vingts requêtes pour une valeur qui n'avait pas changé — la base est
+// facturée à l'opération, et la barre latérale était le premier poste de dépense.
+const CACHE_PROGRESSION_MS = 120_000;
+let cacheProgression: { at: number; data: ProgressionChantier } | null = null;
+
 // Avancement global affiché dans la sidebar. Un poste est « fait » quand toutes les étapes
 // actives sont résolues (Fait ou Aucun) ; un client est fait quand tous ses postes le sont.
 export async function fetchProgressionChantier(): Promise<ProgressionChantier> {
+  if (cacheProgression && Date.now() - cacheProgression.at < CACHE_PROGRESSION_MS) {
+    return cacheProgression.data;
+  }
+  const data = await calculerProgressionChantier();
+  cacheProgression = { at: Date.now(), data };
+  return data;
+}
+
+async function calculerProgressionChantier(): Promise<ProgressionChantier> {
   const [etapesActives, utilisateurs, clientsTotal] = await Promise.all([
     prisma.etapeModele.count({ where: { actif: true } }),
     prisma.utilisateur.findMany({

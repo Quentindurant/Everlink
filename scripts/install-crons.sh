@@ -27,11 +27,16 @@ if [ -z "$SECRET" ]; then
   exit 0
 fi
 
-# Rafraîchit l'état des colis (La Poste/Chronopost) toutes les 2 heures, synchronise le
-# Zoho Sheet vers l'app (statut/planif) toutes les 2 heures décalé de 30 min, et relève la
-# délivrabilité des mails Mailjet (livré/ouvert/bounce) toutes les 2 heures décalé de 45 min.
+# Fréquences choisies en fonction du coût : la base est facturée à l'opération (quota
+# mensuel), et chaque passage de cron en consomme quelques-unes.
+#   - tableau de suivi → app : CHAQUE MINUTE. C'est le plus fin que permette cron, et le
+#     poste reste modeste (~5 opérations par passage). Descendre plus bas demanderait un
+#     autre mécanisme et ferait exploser le quota : à 5 secondes, on dépasserait 2,5 fois
+#     le quota mensuel à lui seul.
+#   - colis et délivrabilité des mails : toutes les 2 h, ces états bougent lentement.
+#   - alerte prestataires : deux fois par jour, l'envoi est idempotent sur 20 h.
 LINE_TRACKING="0 */2 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/tracking-sync >/dev/null 2>&1 ${TAG}"
-LINE_ZOHO="30 */2 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/zoho-pull >/dev/null 2>&1 ${TAG}"
+LINE_ZOHO="* * * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/zoho-pull >/dev/null 2>&1 ${TAG}"
 LINE_ALERTE="15 8,14 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/alerte-prestataires >/dev/null 2>&1 ${TAG}"
 LINE_MAIL="45 */2 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/mail-suivi >/dev/null 2>&1 ${TAG}"
 

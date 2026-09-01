@@ -7,6 +7,7 @@ import { Bell, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { NotificationLigne } from "@/lib/repositories/notificationsRepository";
 import {
+  chargerNotificationsAction,
   marquerNotificationLueAction,
   marquerToutesNotificationsLuesAction,
 } from "@/app/(app)/notificationsActions";
@@ -14,16 +15,22 @@ import {
 // Cloche de la barre latérale : les non lues d'abord, un clic ouvre le dossier concerné et
 // marque l'alerte comme lue. Les techniciens n'ouvrent pas les fiches tous les jours, c'est
 // ici qu'ils apprennent qu'un prestataire les attend.
-export function ClocheNotifications({
-  notifications,
-  nonLues,
-}: {
-  notifications: NotificationLigne[];
-  nonLues: number;
-}) {
+export function ClocheNotifications({ nonLues }: { nonLues: number }) {
   const router = useRouter();
   const [ouvert, setOuvert] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationLigne[] | null>(null);
   const [, startTransition] = useTransition();
+
+  // La liste n'arrive qu'à l'ouverture : la barre latérale ne paie que le compteur.
+  const basculer = () => {
+    const prochain = !ouvert;
+    setOuvert(prochain);
+    if (prochain && notifications === null) {
+      startTransition(async () => {
+        setNotifications(await chargerNotificationsAction());
+      });
+    }
+  };
 
   const ouvrir = (n: NotificationLigne) => {
     startTransition(async () => {
@@ -36,7 +43,7 @@ export function ClocheNotifications({
   return (
     <div className="relative">
       <button
-        onClick={() => setOuvert((o) => !o)}
+        onClick={basculer}
         className="relative flex w-full items-center gap-2 rounded-[7px] px-2.5 py-1.5 text-[13px] hover:bg-[var(--ev-nav-hover)]"
         style={{ color: "var(--ev-nav-fg)" }}
         title="Notifications"
@@ -75,6 +82,7 @@ export function ClocheNotifications({
                   onClick={() =>
                     startTransition(async () => {
                       await marquerToutesNotificationsLuesAction();
+                      setNotifications(await chargerNotificationsAction());
                     })
                   }
                   className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:underline"
@@ -85,7 +93,9 @@ export function ClocheNotifications({
               )}
             </div>
 
-            {notifications.length === 0 ? (
+            {notifications === null ? (
+              <p className="px-3 py-6 text-center text-[12px] text-muted-foreground">Chargement…</p>
+            ) : notifications.length === 0 ? (
               <p className="px-3 py-6 text-center text-[12px] text-muted-foreground">
                 Aucune notification.
               </p>

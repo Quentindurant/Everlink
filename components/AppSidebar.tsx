@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ClocheNotifications } from "@/components/ClocheNotifications";
-import type { NotificationLigne } from "@/lib/repositories/notificationsRepository";
 
 const NAV_GROUPES = [
   {
@@ -57,14 +56,12 @@ export function AppSidebar({
   onLogout,
   badges = {},
   progression,
-  notifications = [],
   nonLues = 0,
 }: {
   email: string;
   role: string;
   onLogout: () => Promise<void>;
   badges?: Record<string, string | number | undefined>;
-  notifications?: NotificationLigne[];
   nonLues?: number;
   progression?: {
     postesFaits: number;
@@ -171,7 +168,7 @@ export function AppSidebar({
 
       {/* ── Notifications ── */}
       <div className="border-t px-2.5 py-2" style={{ borderColor: "var(--ev-card-border-light)" }}>
-        <ClocheNotifications notifications={notifications} nonLues={nonLues} />
+        <ClocheNotifications nonLues={nonLues} />
       </div>
 
       {/* ── Widget progression du chantier ── */}
