@@ -46,6 +46,20 @@ export function normaliserNomSheet(nom: string): string {
     .toUpperCase();
 }
 
+// Clé de comparaison entre les deux côtés, qui n'écrivent pas les noms pareil : l'app tient
+// « AQUADOUCE SERVICE / LES TERRES ESSENTIELLES » là où le tableau écrit « … - LES TERRES
+// ESSENTIELLES », et les apostrophes, arobases ou parenthèses d'un nom commercial varient
+// d'une saisie à l'autre (« TOD'S », « ANGLAIS @ ANTONY »). On ne garde donc que les lettres
+// et les chiffres : ni ponctuation ni espaces, qui sont précisément ce qui diffère. Deux
+// clients réellement distincts se distinguent par leurs mots, pas par leurs tirets.
+export function cleComparaison(nom: string): string {
+  return normaliserNomSheet(nom)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^0-9A-Z]/gi, "")
+    .toUpperCase();
+}
+
 export function rapprocherLignes(
   lignes: LigneSheetLite[],
   clients: ClientLite[]
@@ -68,13 +82,13 @@ export function rapprocherLignes(
 
   // 2. Égalité normalisée.
   const clientsRestants = clients.filter((c) => !dejaApparies.has(c.id));
-  const parNorme = new Map<string, string[]>(); // norme -> noms Sheet
+  const parNorme = new Map<string, string[]>(); // clé -> noms Sheet
   for (const nom of restantes.keys()) {
-    const n = normaliserNomSheet(nom);
+    const n = cleComparaison(nom);
     parNorme.set(n, [...(parNorme.get(n) ?? []), nom]);
   }
   for (const c of clientsRestants) {
-    const norme = normaliserNomSheet(c.raisonSociale);
+    const norme = cleComparaison(c.raisonSociale);
     const noms = parNorme.get(norme);
     if (noms && noms.length === 1 && restantes.has(noms[0])) {
       apparies.push({ clientId: c.id, ligne: restantes.get(noms[0])!, nomSheet: noms[0] });
@@ -85,17 +99,17 @@ export function rapprocherLignes(
 
   // 3. Préfixe, seulement si correspondance unique dans les deux sens.
   for (const c of clients.filter((x) => !dejaApparies.has(x.id))) {
-    const normeClient = normaliserNomSheet(c.raisonSociale);
+    const normeClient = cleComparaison(c.raisonSociale);
     const candidats = [...restantes.keys()].filter((nom) => {
-      const n = normaliserNomSheet(nom);
+      const n = cleComparaison(nom);
       return n.startsWith(normeClient) || normeClient.startsWith(n);
     });
     if (candidats.length !== 1) continue;
     const nomSheet = candidats[0];
-    const normeSheet = normaliserNomSheet(nomSheet);
+    const normeSheet = cleComparaison(nomSheet);
     const clientsCandidats = clients.filter((x) => {
       if (dejaApparies.has(x.id)) return false;
-      const n = normaliserNomSheet(x.raisonSociale);
+      const n = cleComparaison(x.raisonSociale);
       return normeSheet.startsWith(n) || n.startsWith(normeSheet);
     });
     if (clientsCandidats.length !== 1) continue;
