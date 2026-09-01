@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Hand,
+  Info,
   Laptop,
   MessageSquare,
   RotateCcw,
@@ -26,21 +27,6 @@ import {
   setCommentaireProjetAction,
   setSuiviProjetAction,
 } from "./actions";
-
-// Une URL ou un identifiant dans l'aide devient copiable : le chef de projet colle
-// directement dans Sewan/UNYC sans re-saisir.
-function Aide({ texte }: { texte: string }) {
-  const url = texte.match(/https?:\/\/\S+/)?.[0];
-  if (url) {
-    return (
-      <span className="flex flex-wrap items-center gap-1.5">
-        <span>{texte.replace(url, "").trim()}</span>
-        <CopiePuce valeur={url} titre="URL d'autoprovision" />
-      </span>
-    );
-  }
-  return <span>{texte}</span>;
-}
 
 function SelectStatut({
   clientId,
@@ -83,14 +69,20 @@ function SelectStatut({
   );
 }
 
+// Une étape sur une seule ligne : pastille d'état, libellé, aide en infobulle, statut et
+// note. L'aide occupait auparavant une deuxième ligne sous chaque étape et doublait la
+// hauteur de la checklist ; elle ne s'affiche plus qu'au survol de l'icône.
 function LigneEtape({
   dossier,
   etape,
   valeurs,
+  courante,
 }: {
   dossier: DossierProjet;
   etape: ChefProjetVue["etapes"][number];
   valeurs: string[];
+  /** Première étape non résolue du dossier : celle à faire maintenant. */
+  courante: boolean;
 }) {
   const suivi = dossier.suivis[etape.id];
   const statut = suivi?.statut ?? "À faire";
@@ -98,59 +90,84 @@ function LigneEtape({
   const [ouvertNote, setOuvertNote] = useState(false);
   const [, startTransition] = useTransition();
   const resolue = estEtapeResolue(statut);
+  const url = etape.aide?.match(/https?:\/\/\S+/)?.[0] ?? null;
 
   return (
     <div
       className={cn(
-        "flex flex-wrap items-start gap-3 border-t px-4 py-2 transition-colors",
-        resolue ? "bg-[var(--pal-green-bg)]/15" : "hover:bg-[var(--ev-row-hover)]"
+        "flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-3 py-1.5 transition-colors",
+        resolue && "opacity-60",
+        courante && "bg-[var(--pal-blue-bg)]/40"
       )}
       style={{ borderColor: "var(--ev-row-border)" }}
     >
+      <span
+        className={cn(
+          "size-2 shrink-0 rounded-full",
+          resolue
+            ? "bg-[color:var(--pal-green-fg)]"
+            : statut === "En cours"
+              ? "bg-[color:var(--pal-amber-fg)]"
+              : "bg-[color:var(--ev-card-border)]"
+        )}
+        title={statut}
+      />
+
+      <span
+        className={cn(
+          "min-w-0 flex-1 truncate text-[13px]",
+          resolue ? "text-muted-foreground line-through" : courante && "font-semibold"
+        )}
+        title={etape.libelle}
+      >
+        {etape.libelle}
+      </span>
+
+      {etape.aide && (
+        <span
+          className="shrink-0 cursor-help text-muted-foreground"
+          title={etape.aide}
+          aria-label={etape.aide}
+        >
+          <Info className="size-3.5" />
+        </span>
+      )}
+      {url && <CopiePuce valeur={url} libelle="URL" titre={url} />}
+
       <SelectStatut
         clientId={dossier.clientId}
         etapeId={etape.id}
         statut={statut}
         valeurs={valeurs}
       />
-      <div className="min-w-0 flex-1">
-        <div className={cn("text-[13px]", resolue ? "text-muted-foreground" : "font-medium")}>
-          {etape.libelle}
-        </div>
-        {etape.aide && (
-          <div className="mt-0.5 text-[11.5px] text-muted-foreground">
-            <Aide texte={etape.aide} />
-          </div>
-        )}
-        {ouvertNote && (
-          <input
-            value={note}
-            autoFocus
-            placeholder="note pour l'équipe…"
-            onChange={(e) => setNote(e.target.value)}
-            onBlur={() => {
-              setOuvertNote(false);
-              if (note !== (suivi?.commentaire ?? ""))
-                startTransition(async () => {
-                  await setCommentaireProjetAction(dossier.clientId, etape.id, note);
-                });
-            }}
-            className="mt-1 w-full max-w-lg rounded-md border border-input bg-transparent px-2 py-1 text-[12.5px] outline-none focus:border-ring"
-          />
-        )}
-        {!ouvertNote && note && (
-          <button
-            onClick={() => setOuvertNote(true)}
-            className="mt-1 text-left text-[11.5px] text-[color:var(--pal-amber-fg)] hover:underline"
-          >
-            {note}
-          </button>
-        )}
-      </div>
-      {!ouvertNote && !note && (
+
+      {ouvertNote ? (
+        <input
+          value={note}
+          autoFocus
+          placeholder="note pour l'équipe…"
+          onChange={(e) => setNote(e.target.value)}
+          onBlur={() => {
+            setOuvertNote(false);
+            if (note !== (suivi?.commentaire ?? ""))
+              startTransition(async () => {
+                await setCommentaireProjetAction(dossier.clientId, etape.id, note);
+              });
+          }}
+          className="w-56 rounded-md border border-input bg-transparent px-2 py-0.5 text-[12px] outline-none focus:border-ring"
+        />
+      ) : note ? (
         <button
           onClick={() => setOuvertNote(true)}
-          className="rounded-lg border p-1 text-muted-foreground hover:bg-[var(--ev-row-hover)]"
+          className="max-w-56 truncate text-left text-[11.5px] text-[color:var(--pal-amber-fg)] hover:underline"
+          title={note}
+        >
+          {note}
+        </button>
+      ) : (
+        <button
+          onClick={() => setOuvertNote(true)}
+          className="shrink-0 rounded-lg border p-1 text-muted-foreground hover:bg-[var(--ev-row-hover)]"
           title="Ajouter une note"
         >
           <MessageSquare className="size-3" />
@@ -160,16 +177,86 @@ function LigneEtape({
   );
 }
 
-// Ce que le chef de projet a en face de lui : les postes du client, leur modèle, et l'URL
-// d'autoprovision à coller dans chacun après reset. Un softphone n'a pas de fichier de
-// configuration — c'est une installation sur le PC, signalée à part.
+// Corps d'un dossier ouvert : la checklist à gauche, les postes à droite en colonne fixe.
+// Une seule phase est visible à la fois — les treize étapes empilées obligeaient à faire
+// défiler sans fin, alors qu'on travaille phase par phase. Les onglets portent l'avancement
+// de chaque phase, et celle qui reste à traiter s'ouvre d'office.
+function CorpsDossier({ dossier, vue }: { dossier: DossierProjet; vue: ChefProjetVue }) {
+  const parPhase = vue.phases.map((phase) => {
+    const etapes = vue.etapes.filter((e) => e.phase === phase);
+    const faites = etapes.filter((e) => estEtapeResolue(dossier.suivis[e.id]?.statut)).length;
+    return { phase, etapes, faites, total: etapes.length };
+  });
+  const premiereNonFinie = parPhase.find((p) => p.faites < p.total)?.phase ?? vue.phases[0];
+  const [phaseActive, setPhaseActive] = useState(premiereNonFinie);
+
+  // Étape à faire maintenant : la première non résolue de tout le dossier.
+  const courante = vue.etapes.find((e) => !estEtapeResolue(dossier.suivis[e.id]?.statut));
+  const active = parPhase.find((p) => p.phase === phaseActive) ?? parPhase[0];
+
+  return (
+    <div className="grid gap-0 border-t lg:grid-cols-[1fr_330px]" style={{ borderColor: "var(--ev-card-border-light)" }}>
+      <div className="min-w-0">
+        {/* Onglets de phase, avec l'avancement de chacune */}
+        <div
+          className="flex flex-wrap gap-1 px-3 py-2"
+          style={{ background: "var(--ev-surface)" }}
+        >
+          {parPhase.map((p) => {
+            const complete = p.faites === p.total;
+            const actif = p.phase === phaseActive;
+            return (
+              <button
+                key={p.phase}
+                onClick={() => setPhaseActive(p.phase)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors",
+                  actif
+                    ? "bg-white shadow-xs ring-1 ring-[color:var(--ev-card-border)]"
+                    : "text-muted-foreground hover:bg-white/60"
+                )}
+              >
+                {complete && <CheckCircle2 className="size-3 text-[color:var(--pal-green-fg)]" />}
+                {p.phase}
+                <span
+                  className={cn(
+                    "font-mono text-[10.5px]",
+                    complete ? "text-[color:var(--pal-green-fg)]" : "text-muted-foreground"
+                  )}
+                >
+                  {p.faites}/{p.total}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {active.etapes.map((e) => (
+          <LigneEtape
+            key={e.id}
+            dossier={dossier}
+            etape={e}
+            valeurs={vue.valeursStatut}
+            courante={e.id === courante?.id}
+          />
+        ))}
+      </div>
+
+      {/* Postes : colonne latérale, visible pendant qu'on déroule les étapes */}
+      <div
+        className="border-t lg:border-t-0 lg:border-l"
+        style={{ borderColor: "var(--ev-card-border-light)" }}
+      >
+        <PostesDossier dossier={dossier} />
+      </div>
+    </div>
+  );
+}
+
 function PostesDossier({ dossier }: { dossier: DossierProjet }) {
   if (dossier.postes.length === 0) {
     return (
-      <div
-        className="border-t px-4 py-2 text-[11.5px] text-muted-foreground"
-        style={{ borderColor: "var(--ev-card-border-light)" }}
-      >
+      <div className="px-3 py-3 text-[11.5px] text-muted-foreground">
         Aucun équipement importé pour ce client.
       </div>
     );
@@ -183,9 +270,9 @@ function PostesDossier({ dossier }: { dossier: DossierProjet }) {
   const urlsPanasonic = postes.filter((p) => p.urlAutoprovision);
 
   return (
-    <div className="border-t" style={{ borderColor: "var(--ev-card-border-light)" }}>
+    <div className="lg:sticky lg:top-0">
       <div
-        className="flex flex-wrap items-center gap-2 px-4 py-1.5 text-[10.5px] font-bold uppercase tracking-wide text-[color:var(--ev-accent-text)]"
+        className="flex flex-wrap items-center gap-2 px-3 py-2 text-[10.5px] font-bold uppercase tracking-wide text-[color:var(--ev-accent-text)]"
         style={{ background: "var(--ev-surface)" }}
       >
         Postes
@@ -217,22 +304,19 @@ function PostesDossier({ dossier }: { dossier: DossierProjet }) {
       {/* Procédure de reset Panasonic : elle ne s'affiche que si le client en a. */}
       {dossier.aPanasonic && (
         <div
-          className="border-t px-4 py-2.5"
+          className="border-t px-3 py-2"
           style={{ borderColor: "var(--ev-row-border)", background: "var(--pal-amber-bg)" }}
         >
           <div className="mb-1.5 text-[11px] font-bold text-[color:var(--pal-amber-fg)]">
             Reset d&apos;un poste Panasonic
           </div>
-          <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
+          <ol className="flex flex-col gap-1 text-[11.5px]">
             {RESET_PANASONIC.map((etape, i) => (
-              <li key={i} className="flex items-center gap-1.5">
-                <span className="grid size-4 shrink-0 place-items-center rounded-full bg-[color:var(--pal-amber-fg)] font-mono text-[9px] font-bold text-white">
+              <li key={i} className="flex items-start gap-1.5">
+                <span className="mt-0.5 grid size-4 shrink-0 place-items-center rounded-full bg-[color:var(--pal-amber-fg)] font-mono text-[9px] font-bold text-white">
                   {i + 1}
                 </span>
                 <span>{etape}</span>
-                {i < RESET_PANASONIC.length - 1 && (
-                  <span className="text-[color:var(--pal-amber-fg)]">›</span>
-                )}
               </li>
             ))}
           </ol>
@@ -242,20 +326,24 @@ function PostesDossier({ dossier }: { dossier: DossierProjet }) {
       {postes.map((p, i) => (
         <div
           key={i}
-          className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-1.5"
+          className="flex flex-col gap-1 border-t px-3 py-2"
           style={{ borderColor: "var(--ev-row-border)" }}
         >
-          <span className="w-40 truncate text-[12.5px]">{p.utilisateurNom ?? "—"}</span>
-          <span
-            className={cn(
-              "w-44 truncate text-[12px]",
-              estPanasonic(p.marque)
-                ? "font-semibold text-[color:var(--pal-amber-fg)]"
-                : "text-muted-foreground"
-            )}
-          >
-            {p.modele ?? "—"}
-          </span>
+          <div className="flex items-baseline gap-2">
+            <span
+              className={cn(
+                "min-w-0 flex-1 truncate text-[12.5px] font-medium",
+                estPanasonic(p.marque) && "text-[color:var(--pal-amber-fg)]"
+              )}
+              title={p.modele ?? undefined}
+            >
+              {p.modele ?? "—"}
+            </span>
+            <span className="shrink-0 truncate text-[11px] text-muted-foreground">
+              {p.utilisateurNom ?? "—"}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
           {p.mac && <CopiePuce valeur={p.mac} titre="MAC" />}
           {p.softphone ? (
             <span className="ev-badge bg-[var(--pal-violet-bg)] text-[color:var(--pal-violet-fg)]">
@@ -269,15 +357,14 @@ function PostesDossier({ dossier }: { dossier: DossierProjet }) {
               titre={p.urlAutoprovision}
             />
           ) : (
-            <span className="text-[11px] text-muted-foreground">
-              autoprovision par l&apos;URL générique
-            </span>
+            <span className="text-[11px] text-muted-foreground">URL générique</span>
           )}
+          </div>
         </div>
       ))}
 
       {urlsPanasonic.length > 1 && (
-        <div className="border-t px-4 py-1.5" style={{ borderColor: "var(--ev-row-border)" }}>
+        <div className="border-t px-3 py-2" style={{ borderColor: "var(--ev-row-border)" }}>
           <CopiePuce
             valeur={urlsPanasonic.map((p) => p.urlAutoprovision).join("\n")}
             libelle={`copier les ${urlsPanasonic.length} .cfg Panasonic`}
@@ -414,29 +501,7 @@ function Dossier({
         </div>
       </div>
 
-      {ouvert && <PostesDossier dossier={dossier} />}
-
-      {ouvert &&
-        vue.phases.map((phase) => (
-          <div key={phase}>
-            <div
-              className="border-t px-4 py-1.5 text-[10.5px] font-bold uppercase tracking-wide text-[color:var(--ev-accent-text)]"
-              style={{ borderColor: "var(--ev-card-border-light)", background: "var(--ev-surface)" }}
-            >
-              {phase}
-            </div>
-            {vue.etapes
-              .filter((e) => e.phase === phase)
-              .map((e) => (
-                <LigneEtape
-                  key={e.id}
-                  dossier={dossier}
-                  etape={e}
-                  valeurs={vue.valeursStatut}
-                />
-              ))}
-          </div>
-        ))}
+      {ouvert && <CorpsDossier dossier={dossier} vue={vue} />}
     </section>
   );
 }
