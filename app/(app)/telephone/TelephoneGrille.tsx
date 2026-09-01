@@ -588,13 +588,15 @@ export function TelephoneGrille({
                             className="ev-badge bg-[var(--pal-red-bg)] text-[color:var(--pal-red-fg)]"
                             title={
                               "Ne pas préconfigurer : cela casse la joignabilité du client chez Sewan. " +
-                              "La migration s'ouvre au statut INSTALLATION posé par les ADV, ou à 3 jours de l'intervention."
+                              "La migration s'ouvre au statut INSTALLATION posé par les ADV, ou à 3 jours de " +
+                              "l'intervention" +
+                              (rows[0].joursAvantMigration !== null
+                                ? ` — soit dans ${rows[0].joursAvantMigration} jour(s).`
+                                : " — aucune date posée pour l'instant.")
                             }
                           >
                             <TrafficCone className="size-2.5" />
-                            {rows[0].joursAvantMigration !== null
-                              ? `pas avant J-3 · dans ${rows[0].joursAvantMigration} j`
-                              : "pas encore planifié"}
+                            ATTENTE ADV
                           </span>
                         )}
                         <BlocageClient
