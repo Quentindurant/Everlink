@@ -54,6 +54,19 @@ export function TelephoneFiltres({
           }}
         />
       </div>
+      <label
+        className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-[12.5px] font-medium"
+        style={{ borderColor: "var(--ev-input-border)" }}
+        title="Ne montrer que les dossiers dont la migration est ouverte : statut INSTALLATION posé par les ADV, ou intervention dans 3 jours ou moins"
+      >
+        <input
+          type="checkbox"
+          defaultChecked={searchParams.get("migrables") === "1"}
+          onChange={(e) => setParam("migrables", e.target.checked ? "1" : "")}
+          className="size-3.5 accent-[var(--ev-blue)]"
+        />
+        Prêts à migrer
+      </label>
       <Select
         items={[
           { value: TOUS, label: "Avancement : tous" },

@@ -11,6 +11,7 @@ import {
   LockOpen,
   MapPin,
   ShieldAlert,
+  TrafficCone,
   X,
 } from "lucide-react";
 import { CopiePuce } from "@/components/CopiePuce";
@@ -546,7 +547,9 @@ export function TelephoneGrille({
                     "group/bande cursor-pointer hover:bg-[var(--ev-row-hover)]",
                     rows[0].clientBloque
                       ? "bg-[var(--pal-gray-bg,#f1f3f5)] opacity-70"
-                      : "bg-[var(--ev-thead)]"
+                      : !rows[0].migrable
+                        ? "bg-[var(--pal-red-bg)]/30"
+                        : "bg-[var(--ev-thead)]"
                   )}
                   onClick={() => basculerRepli(raisonSociale)}
                 >
@@ -569,6 +572,31 @@ export function TelephoneGrille({
                         >
                           {raisonSociale}
                         </Link>
+                        {rows[0].migrable ? (
+                          <span
+                            className="ev-badge bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]"
+                            title={
+                              rows[0].migrableRaison === "statut_adv"
+                                ? "Les ADV ont posé le statut INSTALLATION : migration ouverte"
+                                : "Intervention dans 3 jours ou moins : migration ouverte"
+                            }
+                          >
+                            à migrer
+                          </span>
+                        ) : (
+                          <span
+                            className="ev-badge bg-[var(--pal-red-bg)] text-[color:var(--pal-red-fg)]"
+                            title={
+                              "Ne pas préconfigurer : cela casse la joignabilité du client chez Sewan. " +
+                              "La migration s'ouvre au statut INSTALLATION posé par les ADV, ou à 3 jours de l'intervention."
+                            }
+                          >
+                            <TrafficCone className="size-2.5" />
+                            {rows[0].joursAvantMigration !== null
+                              ? `pas avant J-3 · dans ${rows[0].joursAvantMigration} j`
+                              : "pas encore planifié"}
+                          </span>
+                        )}
                         <BlocageClient
                           clientId={clientId}
                           bloque={rows[0].clientBloque}

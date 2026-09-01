@@ -23,6 +23,7 @@ export default async function TelephonePage({
       clientId: params.client,
       recherche: params.q,
       avancement: params.avancement as FiltreAvancement | undefined,
+      migrablesSeulement: params.migrables === "1",
     }),
     listClientsActifs(),
     auth(),

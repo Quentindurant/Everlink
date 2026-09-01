@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { estEtapeResolue, STATUTS_ETAPE_RESOLUS } from "@/lib/domain/telephone/statuts";
 import { estPrestataireTraite } from "@/lib/domain/prestataires/statuts";
+import { etatMigration } from "@/lib/domain/telephone/migrable";
 
 export interface TelephoneUtilisateurLigne {
   utilisateurId: string;
@@ -18,6 +19,12 @@ export interface TelephoneUtilisateurLigne {
   siteId: string | null;
   // Softphone à réinstaller (DOKO chez Sewan → Speek chez UNYC) : à préparer avec le client.
   softphone: boolean;
+  // Feu vert de migration : préconfigurer trop tôt casse la joignabilité du client côté
+  // Sewan. Ouvert par le statut ADV INSTALLATION ou à J-3 de l'intervention.
+  migrable: boolean;
+  migrableRaison: "statut_adv" | "intervention_proche" | null;
+  /** Jours restants avant l'ouverture, pour l'annoncer au technicien. */
+  joursAvantMigration: number | null;
   // Dossier mis en pause : visible mais signalé, sorti des dossiers à travailler.
   clientBloque: boolean;
   clientBloqueMotif: string | null;
@@ -47,6 +54,8 @@ export async function fetchTelephoneGrille(filtres: {
   clientId?: string;
   recherche?: string;
   avancement?: FiltreAvancement;
+  /** Ne garder que les dossiers dont la migration est ouverte (statut ADV ou J-3). */
+  migrablesSeulement?: boolean;
 } = {}): Promise<TelephoneGrille> {
   const [etapes, valeurs, utilisateurs] = await Promise.all([
     prisma.etapeModele.findMany({ where: { actif: true }, orderBy: { ordre: "asc" } }),
@@ -82,6 +91,7 @@ export async function fetchTelephoneGrille(filtres: {
             creneauIntervention: true,
             telephoneBloque: true,
             telephoneBloqueMotif: true,
+            statutSuivi: true,
             lot: { select: { nom: true } },
             prestataires: { select: { statutContact: true } },
             sites: {
@@ -134,6 +144,22 @@ export async function fetchTelephoneGrille(filtres: {
     retenus = utilisateurs.filter((u) => garde(u.clientId));
   }
 
+  // Feu vert de migration, calculé une fois par client (les postes d'un même dossier
+  // partagent forcément la même réponse).
+  const etatsMigration = new Map<string, ReturnType<typeof etatMigration>>();
+  for (const u of retenus) {
+    if (!etatsMigration.has(u.client.id)) {
+      etatsMigration.set(
+        u.client.id,
+        etatMigration(u.client.statutSuivi, u.client.dateIntervention)
+      );
+    }
+  }
+
+  if (filtres.migrablesSeulement) {
+    retenus = retenus.filter((u) => etatsMigration.get(u.client.id)?.migrable);
+  }
+
   // Un client n'apparaît ici que s'il a plusieurs adresses : sinon rien à affecter.
   const sitesParClient: Record<string, { id: string; nom: string }[]> = {};
   for (const u of retenus) {
@@ -155,6 +181,9 @@ export async function fetchTelephoneGrille(filtres: {
       clientCreneau: u.client.creneauIntervention,
       siteId: u.siteId,
       softphone: u.equipements.some((e) => e.modele?.type === "SOFTPHONE"),
+      migrable: etatsMigration.get(u.client.id)?.migrable ?? false,
+      migrableRaison: etatsMigration.get(u.client.id)?.raison ?? null,
+      joursAvantMigration: etatsMigration.get(u.client.id)?.joursAvantOuverture ?? null,
       clientBloque: u.client.telephoneBloque,
       clientBloqueMotif: u.client.telephoneBloqueMotif,
       prestatairesATraiter: u.client.prestataires.filter(
