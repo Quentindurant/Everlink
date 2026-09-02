@@ -3,16 +3,18 @@ import {
   fetchLotsPartis,
   fetchOntsAnnonces,
 } from "@/lib/repositories/ontRepository";
+import { listClientsPourStock } from "@/lib/repositories/stockRepository";
 import { PageHero } from "@/components/PageHero";
 import { OntStaging } from "./OntStaging";
 
 export const dynamic = "force-dynamic";
 
 export default async function OntPage() {
-  const [annonces, lotOuvert, lotsPartis] = await Promise.all([
+  const [annonces, lotOuvert, lotsPartis, clients] = await Promise.all([
     fetchOntsAnnonces(),
     fetchLotOuvert(),
     fetchLotsPartis(),
+    listClientsPourStock(),
   ]);
 
   const enAttente = annonces.filter((o) => !o.dateReception).length;
@@ -29,7 +31,12 @@ export default async function OntPage() {
           { value: lotsPartis.length, label: "lots partis", color: "var(--ev-green)" },
         ]}
       />
-      <OntStaging annonces={annonces} lotOuvert={lotOuvert} lotsPartis={lotsPartis} />
+      <OntStaging
+        annonces={annonces}
+        lotOuvert={lotOuvert}
+        lotsPartis={lotsPartis}
+        clients={clients}
+      />
     </main>
   );
 }

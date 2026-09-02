@@ -2,12 +2,20 @@
 // ici on ne fait que lire, écrire, et appliquer leur verdict.
 
 import { prisma } from "@/lib/prisma";
-import { peutEntrerDansLot, valideClotureLot } from "@/lib/domain/staging/ont";
+import {
+  normaliserNumeroSerie,
+  peutEntrerDansLot,
+  peutSupprimerOnt,
+  valideClotureLot,
+  valideSaisieOnt,
+} from "@/lib/domain/staging/ont";
 
 export interface OntLigne {
   id: string;
   numeroSerie: string;
   client: string | null;
+  /** Nécessaire à la correction : le formulaire doit resélectionner le bon client. */
+  clientId: string | null;
   saisiLe: string;
   dateReception: string | null;
 }
@@ -32,6 +40,7 @@ const SELECT_ONT = {
   numeroSerie: true,
   creeLe: true,
   dateReception: true,
+  clientId: true,
   clientFinalTexte: true,
   client: { select: { raisonSociale: true } },
 } as const;
@@ -41,6 +50,7 @@ interface LigneBrute {
   numeroSerie: string;
   creeLe: Date;
   dateReception: Date | null;
+  clientId: string | null;
   clientFinalTexte: string | null;
   client: { raisonSociale: string } | null;
 }
@@ -50,6 +60,7 @@ function versLigne(a: LigneBrute): OntLigne {
     id: a.id,
     numeroSerie: a.numeroSerie,
     client: a.client?.raisonSociale ?? a.clientFinalTexte,
+    clientId: a.clientId,
     saisiLe: a.creeLe.toISOString().slice(0, 10),
     dateReception: jour(a.dateReception),
   };
@@ -178,4 +189,86 @@ export async function cloreLot(champs: {
     }),
   ]);
   return { ok: true, lotId: lot.id };
+}
+
+// Qui détient déjà ce numéro ? Requête indexée sur le numéro seul : le contrôle d'unicité ne
+// doit jamais devenir un parcours du stock.
+async function detenteurDuNumero(
+  numero: string,
+  saufId?: string
+): Promise<Map<string, string>> {
+  const trouve = new Map<string, string>();
+  if (!numero) return trouve;
+  const deja = await prisma.articleStock.findFirst({
+    where: {
+      type: "ONT",
+      numeroSerie: numero,
+      archiveA: null,
+      ...(saufId ? { NOT: { id: saufId } } : {}),
+    },
+    select: { clientFinalTexte: true, client: { select: { raisonSociale: true } } },
+  });
+  if (deja) {
+    trouve.set(numero, deja.client?.raisonSociale ?? deja.clientFinalTexte ?? "un autre dossier");
+  }
+  return trouve;
+}
+
+// Saisie directe au staging : un ONT arrivé dans un carton sans avoir été déclaré sur site.
+export async function creerOnt(champs: {
+  numeroSerie: string;
+  clientId: string | null;
+  recu: boolean;
+}): Promise<{ ok: boolean; message?: string }> {
+  const numero = normaliserNumeroSerie(champs.numeroSerie);
+  const verdict = valideSaisieOnt(
+    { numeroSerie: champs.numeroSerie, raison: "" },
+    await detenteurDuNumero(numero)
+  );
+  if (!verdict.ok) return { ok: false, message: verdict.message };
+
+  await prisma.articleStock.create({
+    data: {
+      type: "ONT",
+      origine: "CLIENT",
+      numeroSerie: numero,
+      clientId: champs.clientId,
+      statut: "EN_STOCK",
+      dateReception: champs.recu ? new Date() : null,
+    },
+  });
+  return { ok: true };
+}
+
+// Correction d'une saisie : numéro relevé de travers sur l'étiquette, mauvais client.
+export async function modifierOnt(
+  id: string,
+  champs: { numeroSerie: string; clientId: string | null }
+): Promise<{ ok: boolean; message?: string }> {
+  const numero = normaliserNumeroSerie(champs.numeroSerie);
+  const verdict = valideSaisieOnt(
+    { numeroSerie: champs.numeroSerie, raison: "" },
+    await detenteurDuNumero(numero, id)
+  );
+  if (!verdict.ok) return { ok: false, message: verdict.message };
+
+  await prisma.articleStock.update({
+    where: { id },
+    data: { numeroSerie: numero, clientId: champs.clientId },
+  });
+  return { ok: true };
+}
+
+// Suppression logique, comme partout ailleurs dans le stock : la trace reste, la ligne sort.
+export async function supprimerOnt(id: string): Promise<{ ok: boolean; message?: string }> {
+  const article = await prisma.articleStock.findUnique({
+    where: { id },
+    select: { lotRetourId: true },
+  });
+  if (!article) return { ok: false, message: "ONT introuvable." };
+  if (!peutSupprimerOnt(article)) {
+    return { ok: false, message: "Retirez d'abord cet ONT de son lot." };
+  }
+  await prisma.articleStock.update({ where: { id }, data: { archiveA: new Date() } });
+  return { ok: true };
 }

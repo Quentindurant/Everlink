@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   normaliserNumeroSerie,
   peutEntrerDansLot,
+  peutSupprimerOnt,
   valideClotureLot,
   valideSaisieOnt,
 } from "./ont";
@@ -92,5 +93,17 @@ describe("valideClotureLot", () => {
   test("DHL accepte ses propres formats de numéro", () => {
     const r = valideClotureLot({ ...base, transporteur: "DHL", numeroSuivi: "JVGL12345678" });
     expect(r).toEqual({ ok: true });
+  });
+});
+
+describe("peutSupprimerOnt", () => {
+  test("un ONT libre se supprime", () => {
+    expect(peutSupprimerOnt({ lotRetourId: null })).toBe(true);
+  });
+
+  test("un ONT engagé dans un lot ne se supprime pas", () => {
+    // Le lot est un carton réel : en retirer un appareil sans le sortir du lot ferait
+    // mentir le bordereau remis au grossiste.
+    expect(peutSupprimerOnt({ lotRetourId: "lot1" })).toBe(false);
   });
 });

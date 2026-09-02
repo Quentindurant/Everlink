@@ -19,7 +19,10 @@ import { parseMikrotikRsc } from "@/lib/domain/routeur/mikrotik";
 import {
   cloreLot,
   cocherReceptionOnt,
+  creerOnt,
+  modifierOnt,
   retirerDuLot,
+  supprimerOnt,
   verserDansLot,
 } from "@/lib/repositories/ontRepository";
 
@@ -451,6 +454,39 @@ export async function cloreLotAction(champs: {
   const r = await cloreLot(champs);
   if (!r.ok) return { success: false, error: r.message };
   await journaliser("LotRetourOnt", r.lotId, "Lot ONT expédié", champs.destinataire);
+  revalidatePath("/staging", "layout");
+  return { success: true };
+}
+
+export async function creerOntAction(champs: {
+  numeroSerie: string;
+  clientId: string | null;
+  recu: boolean;
+}): Promise<ResultatOnt> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  const r = await creerOnt(champs);
+  if (!r.ok) return { success: false, error: r.message };
+  revalidatePath("/staging", "layout");
+  return { success: true };
+}
+
+export async function modifierOntAction(
+  id: string,
+  champs: { numeroSerie: string; clientId: string | null }
+): Promise<ResultatOnt> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  const r = await modifierOnt(id, champs);
+  if (!r.ok) return { success: false, error: r.message };
+  await journaliser("ArticleStock", id, "Correction ONT", champs.numeroSerie);
+  revalidatePath("/staging", "layout");
+  return { success: true };
+}
+
+export async function supprimerOntAction(id: string): Promise<ResultatOnt> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  const r = await supprimerOnt(id);
+  if (!r.ok) return { success: false, error: r.message };
+  await journaliser("ArticleStock", id, "Suppression ONT");
   revalidatePath("/staging", "layout");
   return { success: true };
 }

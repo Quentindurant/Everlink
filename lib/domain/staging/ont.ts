@@ -62,6 +62,12 @@ export function peutEntrerDansLot(article: {
   return article.dateReception !== null && article.lotRetourId === null;
 }
 
+// Le lot est un carton réel : on ne retire pas un appareil de la base sans l'avoir d'abord
+// sorti du lot, sinon le bordereau remis au grossiste ne correspond plus à son contenu.
+export function peutSupprimerOnt(article: { lotRetourId: string | null }): boolean {
+  return article.lotRetourId === null;
+}
+
 export function valideClotureLot(lot: {
   nbArticles: number;
   destinataire: string;
