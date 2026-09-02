@@ -8,7 +8,7 @@ import {
   setCommentaireProjet,
   setSuiviProjet,
 } from "@/lib/repositories/chefProjetRepository";
-import { normaliserNumeroSerie, valideSaisieOnt } from "@/lib/domain/staging/ont";
+import { normaliserNumeroSerie, valideSaisieMateriel } from "@/lib/domain/staging/ont";
 
 type Resultat = { success: boolean; error?: string };
 
@@ -82,24 +82,32 @@ export async function cloreProjetAction(clientId: string, fermer: boolean): Prom
   return { success: true };
 }
 
-// L'étape ONT ne se coche pas comme les autres : elle exige une saisie. Un numéro crée
-// l'appareil au stock staging ; une raison ferme l'étape en « Aucun » sans rien créer.
-export async function enregistrerOntAction(
+// Les étapes de reprise de matériel ne se cochent pas comme les autres : elles exigent une
+// saisie. Un numéro crée l'appareil au stock staging, exactement comme une entrée saisie
+// depuis l'onglet Réception ; une raison ferme l'étape en « Aucun » sans rien créer.
+export async function enregistrerMaterielAction(
   clientId: string,
   etapeId: string,
+  type: string,
   numeroSerie: string,
   raison: string
 ): Promise<Resultat> {
   const session = await auth();
   if (!session?.user) return { success: false, error: "Non authentifié." };
 
+  const modele = type.trim();
+  if (numeroSerie.trim() && !modele) {
+    return { success: false, error: "Choisissez le modèle de l'appareil." };
+  }
+
   const numero = normaliserNumeroSerie(numeroSerie);
   // On ne charge que le numéro saisi, pas tout le stock : la vérification d'unicité doit
-  // rester une requête indexée, pas un scan.
+  // rester une requête indexée, pas un scan. Elle porte sur tout le stock et non sur le seul
+  // type : un numéro de série ne se répète pas d'un modèle à l'autre.
   const existants = new Map<string, string>();
   if (numero) {
     const deja = await prisma.articleStock.findFirst({
-      where: { type: "ONT", numeroSerie: numero, archiveA: null },
+      where: { numeroSerie: numero, archiveA: null },
       select: { clientFinalTexte: true, client: { select: { raisonSociale: true } } },
     });
     if (deja) {
@@ -110,13 +118,13 @@ export async function enregistrerOntAction(
     }
   }
 
-  const verdict = valideSaisieOnt({ numeroSerie, raison }, existants);
+  const verdict = valideSaisieMateriel({ numeroSerie, raison }, existants);
   if (!verdict.ok) return { success: false, error: verdict.message };
 
   if (verdict.mode === "numero") {
     await prisma.articleStock.create({
       data: {
-        type: "ONT",
+        type: modele,
         origine: "CLIENT",
         numeroSerie: verdict.numeroSerie,
         clientId,
@@ -124,14 +132,14 @@ export async function enregistrerOntAction(
       },
     });
     await setSuiviProjet(clientId, etapeId, "Fait", session.user.email ?? null);
-    await journaliser("Client", clientId, "ONT récupéré", verdict.numeroSerie);
+    await journaliser("Client", clientId, `${modele} récupéré`, verdict.numeroSerie);
   } else {
     await setSuiviProjet(clientId, etapeId, "Aucun", session.user.email ?? null);
     await setCommentaireProjet(clientId, etapeId, verdict.raison);
-    await journaliser("Client", clientId, "ONT absent", verdict.raison);
+    await journaliser("Client", clientId, "Matériel non repris", verdict.raison);
   }
 
   revalidatePath("/chef-projet");
-  revalidatePath("/staging/ont");
+  revalidatePath("/staging", "layout");
   return { success: true };
 }

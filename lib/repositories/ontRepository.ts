@@ -7,7 +7,7 @@ import {
   peutEntrerDansLot,
   peutSupprimerOnt,
   valideClotureLot,
-  valideSaisieOnt,
+  valideSaisieMateriel,
 } from "@/lib/domain/staging/ont";
 
 export interface OntLigne {
@@ -221,7 +221,7 @@ export async function creerOnt(champs: {
   recu: boolean;
 }): Promise<{ ok: boolean; message?: string }> {
   const numero = normaliserNumeroSerie(champs.numeroSerie);
-  const verdict = valideSaisieOnt(
+  const verdict = valideSaisieMateriel(
     { numeroSerie: champs.numeroSerie, raison: "" },
     await detenteurDuNumero(numero)
   );
@@ -246,7 +246,7 @@ export async function modifierOnt(
   champs: { numeroSerie: string; clientId: string | null }
 ): Promise<{ ok: boolean; message?: string }> {
   const numero = normaliserNumeroSerie(champs.numeroSerie);
-  const verdict = valideSaisieOnt(
+  const verdict = valideSaisieMateriel(
     { numeroSerie: champs.numeroSerie, raison: "" },
     await detenteurDuNumero(numero, id)
   );

@@ -24,7 +24,7 @@ import { estPanasonic, RESET_PANASONIC } from "@/lib/domain/projet/panasonic";
 import {
   attribuerProjetAction,
   cloreProjetAction,
-  enregistrerOntAction,
+  enregistrerMaterielAction,
   setCommentaireProjetAction,
   setSuiviProjetAction,
 } from "./actions";
@@ -70,36 +70,45 @@ function SelectStatut({
   );
 }
 
-// L'étape de reprise de l'ONT ne se pilote pas par le sélecteur de statut : elle réclame un
-// numéro de série ou une raison d'absence, et c'est la saisie qui décide du statut.
+// Les deux étapes de reprise de matériel ne se pilotent pas par le sélecteur de statut :
+// elles réclament un numéro de série ou une raison d'absence, et c'est la saisie qui décide
+// du statut. Sans ça, l'étape se coche sans que le numéro soit relevé.
 const LIBELLE_ETAPE_ONT = "Récupérer l'ONT du client";
+const LIBELLE_ETAPE_ROUTEUR = "Récupérer le routeur du client";
 
-// Deux champs, un seul suffit : le numéro relevé sur l'étiquette, ou la raison de l'absence.
-function SaisieOnt({
+// Un numéro relevé sur l'appareil, ou la raison pour laquelle il n'y a rien à reprendre.
+// Le modèle n'est demandé que pour le routeur : l'ONT n'en a qu'un seul type.
+function SaisieMateriel({
   clientId,
   etapeId,
-  numeroExistant,
+  typeFixe,
+  typesDisponibles,
+  dejaRepris,
   raisonExistante,
 }: {
   clientId: string;
   etapeId: string;
-  numeroExistant: string | null;
+  /** Type imposé (ONT) ; null quand le modèle est à choisir. */
+  typeFixe: string | null;
+  typesDisponibles: string[];
+  dejaRepris: { numeroSerie: string; type: string } | null;
   raisonExistante: string;
 }) {
   const [numero, setNumero] = useState("");
+  const [type, setType] = useState(typeFixe ?? "");
   const [raison, setRaison] = useState(raisonExistante);
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
 
-  if (numeroExistant) {
+  if (dejaRepris) {
     return (
       <span
         className="ev-badge shrink-0"
         style={{ background: "var(--pal-green-bg)", color: "var(--pal-green-fg)" }}
-        title="ONT enregistré au stock staging"
+        title={`${dejaRepris.type} enregistré au stock staging`}
       >
         <span className="ev-badge-dot" style={{ background: "var(--pal-green-dot)" }} />
-        ONT {numeroExistant}
+        {dejaRepris.numeroSerie}
       </span>
     );
   }
@@ -107,24 +116,38 @@ function SaisieOnt({
   const enregistrer = async () => {
     setEnCours(true);
     setErreur(null);
-    const r = await enregistrerOntAction(clientId, etapeId, numero, raison);
+    const r = await enregistrerMaterielAction(clientId, etapeId, type, numero, raison);
     setEnCours(false);
     if (!r.success) setErreur(r.error ?? "Échec de l'enregistrement.");
   };
 
   return (
     <span className="flex flex-wrap items-center gap-1.5">
+      {typeFixe === null && (
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          className="h-7 w-44 rounded-md border border-input bg-transparent px-1.5 text-[12px] outline-none focus:border-ring"
+        >
+          <option value="">Modèle…</option>
+          {typesDisponibles.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+      )}
       <input
         value={numero}
         onChange={(e) => setNumero(e.target.value)}
-        placeholder="N° de série ONT"
-        className="h-7 w-40 rounded-md border border-input bg-transparent px-2 font-mono text-[12px] outline-none focus:border-ring"
+        placeholder="N° de série"
+        className="h-7 w-36 rounded-md border border-input bg-transparent px-2 font-mono text-[12px] outline-none focus:border-ring"
       />
       <input
         value={raison}
         onChange={(e) => setRaison(e.target.value)}
         placeholder="ou raison de l'absence"
-        className="h-7 w-48 rounded-md border border-input bg-transparent px-2 text-[12px] outline-none focus:border-ring"
+        className="h-7 w-44 rounded-md border border-input bg-transparent px-2 text-[12px] outline-none focus:border-ring"
       />
       <button
         type="button"
@@ -150,11 +173,14 @@ function LigneEtape({
   dossier,
   etape,
   valeurs,
+  typesMateriel,
   courante,
 }: {
   dossier: DossierProjet;
   etape: ChefProjetVue["etapes"][number];
   valeurs: string[];
+  /** Modèles proposés à la reprise du routeur, repris du stock existant. */
+  typesMateriel: string[];
   /** Première étape non résolue du dossier : celle à faire maintenant. */
   courante: boolean;
 }) {
@@ -208,11 +234,19 @@ function LigneEtape({
       )}
       {url && <CopiePuce valeur={url} libelle="URL" titre={url} />}
 
-      {etape.libelle === LIBELLE_ETAPE_ONT ? (
-        <SaisieOnt
+      {etape.libelle === LIBELLE_ETAPE_ONT || etape.libelle === LIBELLE_ETAPE_ROUTEUR ? (
+        <SaisieMateriel
           clientId={dossier.clientId}
           etapeId={etape.id}
-          numeroExistant={dossier.ontNumeroSerie}
+          typeFixe={etape.libelle === LIBELLE_ETAPE_ONT ? "ONT" : null}
+          typesDisponibles={typesMateriel}
+          dejaRepris={
+            etape.libelle === LIBELLE_ETAPE_ONT
+              ? dossier.ontNumeroSerie
+                ? { numeroSerie: dossier.ontNumeroSerie, type: "ONT" }
+                : null
+              : dossier.routeurRecupere
+          }
           raisonExistante={suivi?.commentaire ?? ""}
         />
       ) : (
@@ -320,6 +354,7 @@ function CorpsDossier({ dossier, vue }: { dossier: DossierProjet; vue: ChefProje
             dossier={dossier}
             etape={e}
             valeurs={vue.valeursStatut}
+            typesMateriel={vue.typesMateriel}
             courante={e.id === courante?.id}
           />
         ))}

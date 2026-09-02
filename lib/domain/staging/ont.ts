@@ -7,7 +7,9 @@ import { numeroSuiviValidePour } from "@/lib/domain/tracking/laposte";
 /** Longueur minimale d'un numéro de série d'ONT : en dessous, c'est une saisie tronquée. */
 const LONGUEUR_MIN_SERIE = 8;
 
-export interface SaisieOnt {
+// Même règle pour l'ONT et pour le routeur repris chez le client : le chef de projet relève
+// un numéro de série, ou dit pourquoi il n'y a rien à reprendre.
+export interface SaisieMateriel {
   numeroSerie: string;
   raison: string;
 }
@@ -26,8 +28,8 @@ export function normaliserNumeroSerie(brut: string): string {
 /**
  * @param numerosExistants numéro de série normalisé → raison sociale du client qui le détient.
  */
-export function valideSaisieOnt(
-  saisie: SaisieOnt,
+export function valideSaisieMateriel(
+  saisie: SaisieMateriel,
   numerosExistants: Map<string, string>
 ): ResultatSaisie {
   const numero = normaliserNumeroSerie(saisie.numeroSerie);

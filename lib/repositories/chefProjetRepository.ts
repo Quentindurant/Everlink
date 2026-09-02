@@ -47,12 +47,16 @@ export interface DossierProjet {
   suivis: Record<string, { statut: string; commentaire: string | null }>;
   /** Numéro de série de l'ONT repris chez ce client, s'il a été saisi. */
   ontNumeroSerie: string | null;
+  /** Routeur Sewan repris chez ce client : numéro de série et modèle. */
+  routeurRecupere: { numeroSerie: string; type: string } | null;
   nbResolues: number;
   pourcentage: number;
 }
 
 export interface ChefProjetVue {
   etapes: EtapeProjetLite[];
+  /** Modèles déjà présents en stock, pour que le chef de projet choisisse au lieu de saisir. */
+  typesMateriel: string[];
   phases: string[];
   dossiers: DossierProjet[];
   valeursStatut: string[];
@@ -62,7 +66,7 @@ export interface ChefProjetVue {
 export async function fetchChefProjet(
   filtres: { recherche?: string; avecClos?: boolean } = {}
 ): Promise<ChefProjetVue> {
-  const [etapes, valeurs, clients, nbClos] = await Promise.all([
+  const [etapes, valeurs, clients, nbClos, types] = await Promise.all([
     prisma.etapeProjet.findMany({ where: { actif: true }, orderBy: { ordre: "asc" } }),
     prisma.listeValeur.findMany({
       where: { categorie: "STATUT_ETAPE", actif: true },
@@ -100,11 +104,10 @@ export async function fetchChefProjet(
           where: { etape: { actif: true } },
           select: { etapeId: true, statut: true, commentaire: true },
         },
-        // ONT repris chez ce client : chargé ici plutôt qu'en requête séparée par dossier.
+        // Matériel repris chez ce client, chargé ici plutôt qu'en requête par dossier.
         articlesStock: {
-          where: { type: "ONT", archiveA: null },
-          select: { numeroSerie: true },
-          take: 1,
+          where: { origine: "CLIENT", archiveA: null },
+          select: { numeroSerie: true, type: true },
         },
       },
       // Interventions les plus proches d'abord, comme le provisionning.
@@ -114,6 +117,14 @@ export async function fetchChefProjet(
       ],
     }),
     prisma.client.count({ where: { archiveA: null, projetClosLe: { not: null } } }),
+    // Modèles déjà connus du stock : le chef de projet choisit dans la liste au lieu de
+    // ressaisir un libellé qui divergerait de celui du staging.
+    prisma.articleStock.findMany({
+      where: { archiveA: null },
+      distinct: ["type"],
+      select: { type: true },
+      orderBy: { type: "asc" },
+    }),
   ]);
 
   const dossiers = clients.map((c) => {
@@ -138,7 +149,8 @@ export async function fetchChefProjet(
     return {
       clientId: c.id,
       raisonSociale: c.raisonSociale,
-      ontNumeroSerie: c.articlesStock[0]?.numeroSerie ?? null,
+      ontNumeroSerie: c.articlesStock.find((a) => a.type === "ONT")?.numeroSerie ?? null,
+      routeurRecupere: c.articlesStock.find((a) => a.type !== "ONT") ?? null,
       lotNom: c.lot?.nom ?? null,
       postes,
       // Marques réellement présentes : le chef de projet sait d'avance s'il aura du
@@ -167,6 +179,7 @@ export async function fetchChefProjet(
 
   return {
     etapes: etapes.map((e) => ({ id: e.id, libelle: e.libelle, phase: e.phase, aide: e.aide })),
+    typesMateriel: types.map((t) => t.type).filter((t) => t !== "ONT"),
     phases: [...new Set(etapes.map((e) => e.phase))],
     dossiers,
     valeursStatut: valeurs.map((v) => v.valeur),

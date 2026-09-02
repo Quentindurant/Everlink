@@ -4,42 +4,42 @@ import {
   peutEntrerDansLot,
   peutSupprimerOnt,
   valideClotureLot,
-  valideSaisieOnt,
+  valideSaisieMateriel,
 } from "./ont";
 
 const aucun = new Map<string, string>();
 
-describe("valideSaisieOnt", () => {
+describe("valideSaisieMateriel", () => {
   test("un numéro de série crée l'appareil", () => {
-    const r = valideSaisieOnt({ numeroSerie: " ALCL1234ABCD ", raison: "" }, aucun);
+    const r = valideSaisieMateriel({ numeroSerie: " ALCL1234ABCD ", raison: "" }, aucun);
     expect(r).toEqual({ ok: true, mode: "numero", numeroSerie: "ALCL1234ABCD" });
   });
 
   test("une raison seule justifie l'absence d'ONT", () => {
-    const r = valideSaisieOnt({ numeroSerie: "", raison: "Pas d'ONT sur place" }, aucun);
+    const r = valideSaisieMateriel({ numeroSerie: "", raison: "Pas d'ONT sur place" }, aucun);
     expect(r).toEqual({ ok: true, mode: "absence", raison: "Pas d'ONT sur place" });
   });
 
   test("rien des deux : l'étape ne peut pas se fermer", () => {
-    const r = valideSaisieOnt({ numeroSerie: "  ", raison: " " }, aucun);
+    const r = valideSaisieMateriel({ numeroSerie: "  ", raison: " " }, aucun);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.message).toMatch(/numéro de série|raison/i);
   });
 
   test("le numéro l'emporte si les deux sont remplis", () => {
-    const r = valideSaisieOnt({ numeroSerie: "ALCL1234ABCD", raison: "peu importe" }, aucun);
+    const r = valideSaisieMateriel({ numeroSerie: "ALCL1234ABCD", raison: "peu importe" }, aucun);
     expect(r).toEqual({ ok: true, mode: "numero", numeroSerie: "ALCL1234ABCD" });
   });
 
   test("un numéro déjà attribué est refusé, avec le client qui le détient", () => {
     const existants = new Map([["ALCL1234ABCD", "AQUADOUCE SERVICE"]]);
-    const r = valideSaisieOnt({ numeroSerie: "alcl1234abcd", raison: "" }, existants);
+    const r = valideSaisieMateriel({ numeroSerie: "alcl1234abcd", raison: "" }, existants);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.message).toContain("AQUADOUCE SERVICE");
   });
 
   test("un numéro trop court est refusé : c'est une saisie tronquée", () => {
-    const r = valideSaisieOnt({ numeroSerie: "AB12", raison: "" }, aucun);
+    const r = valideSaisieMateriel({ numeroSerie: "AB12", raison: "" }, aucun);
     expect(r.ok).toBe(false);
   });
 });
