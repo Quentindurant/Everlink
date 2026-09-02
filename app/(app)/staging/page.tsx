@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { PackagePlus, Router, ScrollText, Send } from "lucide-react";
+import { HardDrive, PackagePlus, Router, ScrollText, Send } from "lucide-react";
 import {
   fetchAExpedier,
   fetchConfigsRouteur,
   fetchHistoriqueColis,
   statsStock,
 } from "@/lib/repositories/stockRepository";
+import { fetchOntsAnnonces } from "@/lib/repositories/ontRepository";
 import { PageHero } from "@/components/PageHero";
 
 export const dynamic = "force-dynamic";
@@ -64,11 +65,12 @@ function Tuile({
 }
 
 export default async function StagingPage() {
-  const [stats, aExpedier, historique, configs] = await Promise.all([
+  const [stats, aExpedier, historique, configs, ontsAnnonces] = await Promise.all([
     statsStock(),
     fetchAExpedier(),
     fetchHistoriqueColis(),
     fetchConfigsRouteur(),
+    fetchOntsAnnonces(),
   ]);
 
   const compte = (s: string) => stats.parStatut.find((x) => x.statut === s)?.count ?? 0;
@@ -88,7 +90,7 @@ export default async function StagingPage() {
         ]}
       />
 
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
         <Tuile
           href="/staging/reception"
           couleur="var(--ev-blue)"
@@ -112,6 +114,14 @@ export default async function StagingPage() {
           titre="Expédition"
           compteur={aExpedier.length}
           libelleCompteur="prêts à partir"
+        />
+        <Tuile
+          href="/staging/ont"
+          couleur="var(--ev-purple)"
+          icone={<HardDrive className="size-6" />}
+          titre="ONT"
+          compteur={ontsAnnonces.filter((o) => !o.dateReception).length}
+          libelleCompteur="à réceptionner"
         />
         <Tuile
           href="/staging/suivi"

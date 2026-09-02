@@ -16,6 +16,12 @@ import { numeroSuiviValidePour, transporteurAvecSuiviApi } from "@/lib/domain/tr
 import { suivreColis } from "@/lib/tracking/laPosteClient";
 import { journaliser } from "@/lib/activite";
 import { parseMikrotikRsc } from "@/lib/domain/routeur/mikrotik";
+import {
+  cloreLot,
+  cocherReceptionOnt,
+  retirerDuLot,
+  verserDansLot,
+} from "@/lib/repositories/ontRepository";
 
 async function garde() {
   const session = await auth();
@@ -93,6 +99,7 @@ export async function expedierAvecSuiviAction(
       numeroSuivi: num || null,
       suiviStatut: etat?.statut ?? null,
       suiviLibelle: etat?.libelle ?? null,
+      suiviEtape: etat?.etape ?? null,
       suiviLivreLe: etat?.livreLe ? new Date(etat.livreLe) : null,
       suiviMajLe: num ? new Date() : null,
     },
@@ -134,6 +141,7 @@ export async function expedierLotAction(
       clientFinalTexte: nom || null,
       suiviStatut: etat?.statut ?? null,
       suiviLibelle: etat?.libelle ?? null,
+      suiviEtape: etat?.etape ?? null,
       suiviLivreLe: etat?.livreLe ? new Date(etat.livreLe) : null,
       suiviMajLe: num ? new Date() : null,
     },
@@ -159,6 +167,7 @@ export async function rafraichirSuiviColisAction(
     data: {
       suiviStatut: etat.statut,
       suiviLibelle: etat.libelle,
+      suiviEtape: etat.etape,
       suiviLivreLe: etat.livreLe ? new Date(etat.livreLe) : null,
       suiviMajLe: new Date(),
     },
@@ -182,6 +191,7 @@ export async function annulerExpeditionAction(ids: string[]): Promise<void> {
       numeroSuivi: null,
       suiviStatut: null,
       suiviLibelle: null,
+      suiviEtape: null,
       suiviLivreLe: null,
       suiviMajLe: null,
     },
@@ -221,6 +231,7 @@ export async function corrigerColisAction(
       clientFinalTexte: nom || null,
       suiviStatut: etat?.statut ?? null,
       suiviLibelle: etat?.libelle ?? null,
+      suiviEtape: etat?.etape ?? null,
       suiviLivreLe: etat?.livreLe ? new Date(etat.livreLe) : null,
       suiviMajLe: num ? new Date() : null,
     },
@@ -398,4 +409,48 @@ export async function supprimerArticleAction(id: string): Promise<void> {
   if (!(await garde())) return;
   await prisma.articleStock.update({ where: { id }, data: { archiveA: new Date() } });
   revalidatePath("/staging", "layout");
+}
+
+// ---------------------------------------------------------------- ONT récupérés
+
+/** Les actions ONT rendent l'erreur : le staging doit voir pourquoi un lot refuse de partir. */
+type ResultatOnt = { success: boolean; error?: string };
+
+export async function cocherReceptionOntAction(
+  id: string,
+  recu: boolean
+): Promise<ResultatOnt> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  await cocherReceptionOnt(id, recu);
+  await journaliser("ArticleStock", id, "Réception ONT", recu ? "reçu" : "annulé");
+  revalidatePath("/staging", "layout");
+  return { success: true };
+}
+
+export async function verserDansLotAction(articleId: string): Promise<ResultatOnt> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  const r = await verserDansLot(articleId);
+  if (!r.ok) return { success: false, error: r.message };
+  revalidatePath("/staging", "layout");
+  return { success: true };
+}
+
+export async function retirerDuLotAction(articleId: string): Promise<ResultatOnt> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  await retirerDuLot(articleId);
+  revalidatePath("/staging", "layout");
+  return { success: true };
+}
+
+export async function cloreLotAction(champs: {
+  destinataire: string;
+  transporteur: string;
+  numeroSuivi: string;
+}): Promise<ResultatOnt> {
+  if (!(await garde())) return { success: false, error: "Non authentifié." };
+  const r = await cloreLot(champs);
+  if (!r.ok) return { success: false, error: r.message };
+  await journaliser("LotRetourOnt", r.lotId, "Lot ONT expédié", champs.destinataire);
+  revalidatePath("/staging", "layout");
+  return { success: true };
 }
