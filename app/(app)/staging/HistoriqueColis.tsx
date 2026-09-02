@@ -6,7 +6,8 @@ import { Check, Pencil, RefreshCw, Undo2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SuiviColisBadge } from "@/components/SuiviColisBadge";
+import { FriseColis } from "@/components/FriseColis";
+import { useRafraichissementAuto } from "@/components/useRafraichissementAuto";
 import { transporteurAvecSuiviApi } from "@/lib/domain/tracking/laposte";
 import { BarreRecherche, correspond } from "@/components/BarreRecherche";
 import type { ColisExpedie } from "@/lib/repositories/stockRepository";
@@ -81,6 +82,7 @@ function ArticlePuce({
 // Historique des expéditions, un bloc par colis (numéro de suivi), façon HighStock.
 // Chaque colis se corrige (transporteur, n° de suivi, destinataire) ou s'annule en entier.
 export function HistoriqueColis({ colis }: { colis: ColisExpedie[] }) {
+  useRafraichissementAuto();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editionCle, setEditionCle] = useState<string | null>(null);
@@ -172,9 +174,10 @@ export function HistoriqueColis({ colis }: { colis: ColisExpedie[] }) {
                     </div>
                   </div>
 
-                  <SuiviColisBadge
-                    statut={c.suiviStatut}
+                  <FriseColis
+                    etape={c.suiviEtape}
                     libelle={c.suiviLibelle}
+                    livreLe={c.suiviLivreLe}
                     numeroSuivi={c.numeroSuivi}
                     transporteur={c.transporteur}
                   />

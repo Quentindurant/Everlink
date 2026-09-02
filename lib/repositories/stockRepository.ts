@@ -139,6 +139,8 @@ export interface ColisExpedie {
   numeroSuivi: string | null;
   suiviStatut: string | null;
   suiviLibelle: string | null;
+  suiviEtape: number | null;
+  suiviLivreLe: string | null;
   clientFinal: string | null;
   dateEnvoi: string | null;
   articles: { id: string; type: string; numeroSerie: string; statut: string }[];
@@ -165,6 +167,8 @@ export async function fetchHistoriqueColis(): Promise<ColisExpedie[]> {
         numeroSuivi: a.numeroSuivi,
         suiviStatut: a.suiviStatut,
         suiviLibelle: a.suiviLibelle,
+        suiviEtape: a.suiviEtape,
+        suiviLivreLe: jour(a.suiviLivreLe),
         clientFinal: a.client?.raisonSociale ?? a.clientFinalTexte,
         dateEnvoi: jour(a.dateEnvoi),
         articles: [ligne],
