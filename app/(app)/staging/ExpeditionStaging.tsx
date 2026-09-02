@@ -12,6 +12,7 @@ import type { ArticleStockLigne } from "@/lib/domain/stock/statuts";
 import { LIBELLE_STATUT } from "@/lib/domain/stock/statuts";
 import type { PreparationStaging } from "@/lib/repositories/stockRepository";
 import { expedierLotAction } from "./actions";
+import { PuceOperateur } from "@/components/PuceOperateur";
 
 // Expédition par dossier client : le staging prépare le matériel d'un client (articles
 // rattachés + config routeur), coche le dossier entier et expédie — le destinataire du
@@ -130,6 +131,7 @@ export function ExpeditionStaging({
         </span>
         <span className="w-52 truncate text-xs">{a.type}</span>
         <span className="font-mono text-[13px]">{a.numeroSerie}</span>
+        <PuceOperateur type={a.type} numeroSerie={a.numeroSerie} />
         <span className="ml-auto text-[11px] text-muted-foreground">
           {LIBELLE_STATUT[a.statut] ?? a.statut}
         </span>

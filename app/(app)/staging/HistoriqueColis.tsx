@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FriseColis } from "@/components/FriseColis";
+import { PuceOperateur } from "@/components/PuceOperateur";
 import { useRafraichissementAuto } from "@/components/useRafraichissementAuto";
 import { transporteurAvecSuiviApi } from "@/lib/domain/tracking/laposte";
 import { BarreRecherche, correspond } from "@/components/BarreRecherche";
@@ -57,6 +58,7 @@ function ArticlePuce({
         }
       >
         {numeroSerie}
+        <PuceOperateur type={type} numeroSerie={numeroSerie} />
         {installe && <Check className="size-3 text-[color:var(--pal-green-fg)]" />}
       </button>
       {!installe && (

@@ -13,6 +13,7 @@ import {
 import type { AInstallerLigne } from "@/lib/repositories/stockRepository";
 import { LIBELLE_STATUT } from "@/lib/domain/stock/statuts";
 import { BarreRecherche, correspond } from "@/components/BarreRecherche";
+import { PuceOperateur } from "@/components/PuceOperateur";
 
 const COULEUR_LIEN: Record<string, string> = {
   Livré: "bg-[var(--pal-green-bg)] text-[color:var(--pal-green-fg)]",
@@ -61,7 +62,8 @@ export function AInstaller({ lignes }: { lignes: AInstallerLigne[] }) {
                 )}
               </TableCell>
               <TableCell className="whitespace-nowrap text-xs">
-                {l.type} <span className="font-mono text-muted-foreground">{l.numeroSerie}</span>
+                {l.type} <span className="font-mono text-muted-foreground">{l.numeroSerie}</span>{" "}
+                <PuceOperateur type={l.type} numeroSerie={l.numeroSerie} />
               </TableCell>
               <TableCell>
                 <span className="rounded-lg bg-[var(--pal-amber-bg)] px-2 py-0.5 text-[11px] font-semibold text-[color:var(--pal-amber-fg)]">

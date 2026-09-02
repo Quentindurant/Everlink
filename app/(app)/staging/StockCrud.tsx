@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ArticleStockLigne } from "@/lib/domain/stock/statuts";
 import { LIBELLE_STATUT } from "@/lib/domain/stock/statuts";
+import { PuceOperateur } from "@/components/PuceOperateur";
 import {
   ajouterArticleAction,
   avancerStatutAction,
@@ -75,12 +76,15 @@ function LigneStock({ a, listeClients }: { a: ArticleStockLigne; listeClients: s
         />
       </td>
       <td className="px-3 py-1">
-        <CelluleEditable
-          valeur={a.numeroSerie}
-          mono
-          largeur="w-44"
-          onSave={(v) => agir(() => updateArticleAction(a.id, "numeroSerie", v))}
-        />
+        <span className="flex items-center gap-1.5">
+          <CelluleEditable
+            valeur={a.numeroSerie}
+            mono
+            largeur="w-44"
+            onSave={(v) => agir(() => updateArticleAction(a.id, "numeroSerie", v))}
+          />
+          <PuceOperateur type={a.type} numeroSerie={a.numeroSerie} />
+        </span>
       </td>
       <td className="px-3 py-1">
         <span className={cn("rounded-lg px-2 py-0.5 text-[11px] font-semibold", COULEUR_STATUT[a.statut] ?? "bg-muted")}>
