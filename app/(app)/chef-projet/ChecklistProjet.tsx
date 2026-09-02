@@ -24,6 +24,7 @@ import { estPanasonic, RESET_PANASONIC } from "@/lib/domain/projet/panasonic";
 import {
   attribuerProjetAction,
   cloreProjetAction,
+  enregistrerOntAction,
   setCommentaireProjetAction,
   setSuiviProjetAction,
 } from "./actions";
@@ -66,6 +67,79 @@ function SelectStatut({
         </option>
       ))}
     </select>
+  );
+}
+
+// L'étape de reprise de l'ONT ne se pilote pas par le sélecteur de statut : elle réclame un
+// numéro de série ou une raison d'absence, et c'est la saisie qui décide du statut.
+const LIBELLE_ETAPE_ONT = "Récupérer l'ONT du client";
+
+// Deux champs, un seul suffit : le numéro relevé sur l'étiquette, ou la raison de l'absence.
+function SaisieOnt({
+  clientId,
+  etapeId,
+  numeroExistant,
+  raisonExistante,
+}: {
+  clientId: string;
+  etapeId: string;
+  numeroExistant: string | null;
+  raisonExistante: string;
+}) {
+  const [numero, setNumero] = useState("");
+  const [raison, setRaison] = useState(raisonExistante);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [enCours, setEnCours] = useState(false);
+
+  if (numeroExistant) {
+    return (
+      <span
+        className="ev-badge shrink-0"
+        style={{ background: "var(--pal-green-bg)", color: "var(--pal-green-fg)" }}
+        title="ONT enregistré au stock staging"
+      >
+        <span className="ev-badge-dot" style={{ background: "var(--pal-green-dot)" }} />
+        ONT {numeroExistant}
+      </span>
+    );
+  }
+
+  const enregistrer = async () => {
+    setEnCours(true);
+    setErreur(null);
+    const r = await enregistrerOntAction(clientId, etapeId, numero, raison);
+    setEnCours(false);
+    if (!r.success) setErreur(r.error ?? "Échec de l'enregistrement.");
+  };
+
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      <input
+        value={numero}
+        onChange={(e) => setNumero(e.target.value)}
+        placeholder="N° de série ONT"
+        className="h-7 w-40 rounded-md border border-input bg-transparent px-2 font-mono text-[12px] outline-none focus:border-ring"
+      />
+      <input
+        value={raison}
+        onChange={(e) => setRaison(e.target.value)}
+        placeholder="ou raison de l'absence"
+        className="h-7 w-48 rounded-md border border-input bg-transparent px-2 text-[12px] outline-none focus:border-ring"
+      />
+      <button
+        type="button"
+        onClick={enregistrer}
+        disabled={enCours}
+        className="h-7 shrink-0 rounded-md border px-2 text-[12px] font-semibold hover:bg-[var(--ev-row-hover)] disabled:opacity-50"
+      >
+        {enCours ? "…" : "Enregistrer"}
+      </button>
+      {erreur ? (
+        <span className="text-[11px]" style={{ color: "var(--pal-red-fg)" }}>
+          {erreur}
+        </span>
+      ) : null}
+    </span>
   );
 }
 
@@ -134,12 +208,21 @@ function LigneEtape({
       )}
       {url && <CopiePuce valeur={url} libelle="URL" titre={url} />}
 
-      <SelectStatut
-        clientId={dossier.clientId}
-        etapeId={etape.id}
-        statut={statut}
-        valeurs={valeurs}
-      />
+      {etape.libelle === LIBELLE_ETAPE_ONT ? (
+        <SaisieOnt
+          clientId={dossier.clientId}
+          etapeId={etape.id}
+          numeroExistant={dossier.ontNumeroSerie}
+          raisonExistante={suivi?.commentaire ?? ""}
+        />
+      ) : (
+        <SelectStatut
+          clientId={dossier.clientId}
+          etapeId={etape.id}
+          statut={statut}
+          valeurs={valeurs}
+        />
+      )}
 
       {ouvertNote ? (
         <input

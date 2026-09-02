@@ -45,6 +45,8 @@ export interface DossierProjet {
   closLe: string | null;
   // etapeId -> { statut, commentaire }
   suivis: Record<string, { statut: string; commentaire: string | null }>;
+  /** Numéro de série de l'ONT repris chez ce client, s'il a été saisi. */
+  ontNumeroSerie: string | null;
   nbResolues: number;
   pourcentage: number;
 }
@@ -98,6 +100,12 @@ export async function fetchChefProjet(
           where: { etape: { actif: true } },
           select: { etapeId: true, statut: true, commentaire: true },
         },
+        // ONT repris chez ce client : chargé ici plutôt qu'en requête séparée par dossier.
+        articlesStock: {
+          where: { type: "ONT", archiveA: null },
+          select: { numeroSerie: true },
+          take: 1,
+        },
       },
       // Interventions les plus proches d'abord, comme le provisionning.
       orderBy: [
@@ -130,6 +138,7 @@ export async function fetchChefProjet(
     return {
       clientId: c.id,
       raisonSociale: c.raisonSociale,
+      ontNumeroSerie: c.articlesStock[0]?.numeroSerie ?? null,
       lotNom: c.lot?.nom ?? null,
       postes,
       // Marques réellement présentes : le chef de projet sait d'avance s'il aura du
