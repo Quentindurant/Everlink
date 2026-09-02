@@ -56,7 +56,12 @@ export function FriseColis({
           const courante = e === atteinte;
           const incertaine = !suiviApi && e > 1;
           return (
-            <li key={e} className="flex items-start gap-3 sm:flex-1 sm:flex-col sm:gap-1.5">
+            // items-start sert la pile mobile ; au-delà, il faut rendre la largeur au libellé
+            // pour qu'il se centre sous son point au lieu de se coller à gauche.
+            <li
+              key={e}
+              className="flex items-start gap-3 sm:flex-1 sm:flex-col sm:items-stretch sm:gap-1.5"
+            >
               <div className="flex items-center sm:w-full">
                 {/* Trait gauche : absent sur le premier point. */}
                 <span
