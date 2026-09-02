@@ -36,6 +36,40 @@ export interface EtatSuivi {
   libelle: string | null;
   // Date de livraison ISO si le colis est arrivé.
   livreLe: string | null;
+  // Position sur la frise à quatre points.
+  etape: EtapeColis;
+}
+
+// Avancement affichable d'un colis, en quatre points. Volontairement déduit de champs
+// structurels (entryDate, événements, isFinal, deliveryDate) et non d'une table de codes
+// transporteur : les codes varient d'un transporteur à l'autre, ces quatre champs non.
+export type EtapeColis = 1 | 2 | 3 | 4;
+
+export const LIBELLES_ETAPE_COLIS: Record<EtapeColis, string> = {
+  1: "Expédié",
+  2: "Pris en charge",
+  3: "En transit",
+  4: "Livré",
+};
+
+export function etapeColis(reponse: LaPosteTrackingResponse): EtapeColis {
+  // Suivi introuvable : le colis est parti, c'est tout ce qu'on sait honnêtement.
+  if (reponse.returnCode === 404 || !reponse.shipment) return 1;
+
+  const s = reponse.shipment;
+  if (s.isFinal === true && s.deliveryDate) return 4;
+
+  const evenements = s.event ?? [];
+  const priseEnCharge = s.entryDate ? Date.parse(s.entryDate) : Number.NaN;
+  const posterieur = evenements.some((e) => {
+    const t = Date.parse(e.date);
+    return Number.isFinite(t) && Number.isFinite(priseEnCharge) && t > priseEnCharge;
+  });
+  if (posterieur) return 3;
+
+  // Des événements sans entryDate : le colis circule, on ne sait pas depuis quand.
+  if (s.entryDate || evenements.length > 0) return 2;
+  return 1;
 }
 
 // Un numéro de suivi La Poste/Chronopost fait 11 à 15 caractères alphanumériques.
@@ -74,7 +108,12 @@ export function urlSuiviTransporteur(transporteur: string | null, numero: string
 // fournis par La Poste plutôt que sur les codes d'événement, qui varient selon le transporteur.
 export function etatDeShipment(reponse: LaPosteTrackingResponse): EtatSuivi {
   if (reponse.returnCode === 404 || !reponse.shipment) {
-    return { statut: "INCONNU", libelle: reponse.returnMessage ?? null, livreLe: null };
+    return {
+      statut: "INCONNU",
+      libelle: reponse.returnMessage ?? null,
+      livreLe: null,
+      etape: etapeColis(reponse),
+    };
   }
   const s = reponse.shipment;
   const dernier = s.event && s.event.length > 0 ? s.event[0] : null;
@@ -84,6 +123,7 @@ export function etatDeShipment(reponse: LaPosteTrackingResponse): EtatSuivi {
     statut: livre ? "LIVRE" : "EN_COURS",
     libelle,
     livreLe: livre ? (s.deliveryDate as string) : null,
+    etape: etapeColis(reponse),
   };
 }
 
