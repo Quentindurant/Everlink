@@ -183,6 +183,7 @@ model Client {
   colisSuiviStatut  String?
   colisSuiviLibelle String?
   colisSuiviLivreLe DateTime?
+  colisSuiviEtape   Int?
   colisSuiviMajLe   DateTime?
 
   @@index([cleRapprochement])
@@ -335,8 +336,13 @@ model ArticleStock {
   numeroSuivi  String?
   suiviStatut  String?
   suiviLibelle String?
+  suiviEtape   Int?
   suiviLivreLe DateTime?
   suiviMajLe   DateTime?
+
+  // Lot de retour vers le grossiste (ONT récupérés chez les clients).
+  lotRetour   LotRetourOnt? @relation(fields: [lotRetourId], references: [id], onDelete: SetNull)
+  lotRetourId String?
 
   commentaire String?
   archiveA    DateTime?
@@ -348,6 +354,32 @@ model ArticleStock {
   @@index([clientId])
   @@index([numeroSerie])
   @@index([numeroSuivi])
+  @@index([lotRetourId])
+}
+
+// Envoi groupé des ONT récupérés chez les clients vers le grossiste. Un lot sans expedieLe
+// est le panier en préparation du staging ; il n'y en a qu'un ouvert à la fois.
+model LotRetourOnt {
+  id           String    @id @default(cuid())
+  destinataire String
+  transporteur String?
+  numeroSuivi  String?
+  expedieLe    DateTime?
+
+  // Mêmes noms que ArticleStock : le cron de tracking traite les deux sans cas particulier.
+  suiviStatut  String?
+  suiviLibelle String?
+  suiviEtape   Int?
+  suiviLivreLe DateTime?
+  suiviMajLe   DateTime?
+
+  articles ArticleStock[]
+
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  @@index([numeroSuivi])
+  @@index([expedieLe])
 }
 
 // Configuration extraite d'un routeur Sewan (.rsc MikroTik), importée au staging pour
