@@ -175,6 +175,7 @@ export function HistoriqueColis({ colis }: { colis: ColisExpedie[] }) {
                   </div>
 
                   <FriseColis
+                    compact
                     etape={c.suiviEtape}
                     libelle={c.suiviLibelle}
                     livreLe={c.suiviLivreLe}

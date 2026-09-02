@@ -31,12 +31,15 @@ export function FriseColis({
   livreLe,
   transporteur,
   numeroSuivi,
+  compact = false,
 }: {
   etape: number | null;
   libelle: string | null;
   livreLe: string | null;
   transporteur: string | null;
   numeroSuivi: string | null;
+  /** Version d'une seule ligne, pour les listes où la frise complète se répète. */
+  compact?: boolean;
 }) {
   if (!numeroSuivi) {
     return <span className="text-xs text-muted-foreground">—</span>;
@@ -45,7 +48,21 @@ export function FriseColis({
   const suiviApi = transporteurAvecSuiviApi(transporteur);
   const urlExterne = urlSuiviTransporteur(transporteur, numeroSuivi);
   // Sans relevé automatique, on n'affirme rien au-delà de « parti ».
-  const atteinte = suiviApi ? Math.min(Math.max(etape ?? 1, 1), 4) : 1;
+  const atteinte = (suiviApi ? Math.min(Math.max(etape ?? 1, 1), 4) : 1) as EtapeColis;
+
+  if (compact) {
+    return (
+      <FriseCompacte
+        atteinte={atteinte}
+        libelle={libelle}
+        livreLe={livreLe}
+        suiviApi={suiviApi}
+        transporteur={transporteur}
+        numeroSuivi={numeroSuivi}
+        urlExterne={urlExterne}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -136,6 +153,76 @@ export function FriseColis({
         ) : null}
       </div>
     </div>
+  );
+}
+
+// Une seule ligne : quatre pastilles, l'étape atteinte en toutes lettres, puis le colis.
+// Dans une liste de vingt envois, la frise complète répétée noie l'information au lieu de la
+// donner — et « pas de suivi automatique » vingt fois de suite est du bruit, pas un message.
+function FriseCompacte({
+  atteinte,
+  libelle,
+  livreLe,
+  suiviApi,
+  transporteur,
+  numeroSuivi,
+  urlExterne,
+}: {
+  atteinte: EtapeColis;
+  libelle: string | null;
+  livreLe: string | null;
+  suiviApi: boolean;
+  transporteur: string | null;
+  numeroSuivi: string;
+  urlExterne: string | null;
+}) {
+  const livre = atteinte === 4;
+  return (
+    <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11.5px]">
+      <span className="flex items-center gap-1" title={libelle ?? undefined}>
+        {ETAPES.map((e) => (
+          <span
+            key={e}
+            aria-hidden
+            className="rounded-full"
+            style={{
+              width: e === atteinte ? 9 : 6,
+              height: e === atteinte ? 9 : 6,
+              background: e <= atteinte ? "var(--pal-green-dot)" : ATTENTE,
+            }}
+          />
+        ))}
+      </span>
+
+      <span
+        className="font-semibold"
+        style={{ color: livre ? "var(--pal-green-fg)" : "var(--ev-body)" }}
+      >
+        {LIBELLES_ETAPE_COLIS[atteinte]}
+        {livre && livreLe ? ` le ${new Date(livreLe).toLocaleDateString("fr-FR")}` : ""}
+      </span>
+
+      <span className="font-mono" style={{ color: "var(--ev-text-tertiary)" }}>
+        {transporteur ? `${transporteur} · ` : ""}
+        {urlExterne ? (
+          <a href={urlExterne} target="_blank" rel="noreferrer" className="underline">
+            {numeroSuivi}
+          </a>
+        ) : (
+          numeroSuivi
+        )}
+      </span>
+
+      {!suiviApi ? (
+        <span
+          className="rounded px-1 py-px text-[10px] uppercase tracking-wide"
+          style={{ background: "var(--ev-surface)", color: "var(--ev-text-tertiary)" }}
+          title="Ce transporteur n'a pas de suivi automatique : l'état n'avance pas tout seul."
+        >
+          manuel
+        </span>
+      ) : null}
+    </span>
   );
 }
 
