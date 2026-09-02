@@ -45,4 +45,10 @@ next-env.d.ts
 # Documentation de travail : exports routeur Sewan (.rsc/autoprov avec clé WiFi et mot de
 # passe admin d'un client), captures, maquettes, guides générés. Rien de tout cela n'a à
 # être versionné, et un fichier client s'y glisse trop facilement.
-docs/
+# Le contenu est exclu, pas le dossier : git ne descend pas dans un répertoire ignoré, donc
+# « docs/ » suivi d'une négation ne rouvrirait rien.
+docs/*
+
+# Exception : les specs de conception ne contiennent aucune donnée client et doivent suivre
+# le code qu'elles décrivent.
+!docs/superpowers/
