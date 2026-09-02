@@ -17,19 +17,32 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          # Jeton fourni automatiquement par Actions, valable le temps du job seulement.
+          GH_DEPLOY_TOKEN: ${{ github.token }}
+          DEPOT: ${{ github.repository }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           port: ${{ secrets.SSH_PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # Transmet ces deux variables au shell distant (elles n'existent que sur le runner).
+          envs: GH_DEPLOY_TOKEN,DEPOT
+
           # -e: toute commande qui échoue stoppe le déploiement (pas de restart
           # sur un build cassé). -o pipefail: idem à travers un pipe.
           script: |
             set -eo pipefail
             cd /var/www/html/everlink.quentindurant.com
 
-            git fetch origin main
-            git reset --hard origin/main
+            # Fetch authentifié plutôt qu'anonyme. GitHub a cessé d'accepter les
+            # requêtes Git anonymes venant de l'IP de ce VPS : le fetch tombait alors sur
+            # une demande d'identifiants et le déploiement s'arrêtait avec
+            # « could not read Username for https://github.com ». Le jeton est passé en
+            # ligne, jamais écrit dans la configuration git du serveur, et expire à la fin
+            # du job. FETCH_HEAD évite de dépendre de l'URL enregistrée dans le remote.
+            git fetch "https://x-access-token:${GH_DEPLOY_TOKEN}@github.com/${DEPOT}.git" main
+            git reset --hard FETCH_HEAD
 
             # Pas de package-lock.json versionné (le lockfile du repo est bun.lock),
             # donc npm install et non npm ci. Pour un build 100% reproductible, installer
