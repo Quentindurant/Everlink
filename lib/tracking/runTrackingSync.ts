@@ -11,6 +11,7 @@ export interface TrackingSyncResult {
   configure: boolean;
   articlesVerifies: number;
   clientsVerifies: number;
+  lotsVerifies: number;
   misAJour: number;
   message?: string;
 }
@@ -22,13 +23,14 @@ export async function runTrackingSync(): Promise<TrackingSyncResult> {
       configure: false,
       articlesVerifies: 0,
       clientsVerifies: 0,
+      lotsVerifies: 0,
       misAJour: 0,
       message: "API_KEY_LAPOSTE absente : suivi désactivé.",
     };
   }
 
   // Colis non livrés uniquement (statut null = jamais relevé, ou EN_COURS/INCONNU).
-  const [articles, clients] = await Promise.all([
+  const [articles, clients, lots] = await Promise.all([
     prisma.articleStock.findMany({
       where: {
         archiveA: null,
@@ -45,6 +47,13 @@ export async function runTrackingSync(): Promise<TrackingSyncResult> {
       },
       select: { id: true, colisNumeroSuivi: true, colisTransporteur: true },
     }),
+    prisma.lotRetourOnt.findMany({
+      where: {
+        numeroSuivi: { not: null },
+        NOT: { suiviStatut: "LIVRE" },
+      },
+      select: { id: true, numeroSuivi: true, transporteur: true },
+    }),
   ]);
 
   let misAJour = 0;
@@ -59,6 +68,7 @@ export async function runTrackingSync(): Promise<TrackingSyncResult> {
       data: {
         suiviStatut: etat.statut,
         suiviLibelle: etat.libelle,
+        suiviEtape: etat.etape,
         suiviLivreLe: etat.livreLe ? new Date(etat.livreLe) : null,
         suiviMajLe: new Date(),
       },
@@ -75,8 +85,27 @@ export async function runTrackingSync(): Promise<TrackingSyncResult> {
       data: {
         colisSuiviStatut: etat.statut,
         colisSuiviLibelle: etat.libelle,
+        colisSuiviEtape: etat.etape,
         colisSuiviLivreLe: etat.livreLe ? new Date(etat.livreLe) : null,
         colisSuiviMajLe: new Date(),
+      },
+    });
+    misAJour++;
+  }
+
+  for (const l of lots) {
+    // DHL et autres transporteurs hors API La Poste : pas de relevé automatique.
+    if (!transporteurAvecSuiviApi(l.transporteur)) continue;
+    const etat = await suivreColis(l.numeroSuivi as string);
+    if (!etat) continue;
+    await prisma.lotRetourOnt.update({
+      where: { id: l.id },
+      data: {
+        suiviStatut: etat.statut,
+        suiviLibelle: etat.libelle,
+        suiviEtape: etat.etape,
+        suiviLivreLe: etat.livreLe ? new Date(etat.livreLe) : null,
+        suiviMajLe: new Date(),
       },
     });
     misAJour++;
@@ -87,6 +116,7 @@ export async function runTrackingSync(): Promise<TrackingSyncResult> {
     configure: true,
     articlesVerifies: articles.length,
     clientsVerifies: clients.length,
+    lotsVerifies: lots.length,
     misAJour,
   };
 }

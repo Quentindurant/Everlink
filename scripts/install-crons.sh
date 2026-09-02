@@ -35,7 +35,9 @@ fi
 #     le quota mensuel à lui seul.
 #   - colis et délivrabilité des mails : toutes les 2 h, ces états bougent lentement.
 #   - alerte prestataires : deux fois par jour, l'envoi est idempotent sur 20 h.
-LINE_TRACKING="0 */2 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/tracking-sync >/dev/null 2>&1 ${TAG}"
+# tracking-sync toutes les 30 min : la requête ne porte que sur les colis non livrés, donc le
+# volume décroît à mesure qu'ils arrivent. Un colis livré n'est plus jamais interrogé.
+LINE_TRACKING="*/30 * * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/tracking-sync >/dev/null 2>&1 ${TAG}"
 LINE_ZOHO="* * * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/zoho-pull >/dev/null 2>&1 ${TAG}"
 LINE_ALERTE="15 8,14 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/alerte-prestataires >/dev/null 2>&1 ${TAG}"
 LINE_MAIL="45 */2 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http://localhost:${PORT}/api/cron/mail-suivi >/dev/null 2>&1 ${TAG}"
@@ -43,4 +45,4 @@ LINE_MAIL="45 */2 * * * curl -fsS -X POST -H \"X-Cron-Secret: ${SECRET}\" http:/
 # Réécrit le crontab : toutes les lignes sauf les nôtres, plus les nôtres à jour. Le secret
 # n'est jamais imprimé (pas d'echo des lignes) pour ne pas fuiter dans les logs du déploiement.
 { crontab -l 2>/dev/null | grep -vF "$TAG" || true; printf '%s\n' "$LINE_TRACKING" "$LINE_ZOHO" "$LINE_MAIL" "$LINE_ALERTE"; } | crontab -
-echo "install-crons: crons tracking-sync, zoho-pull, mail-suivi et alerte-prestataires installés (toutes les 2h, port ${PORT})."
+echo "install-crons: crons installés sur le port ${PORT} — tracking-sync toutes les 30 min, zoho-pull chaque minute, mail-suivi toutes les 2h, alerte-prestataires à 8h15 et 14h15."
