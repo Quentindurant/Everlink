@@ -5,7 +5,7 @@ import { ChevronDown, PenLine, RotateCcw, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { substituer, type VariablesMail } from "@/lib/domain/mail/substitution";
+import { contactSite, substituer, type VariablesMail } from "@/lib/domain/mail/substitution";
 import type { ModeleMailLite } from "@/lib/repositories/mailRepository";
 import { SUIVI_MAIL } from "@/lib/domain/mail/suiviStatuts";
 import { blocGuidesSpeek, blocPreparationSpeek } from "@/lib/domain/mail/softphone";
@@ -84,6 +84,7 @@ export function OngletMails({
   numeroGc,
   nbSoftphones,
   nomsGuides,
+  mailMigration,
 }: {
   clientInfo: {
     id: string;
@@ -94,12 +95,16 @@ export function OngletMails({
     contactNom: string | null;
     contactPrenom: string | null;
     contactEmail: string | null;
+    contactFixe: string | null;
+    contactMobile: string | null;
     dateIso: string | null;
     creneau: string | null;
   };
   modeles: ModeleMailLite[];
   envois: EnvoiLigne[];
   numeroGc: string;
+  // Boîte mail de migration de la filiale, à laquelle le client répond.
+  mailMigration: string;
   // Utilisateurs à migrer de DOKO vers Speek : declenche le paragraphe de preparation.
   nbSoftphones: number;
   // Guides joints automatiquement a la confirmation quand il y a des softphones.
@@ -131,8 +136,10 @@ export function OngletMails({
       date: date ? new Date(date).toLocaleDateString("fr-FR") : "",
       creneau,
       numero_gc: numeroGc,
+      mail_migration: mailMigration,
+      contact_site: contactSite(clientInfo),
     };
-  }, [clientInfo, date, creneau, numeroGc]);
+  }, [clientInfo, date, creneau, numeroGc, mailMigration]);
 
   const objetModele = modele ? substituer(modele.objet, variables) : "";
   // Softphones à réinstaller : la prévenance demande la préparation, la confirmation

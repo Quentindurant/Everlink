@@ -18,6 +18,7 @@ import { listEtapesMigration } from "@/lib/repositories/migrationRepository";
 import {
   compterSoftphones,
   fetchEnvois,
+  getParametreApp,
   listModelesMail,
 } from "@/lib/repositories/mailRepository";
 import { listerGuides } from "@/lib/mail/guides";
@@ -66,16 +67,27 @@ export default async function ClientDetailPage({
 }) {
   const { id } = await params;
   const { onglet } = await searchParams;
-  const [detail, etapesMigration, modelesMail, envoisRaw, nbSoftphones, guides, prestataires] =
-    await Promise.all([
-      fetchClientDetail(id),
-      listEtapesMigration(),
-      listModelesMail(),
-      fetchEnvois(id),
-      compterSoftphones(id),
-      listerGuides(),
-      fetchPrestataires(id),
-    ]);
+  const [
+    detail,
+    etapesMigration,
+    modelesMail,
+    envoisRaw,
+    nbSoftphones,
+    guides,
+    prestataires,
+    mailMigrationParam,
+  ] = await Promise.all([
+    fetchClientDetail(id),
+    listEtapesMigration(),
+    listModelesMail(),
+    fetchEnvois(id),
+    compterSoftphones(id),
+    listerGuides(),
+    fetchPrestataires(id),
+    getParametreApp("mailMigration"),
+  ]);
+  // À défaut de paramètre propre, l'adresse mise en copie fait foi : c'est la même boîte.
+  const mailMigration = mailMigrationParam?.trim() || (await getParametreApp("copieMail"))?.trim() || "";
   if (!detail) notFound();
   const { client, etapes } = detail;
 
@@ -305,6 +317,7 @@ export default async function ClientDetailPage({
         modelesMail={modelesMail}
         envois={envois}
         numeroGc={process.env.NUMERO_GC ?? ""}
+        mailMigration={mailMigration}
         nbSoftphones={nbSoftphones}
         nomsGuides={guides.map((g) => g.filename)}
         ongletInitial={onglet}

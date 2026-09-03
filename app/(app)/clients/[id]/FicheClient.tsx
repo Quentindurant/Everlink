@@ -91,6 +91,7 @@ export function FicheClient({
   modelesMail,
   envois,
   numeroGc,
+  mailMigration,
   nbSoftphones,
   nomsGuides,
   ongletInitial,
@@ -99,6 +100,8 @@ export function FicheClient({
   modelesMail: ModeleMailLite[];
   envois: EnvoiLigne[];
   numeroGc: string;
+  /** Boîte mail de migration de la filiale, paramètre applicatif. */
+  mailMigration: string;
   nbSoftphones: number;
   nomsGuides: string[];
   ongletInitial?: string;
@@ -296,12 +299,15 @@ export function FicheClient({
             contactNom: client.contactNom,
             contactPrenom: client.contactPrenom,
             contactEmail: client.contactEmail,
+            contactFixe: client.contactFixe,
+            contactMobile: client.contactMobile,
             dateIso: client.dateIntervention ? client.dateIntervention.toISOString().slice(0, 10) : null,
             creneau: client.creneauIntervention,
           }}
           modeles={modelesMail}
           envois={envois}
           numeroGc={numeroGc}
+          mailMigration={mailMigration}
           nbSoftphones={nbSoftphones}
           nomsGuides={nomsGuides}
         />

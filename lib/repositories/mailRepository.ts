@@ -1,6 +1,6 @@
 import type { TypeMail } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import type { VariablesMail } from "@/lib/domain/mail/substitution";
+import { contactSite, type VariablesMail } from "@/lib/domain/mail/substitution";
 
 export interface ModeleMailLite {
   id: string;
@@ -30,9 +30,12 @@ export function buildVariablesClient(
     contactCivilite?: string | null;
     contactNom: string | null;
     contactPrenom: string | null;
+    contactFixe?: string | null;
+    contactMobile?: string | null;
   },
   date: string,
-  creneau: string
+  creneau: string,
+  mailMigration = ""
 ): VariablesMail {
   const civiliteNom = [client.contactPrenom, client.contactNom].filter(Boolean).join(" ").trim();
   return {
@@ -43,8 +46,11 @@ export function buildVariablesClient(
     date,
     creneau,
     numero_gc: process.env.NUMERO_GC ?? "",
+    mail_migration: mailMigration,
+    contact_site: contactSite(client),
   };
 }
+
 
 // Utilisateurs équipés d'un softphone (DOKO à migrer vers Speek) : pilote le paragraphe de
 // préparation dans la prévenance et les guides joints à la confirmation.
