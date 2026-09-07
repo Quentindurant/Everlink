@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { evaluerControle, type NiveauControle } from "@/lib/domain/controle/controleNumero";
 import { normaliserNumero } from "@/lib/domain/normalisation";
+import { filtrePartenaire, idPartenaireActif } from "@/lib/partenaire";
 
 export interface ProvisionningFiltres {
   lotId?: string;
@@ -391,7 +392,7 @@ export async function listLotsActifs(): Promise<{ id: string; nom: string }[]> {
 
 export async function listClientsActifs(): Promise<{ id: string; raisonSociale: string }[]> {
   return prisma.client.findMany({
-    where: { archiveA: null },
+    where: { archiveA: null, ...filtrePartenaire(await idPartenaireActif()) },
     select: { id: true, raisonSociale: true },
     orderBy: { raisonSociale: "asc" },
   });
@@ -409,6 +410,7 @@ export async function fetchClientsSansLignes(
   return prisma.client.findMany({
     where: {
       archiveA: null,
+      ...filtrePartenaire(await idPartenaireActif()),
       id: { notIn: clientIdsPresents.length > 0 ? clientIdsPresents : ["__none__"] },
       ...(filtres.clientId ? { id: filtres.clientId } : {}),
       ...(filtres.lotId ? { lotId: filtres.lotId } : {}),

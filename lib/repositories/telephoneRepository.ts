@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { estEtapeResolue, STATUTS_ETAPE_RESOLUS } from "@/lib/domain/telephone/statuts";
 import { estPrestataireTraite } from "@/lib/domain/prestataires/statuts";
 import { etatMigration } from "@/lib/domain/telephone/migrable";
+import { filtrePartenaire, idPartenaireActif } from "@/lib/partenaire";
 
 export interface TelephoneUtilisateurLigne {
   utilisateurId: string;
@@ -309,7 +310,7 @@ async function calculerProgressionChantier(): Promise<ProgressionChantier> {
         },
       },
     }),
-    prisma.client.count({ where: { archiveA: null } }),
+    prisma.client.count({ where: { archiveA: null, ...filtrePartenaire(await idPartenaireActif()) } }),
   ]);
 
   const posteFait = (u: { suivis: unknown[] }) =>

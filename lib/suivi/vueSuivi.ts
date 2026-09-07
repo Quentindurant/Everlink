@@ -3,13 +3,14 @@
 // pour que la page Techniciens et la disponibilité restent utilisables hors ligne.
 import {
   affectationsDepuisRows,
-  estLigneEverlink,
+  codePartenaireLigne,
   libelleMoisSuivi,
   ligneDepuisRow,
   moisCourant,
   type LigneSuivi,
 } from "@/lib/domain/suivi/ligneSuivi";
 import { suiviClient, suiviConfig } from "./suiviClient";
+import { partenaireActif } from "@/lib/partenaire";
 
 /** Vue live (page Techniciens) : lignes EVERLINK du mois courant, format historique. */
 export async function lireVueSuivi(): Promise<{
@@ -19,13 +20,17 @@ export async function lireVueSuivi(): Promise<{
 }> {
   const mois = moisCourant();
   const onglet = libelleMoisSuivi(mois);
+  const code = (await partenaireActif())?.code ?? "";
   if (!suiviConfig().configure) return { configure: false, onglet, lignes: [] };
   try {
     const rows = await suiviClient().lireLignesMois(mois);
     return {
       configure: true,
       onglet,
-      lignes: rows.filter((r) => !r.archived && estLigneEverlink(r.data)).map((r) => ligneDepuisRow(r.data)),
+      // La vue suit le partenaire affiché : on regarde le tableau du périmètre où l'on est.
+      lignes: rows
+        .filter((r) => !r.archived && codePartenaireLigne(r.data) === code)
+        .map((r) => ligneDepuisRow(r.data)),
     };
   } catch {
     return { configure: true, onglet, lignes: [] };

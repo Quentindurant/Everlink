@@ -13,7 +13,7 @@ import { normaliserNomTech } from "@/lib/domain/technicien/disponibilite";
 import { rapprocherLignes } from "@/lib/domain/zoho/rapprochement";
 import {
   champsAMettreAJour,
-  estLigneEverlink,
+  codePartenaireLigne,
   libelleMoisSuivi,
   ligneDepuisRow,
   moisCourant,
@@ -51,6 +51,13 @@ export async function runSuiviPull(): Promise<SuiviPullResultat> {
   const mois = moisCourant();
   const onglet = libelleMoisSuivi(mois);
 
+  // code du partenaire → identifiant, pour ranger chaque ligne du tableau de son côté.
+  const partenaires = await prisma.partenaire.findMany({
+    where: { actif: true },
+    select: { id: true, code: true },
+  });
+  const idParCode = new Map(partenaires.map((p) => [p.code, p.id]));
+
   if (!suiviConfig().configure) {
     return echec(onglet, "Tableau de suivi non configuré (variables SUIVI_API_* manquantes).");
   }
@@ -58,12 +65,16 @@ export async function runSuiviPull(): Promise<SuiviPullResultat> {
   let lignes;
   try {
     const rows = await suiviClient().lireLignesMois(mois);
-    lignes = rows.filter((r) => !r.archived && estLigneEverlink(r.data)).map((r) => ligneDepuisRow(r.data));
+    // Toutes les lignes rattachées à un partenaire connu, pas seulement EVERLINK : le cron
+    // n'a pas de partenaire actif, il couvre les deux périmètres en un seul passage.
+    lignes = rows
+      .filter((r) => !r.archived && idParCode.has(codePartenaireLigne(r.data)))
+      .map((r) => ({ ...ligneDepuisRow(r.data), codePartenaire: codePartenaireLigne(r.data) }));
   } catch (e) {
     return echec(onglet, e instanceof Error ? e.message : "Tableau de suivi injoignable.");
   }
   if (lignes.length === 0) {
-    return echec(onglet, "Aucune ligne EVERLINK lue dans le tableau de suivi pour ce mois.");
+    return echec(onglet, "Aucune ligne rattachée à un partenaire connu pour ce mois.");
   }
 
   const [clients, techniciens] = await Promise.all([
@@ -78,6 +89,7 @@ export async function runSuiviPull(): Promise<SuiviPullResultat> {
         creneauIntervention: true,
         technicienId: true,
         chefProjetNom: true,
+        partenaireId: true,
       },
     }),
     // L'annuaire complet, désactivés compris : la déduplication du référentiel et le
@@ -102,7 +114,18 @@ export async function runSuiviPull(): Promise<SuiviPullResultat> {
     techniciensCrees++;
   }
 
-  const { apparies, lignesInconnues } = rapprocherLignes(lignes, clients);
+  // Appariement cloisonné : deux partenaires peuvent avoir des clients aux noms voisins, et
+  // une ligne de l'un ne doit jamais capturer le dossier de l'autre.
+  const apparies: ReturnType<typeof rapprocherLignes>["apparies"] = [];
+  const lignesInconnues: string[] = [];
+  for (const [code, partenaireId] of idParCode) {
+    const lignesDuPartenaire = lignes.filter((l) => l.codePartenaire === code);
+    if (lignesDuPartenaire.length === 0) continue;
+    const clientsDuPartenaire = clients.filter((c) => c.partenaireId === partenaireId);
+    const r = rapprocherLignes(lignesDuPartenaire, clientsDuPartenaire);
+    apparies.push(...r.apparies);
+    lignesInconnues.push(...r.lignesInconnues);
+  }
   const parId = new Map(clients.map((c) => [c.id, c]));
 
   // Le tableau fait foi pour les affectations : un technicien qu'il cite mais que

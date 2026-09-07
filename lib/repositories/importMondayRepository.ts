@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { MondayLigne } from "@/lib/domain/import/monday";
 import { nomSiteDepuisAdresse } from "@/lib/domain/import/monday";
+import { idPartenaireActif } from "@/lib/partenaire";
 
 // Décision de l'opérateur pour chaque ligne "à rapprocher": id d'un client existant,
 // "creer" pour un nouveau client, ou "ignorer".
@@ -157,6 +158,7 @@ export async function appliquerImport(
     const lotId = await lotIdPourNom(ligne.lotNom);
     await prisma.client.create({
       data: {
+        partenaireId: await idPartenaireActif(),
         raisonSociale: ligne.raisonSociale,
         cleRapprochement: ligne.raisonSociale.trim().replace(/\s+/g, " ").toUpperCase(),
         lotId,

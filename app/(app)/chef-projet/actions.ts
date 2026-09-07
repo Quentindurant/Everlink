@@ -122,6 +122,12 @@ export async function enregistrerMaterielAction(
   if (!verdict.ok) return { success: false, error: verdict.message };
 
   if (verdict.mode === "numero") {
+    // Le matériel suit le partenaire du dossier, pas celui affiché : un chef de projet qui
+    // aurait basculé de périmètre ne doit pas ranger l'appareil du mauvais côté.
+    const dossier = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { partenaireId: true },
+    });
     await prisma.articleStock.create({
       data: {
         type: modele,
@@ -129,6 +135,7 @@ export async function enregistrerMaterielAction(
         numeroSerie: verdict.numeroSerie,
         clientId,
         statut: "EN_STOCK",
+        partenaireId: dossier?.partenaireId ?? null,
       },
     });
     await setSuiviProjet(clientId, etapeId, "Fait", session.user.email ?? null);

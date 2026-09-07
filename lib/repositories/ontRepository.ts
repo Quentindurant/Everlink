@@ -9,6 +9,7 @@ import {
   valideClotureLot,
   valideSaisieMateriel,
 } from "@/lib/domain/staging/ont";
+import { filtrePartenaire, idPartenaireActif } from "@/lib/partenaire";
 
 export interface OntLigne {
   id: string;
@@ -96,7 +97,7 @@ function versLot(lot: {
 // arrivés physiquement, et c'est là qu'un appareil se perd.
 export async function fetchOntsAnnonces(): Promise<OntLigne[]> {
   const articles = await prisma.articleStock.findMany({
-    where: { type: "ONT", archiveA: null, lotRetourId: null },
+    where: { type: "ONT", archiveA: null, lotRetourId: null, ...filtrePartenaire(await idPartenaireActif()) },
     select: SELECT_ONT,
     orderBy: [{ dateReception: "asc" }, { creeLe: "asc" }],
   });
@@ -106,7 +107,7 @@ export async function fetchOntsAnnonces(): Promise<OntLigne[]> {
 // Le panier courant du staging : un seul lot ouvert à la fois.
 export async function fetchLotOuvert(): Promise<LotOnt | null> {
   const lot = await prisma.lotRetourOnt.findFirst({
-    where: { expedieLe: null },
+    where: { expedieLe: null, ...filtrePartenaire(await idPartenaireActif()) },
     orderBy: { creeLe: "desc" },
     include: { articles: { select: SELECT_ONT } },
   });
@@ -115,7 +116,7 @@ export async function fetchLotOuvert(): Promise<LotOnt | null> {
 
 export async function fetchLotsPartis(): Promise<LotOnt[]> {
   const lots = await prisma.lotRetourOnt.findMany({
-    where: { expedieLe: { not: null } },
+    where: { expedieLe: { not: null }, ...filtrePartenaire(await idPartenaireActif()) },
     orderBy: { expedieLe: "desc" },
     include: { articles: { select: SELECT_ONT } },
   });
@@ -143,7 +144,10 @@ export async function verserDansLot(articleId: string): Promise<{ ok: boolean; m
   // poser son premier appareil dedans.
   const ouvert =
     (await prisma.lotRetourOnt.findFirst({ where: { expedieLe: null }, select: { id: true } })) ??
-    (await prisma.lotRetourOnt.create({ data: { destinataire: "" }, select: { id: true } }));
+    (await prisma.lotRetourOnt.create({
+      data: { destinataire: "", partenaireId: await idPartenaireActif() },
+      select: { id: true },
+    }));
 
   await prisma.articleStock.update({
     where: { id: articleId },
@@ -235,6 +239,8 @@ export async function creerOnt(champs: {
       clientId: champs.clientId,
       statut: "EN_STOCK",
       dateReception: champs.recu ? new Date() : null,
+      // Stocks séparés : sans rattachement, l'appareil n'apparaîtrait dans aucun périmètre.
+      partenaireId: await idPartenaireActif(),
     },
   });
   return { ok: true };

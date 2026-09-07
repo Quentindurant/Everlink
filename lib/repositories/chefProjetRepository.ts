@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
 import { urlAutoprovision } from "@/lib/domain/projet/autoprovision";
 import { estPanasonic } from "@/lib/domain/projet/panasonic";
+import { filtrePartenaire, idPartenaireActif } from "@/lib/partenaire";
 
 // Checklist de préparation d'un dossier, au niveau client : ce que le chef de projet doit
 // avoir bouclé avant et pendant l'intervention. Un dossier clos disparaît de la liste
@@ -66,6 +67,7 @@ export interface ChefProjetVue {
 export async function fetchChefProjet(
   filtres: { recherche?: string; avecClos?: boolean } = {}
 ): Promise<ChefProjetVue> {
+  const pid = await idPartenaireActif();
   const [etapes, valeurs, clients, nbClos, types] = await Promise.all([
     prisma.etapeProjet.findMany({ where: { actif: true }, orderBy: { ordre: "asc" } }),
     prisma.listeValeur.findMany({
@@ -75,6 +77,7 @@ export async function fetchChefProjet(
     prisma.client.findMany({
       where: {
         archiveA: null,
+        ...filtrePartenaire(pid),
         ...(filtres.avecClos ? {} : { projetClosLe: null }),
         ...(filtres.recherche
           ? { raisonSociale: { contains: filtres.recherche, mode: "insensitive" } }
@@ -116,11 +119,11 @@ export async function fetchChefProjet(
         { raisonSociale: "asc" },
       ],
     }),
-    prisma.client.count({ where: { archiveA: null, projetClosLe: { not: null } } }),
+    prisma.client.count({ where: { archiveA: null, projetClosLe: { not: null }, ...filtrePartenaire(pid) } }),
     // Modèles déjà connus du stock : le chef de projet choisit dans la liste au lieu de
     // ressaisir un libellé qui divergerait de celui du staging.
     prisma.articleStock.findMany({
-      where: { archiveA: null },
+      where: { archiveA: null, ...filtrePartenaire(pid) },
       distinct: ["type"],
       select: { type: true },
       orderBy: { type: "asc" },

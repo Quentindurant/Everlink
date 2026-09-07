@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { SEUIL_TENTATIVES } from "@/lib/domain/migration/etapes";
+import { filtrePartenaire, idPartenaireActif } from "@/lib/partenaire";
 
 export interface InterventionProche {
   clientId: string;
@@ -26,10 +27,11 @@ const jour = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
 export async function fetchAccueil(): Promise<AccueilData> {
   const debutJour = new Date();
   debutJour.setHours(0, 0, 0, 0);
+  const fp = filtrePartenaire(await idPartenaireActif());
 
   const [interventions, bloques, aRelancer, clientsLien, stock] = await Promise.all([
     prisma.client.findMany({
-      where: { archiveA: null, dateIntervention: { gte: debutJour } },
+      where: { archiveA: null, dateIntervention: { gte: debutJour }, ...fp },
       select: {
         id: true,
         raisonSociale: true,
@@ -44,24 +46,24 @@ export async function fetchAccueil(): Promise<AccueilData> {
       take: 20,
     }),
     prisma.client.findMany({
-      where: { archiveA: null, etapeMigration: { estBloquant: true } },
+      where: { archiveA: null, etapeMigration: { estBloquant: true }, ...fp },
       select: { id: true, raisonSociale: true, etapeMigration: { select: { libelle: true } } },
       orderBy: { raisonSociale: "asc" },
       take: 30,
     }),
     prisma.client.findMany({
-      where: { archiveA: null, nbTentativesContact: { gte: SEUIL_TENTATIVES } },
+      where: { archiveA: null, nbTentativesContact: { gte: SEUIL_TENTATIVES }, ...fp },
       select: { id: true, raisonSociale: true, nbTentativesContact: true },
       orderBy: { nbTentativesContact: "desc" },
       take: 30,
     }),
     prisma.client.findMany({
-      where: { archiveA: null, lienCommande: false },
+      where: { archiveA: null, lienCommande: false, ...fp },
       select: { scenario: true },
     }),
     prisma.articleStock.groupBy({
       by: ["statut"],
-      where: { archiveA: null },
+      where: { archiveA: null, ...fp },
       _count: { _all: true },
     }),
   ]);

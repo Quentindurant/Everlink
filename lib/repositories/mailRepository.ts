@@ -1,6 +1,7 @@
 import type { TypeMail } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { contactSite, type VariablesMail } from "@/lib/domain/mail/substitution";
+import { filtrePartenaire, idPartenaireActif } from "@/lib/partenaire";
 
 export interface ModeleMailLite {
   id: string;
@@ -13,7 +14,7 @@ export interface ModeleMailLite {
 // Templates actifs (pour le sélecteur de la fiche client), ordonnés.
 export async function listModelesMail(): Promise<ModeleMailLite[]> {
   const modeles = await prisma.modeleMail.findMany({
-    where: { actif: true },
+    where: { actif: true, ...filtrePartenaire(await idPartenaireActif()) },
     orderBy: [{ ordre: "asc" }, { scenario: "asc" }],
     select: { id: true, scenario: true, type: true, objet: true, corps: true },
   });

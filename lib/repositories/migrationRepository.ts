@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { EtapeMigrationLite } from "@/lib/domain/migration/etapes";
+import { filtrePartenaire, idPartenaireActif } from "@/lib/partenaire";
 
 // Référentiel des étapes actives, ordonné. Consommé par la grille, la fiche client et les filtres.
 export async function listEtapesMigration(): Promise<EtapeMigrationLite[]> {
@@ -15,7 +16,7 @@ export async function listEtapesMigration(): Promise<EtapeMigrationLite[]> {
 // Provisionning sans alourdir chaque ligne.
 export async function mapEtapeParClient(): Promise<Record<string, string | null>> {
   const clients = await prisma.client.findMany({
-    where: { archiveA: null },
+    where: { archiveA: null, ...filtrePartenaire(await idPartenaireActif()) },
     select: { id: true, etapeMigrationId: true },
   });
   return Object.fromEntries(clients.map((c) => [c.id, c.etapeMigrationId]));

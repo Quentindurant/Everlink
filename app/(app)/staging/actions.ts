@@ -25,6 +25,7 @@ import {
   supprimerOnt,
   verserDansLot,
 } from "@/lib/repositories/ontRepository";
+import { idPartenaireActif } from "@/lib/partenaire";
 
 async function garde() {
   const session = await auth();
@@ -296,6 +297,7 @@ export async function ajouterArticleAction(
   }
   const cree = await prisma.articleStock.create({
     data: {
+      partenaireId: await idPartenaireActif(),
       type: type.trim() || "Routeur 4G seul",
       numeroSerie: serie,
       statut: "EN_STOCK",
@@ -334,6 +336,7 @@ export async function ajouterRetourAction(
   if (!numeroSerie.trim()) return { success: false, error: "Numéro de série requis." };
   await prisma.articleStock.create({
     data: {
+      partenaireId: await idPartenaireActif(),
       type: type.trim() || "Routeur client",
       numeroSerie: numeroSerie.trim(),
       statut: "RETOUR",

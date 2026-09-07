@@ -4,6 +4,7 @@ import {
   STATUTS_STOCK,
   type ArticleStockLigne,
 } from "@/lib/domain/stock/statuts";
+import { filtrePartenaire, idPartenaireActif } from "@/lib/partenaire";
 
 export type { ArticleStockLigne } from "@/lib/domain/stock/statuts";
 export { LIBELLE_STATUT, STATUT_SUIVANT, STATUTS_STOCK } from "@/lib/domain/stock/statuts";
@@ -17,6 +18,7 @@ export async function fetchArticlesStock(filtre: {
   const articles = await prisma.articleStock.findMany({
     where: {
       archiveA: null,
+      ...filtrePartenaire(await idPartenaireActif()),
       ...(filtre.type ? { type: filtre.type } : {}),
       ...(filtre.statut ? { statut: filtre.statut } : {}),
     },
@@ -57,7 +59,11 @@ export interface AInstallerLigne {
 // client, on remonte l'état du lien et l'intervention pour tout voir au même endroit.
 export async function fetchAInstaller(): Promise<AInstallerLigne[]> {
   const articles = await prisma.articleStock.findMany({
-    where: { archiveA: null, statut: { in: ["CONFIGURE", "ENVOYE"] } },
+    where: {
+      archiveA: null,
+      statut: { in: ["CONFIGURE", "ENVOYE"] },
+      ...filtrePartenaire(await idPartenaireActif()),
+    },
     include: {
       client: {
         select: {
@@ -90,7 +96,7 @@ export async function fetchAInstaller(): Promise<AInstallerLigne[]> {
 
 export async function listClientsPourStock(): Promise<{ id: string; raisonSociale: string }[]> {
   return prisma.client.findMany({
-    where: { archiveA: null },
+    where: { archiveA: null, ...filtrePartenaire(await idPartenaireActif()) },
     select: { id: true, raisonSociale: true },
     orderBy: { raisonSociale: "asc" },
   });
@@ -104,7 +110,11 @@ export async function fetchStockActif(): Promise<ArticleStockLigne[]> {
 
 async function fetchArticlesParStatuts(statuts: string[]): Promise<ArticleStockLigne[]> {
   const articles = await prisma.articleStock.findMany({
-    where: { archiveA: null, statut: { in: statuts } },
+    where: {
+      archiveA: null,
+      statut: { in: statuts },
+      ...filtrePartenaire(await idPartenaireActif()),
+    },
     include: { client: { select: { raisonSociale: true } } },
     orderBy: [{ type: "asc" }, { numeroSerie: "asc" }],
   });
@@ -294,14 +304,15 @@ export interface StatsStock {
 }
 
 export async function statsStock(): Promise<StatsStock> {
+  const fp = filtrePartenaire(await idPartenaireActif());
   const [groupes, types] = await Promise.all([
     prisma.articleStock.groupBy({
       by: ["statut"],
-      where: { archiveA: null },
+      where: { archiveA: null, ...fp },
       _count: { _all: true },
     }),
     prisma.articleStock.findMany({
-      where: { archiveA: null },
+      where: { archiveA: null, ...fp },
       distinct: ["type"],
       select: { type: true },
       orderBy: { type: "asc" },

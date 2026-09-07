@@ -50,6 +50,29 @@ model Lot {
   exportBatchs ExportBatch[]
 }
 
+// Partenaire opérateur pour le compte duquel la migration est menée (EVERLINK, INOVACOM).
+// Le code reprend la valeur de la colonne « partenaire » du tableau de suivi, pour que la
+// synchronisation range chaque ligne sans table de correspondance.
+model Partenaire {
+  id            String  @id @default(cuid())
+  code          String  @unique
+  nom           String
+  /// Chemin du logo sous public/, affiché dans la barre latérale et signé dans les mails.
+  logo          String
+  site          String?
+  mailMigration String?
+  actif         Boolean @default(true)
+  ordre         Int     @default(0)
+
+  clients     Client[]
+  articles    ArticleStock[]
+  lotsRetour  LotRetourOnt[]
+  modelesMail ModeleMail[]
+
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+}
+
 model Client {
   id               String @id @default(cuid())
   // Clé fonctionnelle et clé de jointure des exports UNYC. Jamais reformatée.
@@ -63,6 +86,10 @@ model Client {
   // Regroupement d'agences d'un même groupe, sans impact sur les exports.
   groupe  String?
   filiale String?
+
+  // Partenaire du dossier : sépare les périmètres dans toute l'application.
+  partenaire   Partenaire? @relation(fields: [partenaireId], references: [id])
+  partenaireId String?
 
   // Champs alimentés par l'import Monday
   codeMonday        String?   @unique
@@ -344,6 +371,10 @@ model ArticleStock {
   lotRetour   LotRetourOnt? @relation(fields: [lotRetourId], references: [id], onDelete: SetNull)
   lotRetourId String?
 
+  // Stocks séparés : un routeur d'un partenaire ne part pas chez le client d'un autre.
+  partenaire   Partenaire? @relation(fields: [partenaireId], references: [id])
+  partenaireId String?
+
   commentaire String?
   archiveA    DateTime?
   creeLe      DateTime  @default(now())
@@ -355,6 +386,7 @@ model ArticleStock {
   @@index([numeroSerie])
   @@index([numeroSuivi])
   @@index([lotRetourId])
+  @@index([partenaireId])
 }
 
 // Envoi groupé des ONT récupérés chez les clients vers le grossiste. Un lot sans expedieLe
@@ -375,11 +407,15 @@ model LotRetourOnt {
 
   articles ArticleStock[]
 
+  partenaire   Partenaire? @relation(fields: [partenaireId], references: [id])
+  partenaireId String?
+
   creeLe DateTime @default(now())
   majLe  DateTime @updatedAt
 
   @@index([numeroSuivi])
   @@index([expedieLe])
+  @@index([partenaireId])
 }
 
 // Configuration extraite d'un routeur Sewan (.rsc MikroTik), importée au staging pour
@@ -456,7 +492,13 @@ model ModeleMail {
   creeLe   DateTime @default(now())
   majLe    DateTime @updatedAt
 
+  // Chaque partenaire écrit à ses clients en son nom : rédaction, signature et boîte de
+  // réponse lui appartiennent.
+  partenaire   Partenaire? @relation(fields: [partenaireId], references: [id])
+  partenaireId String?
+
   @@index([type])
+  @@index([partenaireId])
 }
 
 // Trace d'un mail envoyé à un client.

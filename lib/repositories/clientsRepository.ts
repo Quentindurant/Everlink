@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { statutLien, type StatutLien } from "@/lib/domain/lien/statutLien";
+import { filtrePartenaire, idPartenaireActif } from "@/lib/partenaire";
 
 export interface ClientListeLigne {
   id: string;
@@ -40,6 +41,7 @@ export async function fetchClientsListe(
   const clients = await prisma.client.findMany({
     where: {
       archiveA: null,
+      ...filtrePartenaire(await idPartenaireActif()),
       ...(filtres.lotId ? { lotId: filtres.lotId } : {}),
       ...(filtres.etapeMigrationId ? { etapeMigrationId: filtres.etapeMigrationId } : {}),
       ...(filtres.statutLien === "LIVRE"

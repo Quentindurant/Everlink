@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ClocheNotifications } from "@/components/ClocheNotifications";
+import { SelecteurPartenaire } from "@/components/SelecteurPartenaire";
+import type { PartenaireLite } from "@/lib/partenaire";
 
 const NAV_GROUPES = [
   {
@@ -57,10 +59,17 @@ export function AppSidebar({
   badges = {},
   progression,
   nonLues = 0,
+  partenaireActif,
+  partenaires,
+  onChoisirPartenaire,
 }: {
   email: string;
   role: string;
   onLogout: () => Promise<void>;
+  /** Partenaire dont l'application montre le périmètre ; null si aucun n'est configuré. */
+  partenaireActif: PartenaireLite | null;
+  partenaires: PartenaireLite[];
+  onChoisirPartenaire: (code: string) => Promise<void>;
   badges?: Record<string, string | number | undefined>;
   nonLues?: number;
   progression?: {
@@ -92,15 +101,23 @@ export function AppSidebar({
     >
       {/* ── Logo ── */}
       <div className="px-4 pt-[18px] pb-3.5">
-        <Image
-          src="/everlink-logo.png"
-          alt="EverLink"
-          width={155}
-          height={24}
-          priority
-          unoptimized
-          className="h-6 w-auto"
-        />
+        {partenaireActif ? (
+          <SelecteurPartenaire
+            actif={partenaireActif}
+            partenaires={partenaires}
+            onChoisir={onChoisirPartenaire}
+          />
+        ) : (
+          <Image
+            src="/everlink-logo.png"
+            alt="EverLink"
+            width={155}
+            height={24}
+            priority
+            unoptimized
+            className="h-6 w-auto"
+          />
+        )}
         <div className="mt-[7px] text-[10.5px]" style={{ color: "var(--ev-text-tertiary)" }}>
           Migration opérateur · GC Développement
         </div>

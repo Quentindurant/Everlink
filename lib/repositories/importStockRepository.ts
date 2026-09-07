@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { prisma } from "@/lib/prisma";
+import { idPartenaireActif } from "@/lib/partenaire";
 
 export interface ArticleStockRow {
   type: string; // nom de l'onglet
@@ -117,6 +118,7 @@ export async function importStock(rows: ArticleStockRow[]): Promise<ImportStockR
     const statut = row.dateEnvoi || row.clientFinal ? "ENVOYE" : "EN_STOCK";
     await prisma.articleStock.create({
       data: {
+        partenaireId: await idPartenaireActif(),
         type: row.type,
         numeroSerie: row.numeroSerie,
         dateReception: row.dateReception,

@@ -6,6 +6,7 @@ import {
   type TechnicienLite,
 } from "@/lib/domain/technicien/disponibilite";
 import { lireAffectationsSuivi } from "@/lib/suivi/vueSuivi";
+import { filtrePartenaire, idPartenaireActif } from "@/lib/partenaire";
 
 export interface TechnicienLigne {
   id: string;
@@ -60,7 +61,7 @@ export interface DossierAdv {
 // Tous les dossiers actifs avec leur état actionnable, pour le poste de travail ADV.
 export async function fetchDossiersAdv(): Promise<DossierAdv[]> {
   const clients = await prisma.client.findMany({
-    where: { archiveA: null },
+    where: { archiveA: null, ...filtrePartenaire(await idPartenaireActif()) },
     select: {
       id: true,
       raisonSociale: true,
@@ -146,9 +147,10 @@ export interface AdvOverview {
 // Vue d'ensemble pour la page ADV: qui est affecté, avancement des étapes (portabilité),
 // état des commandes de lien. Agrégats calculés sur les clients actifs.
 export async function fetchAdvOverview(): Promise<AdvOverview> {
+  const pid = await idPartenaireActif();
   const [affectes, etapes, clients] = await Promise.all([
     prisma.client.findMany({
-      where: { archiveA: null, technicienId: { not: null } },
+      where: { archiveA: null, technicienId: { not: null }, ...filtrePartenaire(pid) },
       select: {
         id: true,
         raisonSociale: true,
@@ -164,7 +166,7 @@ export async function fetchAdvOverview(): Promise<AdvOverview> {
       select: { libelle: true, couleur: true, _count: { select: { clients: true } } },
     }),
     prisma.client.findMany({
-      where: { archiveA: null },
+      where: { archiveA: null, ...filtrePartenaire(pid) },
       select: { lienCommande: true, lienLivre: true, scenario: true },
     }),
   ]);

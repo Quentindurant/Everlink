@@ -3,6 +3,8 @@ import { toucherPresence } from "@/lib/activite";
 import { fetchProgressionChantier } from "@/lib/repositories/telephoneRepository";
 import { compterNonLues } from "@/lib/repositories/notificationsRepository";
 import { AppSidebar } from "@/components/AppSidebar";
+import { listPartenaires, partenaireActif } from "@/lib/partenaire";
+import { choisirPartenaireAction } from "./partenaireActions";
 import { CommandPalette } from "@/components/CommandPalette";
 import { logoutAction } from "./actions";
 
@@ -20,6 +22,7 @@ export default async function AppLayout({
   const progression = await fetchProgressionChantier();
   const email = session?.user?.email ?? "";
   const nonLues = email ? await compterNonLues(email) : 0;
+  const [partenaire, partenaires] = await Promise.all([partenaireActif(), listPartenaires()]);
 
   return (
     <div className="flex min-h-screen" style={{ background: "var(--ev-surface)" }}>
@@ -29,6 +32,9 @@ export default async function AppLayout({
         onLogout={logoutAction}
         progression={progression}
         nonLues={nonLues}
+        partenaireActif={partenaire}
+        partenaires={partenaires}
+        onChoisirPartenaire={choisirPartenaireAction}
       />
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
       <CommandPalette />

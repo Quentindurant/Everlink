@@ -170,7 +170,16 @@ const S = (v: unknown) => (v == null ? "" : String(v));
 
 /** Vrai si la ligne appartient à Everlink (colonne partenaire), casse/espaces ignorés. */
 export function estLigneEverlink(data: Record<string, unknown>): boolean {
-  return S(data["partenaire"]).trim().toUpperCase() === "EVERLINK";
+  return codePartenaireLigne(data) === "EVERLINK";
+}
+
+/**
+ * Code du partenaire porté par une ligne du tableau de suivi (« EVERLINK », « INOVACOM »).
+ * Chaîne vide si la colonne est absente ou vide : la ligne n'est alors rattachée à personne
+ * et la synchronisation la laisse de côté plutôt que de deviner.
+ */
+export function codePartenaireLigne(data: Record<string, unknown>): string {
+  return S(data["partenaire"]).trim().toUpperCase();
 }
 
 /** PULL : cellules d'une ligne du tableau → forme historique consommée par l'app. */
