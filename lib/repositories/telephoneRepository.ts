@@ -58,6 +58,7 @@ export async function fetchTelephoneGrille(filtres: {
   /** Ne garder que les dossiers dont la migration est ouverte (statut ADV ou J-3). */
   migrablesSeulement?: boolean;
 } = {}): Promise<TelephoneGrille> {
+  const pid = await idPartenaireActif();
   const [etapes, valeurs, utilisateurs] = await Promise.all([
     prisma.etapeModele.findMany({ where: { actif: true }, orderBy: { ordre: "asc" } }),
     prisma.listeValeur.findMany({
@@ -67,7 +68,7 @@ export async function fetchTelephoneGrille(filtres: {
     prisma.utilisateur.findMany({
       where: {
         archiveA: null,
-        client: { archiveA: null },
+        client: { archiveA: null, ...filtrePartenaire(pid) },
         ...(filtres.clientId ? { clientId: filtres.clientId } : {}),
         ...(filtres.recherche
           ? {
@@ -283,25 +284,30 @@ export interface ProgressionChantier {
 // lentement : on le garde en mémoire deux minutes. Sans ce cache, une navigation de vingt
 // pages coûtait quatre-vingts requêtes pour une valeur qui n'avait pas changé — la base est
 // facturée à l'opération, et la barre latérale était le premier poste de dépense.
+// Le cache est segmenté par partenaire : les deux périmètres n'ont pas le même avancement,
+// et une clé unique servirait les chiffres de l'un sous le logo de l'autre.
 const CACHE_PROGRESSION_MS = 120_000;
-let cacheProgression: { at: number; data: ProgressionChantier } | null = null;
+const cacheProgression = new Map<string, { at: number; data: ProgressionChantier }>();
 
 // Avancement global affiché dans la sidebar. Un poste est « fait » quand toutes les étapes
 // actives sont résolues (Fait ou Aucun) ; un client est fait quand tous ses postes le sont.
 export async function fetchProgressionChantier(): Promise<ProgressionChantier> {
-  if (cacheProgression && Date.now() - cacheProgression.at < CACHE_PROGRESSION_MS) {
-    return cacheProgression.data;
+  const pid = await idPartenaireActif();
+  const cle = pid ?? "tous";
+  const enCache = cacheProgression.get(cle);
+  if (enCache && Date.now() - enCache.at < CACHE_PROGRESSION_MS) {
+    return enCache.data;
   }
-  const data = await calculerProgressionChantier();
-  cacheProgression = { at: Date.now(), data };
+  const data = await calculerProgressionChantier(pid);
+  cacheProgression.set(cle, { at: Date.now(), data });
   return data;
 }
 
-async function calculerProgressionChantier(): Promise<ProgressionChantier> {
+async function calculerProgressionChantier(pid: string | null): Promise<ProgressionChantier> {
   const [etapesActives, utilisateurs, clientsTotal] = await Promise.all([
     prisma.etapeModele.count({ where: { actif: true } }),
     prisma.utilisateur.findMany({
-      where: { archiveA: null, client: { archiveA: null } },
+      where: { archiveA: null, client: { archiveA: null, ...filtrePartenaire(pid) } },
       select: {
         clientId: true,
         suivis: {
@@ -310,7 +316,7 @@ async function calculerProgressionChantier(): Promise<ProgressionChantier> {
         },
       },
     }),
-    prisma.client.count({ where: { archiveA: null, ...filtrePartenaire(await idPartenaireActif()) } }),
+    prisma.client.count({ where: { archiveA: null, ...filtrePartenaire(pid) } }),
   ]);
 
   const posteFait = (u: { suivis: unknown[] }) =>

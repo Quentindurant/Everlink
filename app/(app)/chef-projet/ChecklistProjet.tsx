@@ -310,6 +310,15 @@ function CorpsDossier({ dossier, vue }: { dossier: DossierProjet; vue: ChefProje
   // Étape à faire maintenant : la première non résolue de tout le dossier.
   const courante = vue.etapes.find((e) => !estEtapeResolue(dossier.suivis[e.id]?.statut));
   const active = parPhase.find((p) => p.phase === phaseActive) ?? parPhase[0];
+  // Aucune étape active configurée : le dossier s'ouvre sur un message plutôt que de planter
+  // sur une phase inexistante. Arrive quand toutes les étapes sont désactivées dans Paramètres.
+  if (!active) {
+    return (
+      <p className="px-4 py-6 text-center text-xs text-muted-foreground">
+        Aucune étape de préparation active. Activez-en depuis Paramètres.
+      </p>
+    );
+  }
 
   return (
     <div className="grid gap-0 border-t lg:grid-cols-[1fr_330px]" style={{ borderColor: "var(--ev-card-border-light)" }}>

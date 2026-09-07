@@ -53,8 +53,9 @@ export async function fetchProvisionningLignes(
   // filtered out of view. This query is deliberately independent of `filtres`.
   // Ces deux lectures sont indépendantes: on les lance en parallèle pour n'avoir qu'un seul
   // aller-retour (la base est distante, chaque round-trip coûte de la latence).
+  const fp = filtrePartenaire(await idPartenaireActif());
   const promesseTousNumeros = prisma.numero.findMany({
-    where: { archiveA: null, client: { archiveA: null } },
+    where: { archiveA: null, client: { archiveA: null, ...fp } },
     select: { clientId: true, numeroNormalise: true, numerosCourts: true },
   });
 
@@ -63,6 +64,7 @@ export async function fetchProvisionningLignes(
       archiveA: null,
       client: {
         archiveA: null,
+        ...fp,
         ...(filtres.clientId ? { id: filtres.clientId } : {}),
         ...(filtres.lotId ? { lotId: filtres.lotId } : {}),
         ...(filtres.hebergeur ? { hebergeurCible: filtres.hebergeur } : {}),

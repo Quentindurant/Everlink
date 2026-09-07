@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { filtrePartenaire, idPartenaireActif } from "@/lib/partenaire";
 
 export const dynamic = "force-dynamic";
 
@@ -13,29 +14,40 @@ export async function GET(request: Request): Promise<Response> {
   if (q.length < 2) return NextResponse.json({ resultats: [] });
 
   const insensible = { contains: q, mode: "insensitive" as const };
+  // La recherche globale ne traverse pas les périmètres : elle est le raccourci le plus
+  // rapide vers un dossier, ce serait la première fuite d\'un partenaire vers l\'autre.
+  const fp = filtrePartenaire(await idPartenaireActif());
   const [clients, utilisateurs, numeros, equipements, articles] = await Promise.all([
     prisma.client.findMany({
-      where: { archiveA: null, raisonSociale: insensible },
+      where: { archiveA: null, raisonSociale: insensible, ...fp },
       select: { id: true, raisonSociale: true },
       take: 5,
     }),
     prisma.utilisateur.findMany({
-      where: { archiveA: null, nom: insensible, client: { archiveA: null } },
+      where: { archiveA: null, nom: insensible, client: { archiveA: null, ...fp } },
       select: { id: true, nom: true, clientId: true, client: { select: { raisonSociale: true } } },
       take: 5,
     }),
     prisma.numero.findMany({
-      where: { archiveA: null, numeroNormalise: { contains: q.replace(/\D/g, "") || q } },
+      where: {
+        archiveA: null,
+        numeroNormalise: { contains: q.replace(/\D/g, "") || q },
+        client: { ...fp },
+      },
       select: { numeroBrut: true, clientId: true, client: { select: { raisonSociale: true } } },
       take: 5,
     }),
     prisma.equipement.findMany({
-      where: { archiveA: null, macNormalise: { contains: q.replace(/[\s.:\-]/g, "").toUpperCase() } },
+      where: {
+        archiveA: null,
+        macNormalise: { contains: q.replace(/[\s.:\-]/g, "").toUpperCase() },
+        client: { ...fp },
+      },
       select: { macBrut: true, clientId: true, client: { select: { raisonSociale: true } } },
       take: 5,
     }),
     prisma.articleStock.findMany({
-      where: { archiveA: null, numeroSerie: insensible },
+      where: { archiveA: null, numeroSerie: insensible, ...fp },
       select: { numeroSerie: true, type: true },
       take: 5,
     }),

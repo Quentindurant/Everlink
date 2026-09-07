@@ -158,7 +158,11 @@ export interface ColisExpedie {
 
 export async function fetchHistoriqueColis(): Promise<ColisExpedie[]> {
   const articles = await prisma.articleStock.findMany({
-    where: { archiveA: null, statut: { in: ["ENVOYE", "INSTALLE"] } },
+    where: {
+      archiveA: null,
+      statut: { in: ["ENVOYE", "INSTALLE"] },
+      ...filtrePartenaire(await idPartenaireActif()),
+    },
     include: { client: { select: { raisonSociale: true } } },
     orderBy: [{ dateEnvoi: "desc" }, { creeLe: "desc" }],
   });
@@ -207,12 +211,17 @@ export interface PreparationStaging {
 }
 
 export async function fetchPreparationStaging(): Promise<PreparationStaging> {
+  const fp = filtrePartenaire(await idPartenaireActif());
   const [articles, configs, clientsLien] = await Promise.all([
     fetchArticlesParStatuts(["EN_STOCK", "CONFIGURE"]),
-    prisma.configRouteur.findMany({ select: { clientId: true, clientTexte: true } }),
+    prisma.configRouteur.findMany({
+      where: filtreConfig(fp),
+      select: { clientId: true, clientTexte: true },
+    }),
     prisma.client.findMany({
       where: {
         archiveA: null,
+        ...fp,
         dateIntervention: { gte: new Date(new Date().toDateString()) },
         scenario: { contains: "lien", mode: "insensitive" },
       },
@@ -284,8 +293,19 @@ export interface ConfigRouteurLigne {
   creeLe: string; // ISO
 }
 
+// Les configurations routeur n'ont pas de partenaire propre : elles le tiennent de leur
+// client. Celles rattachées à un simple texte, sans fiche client, restent visibles partout —
+// les faire disparaître d'un périmètre sans que personne puisse les y retrouver serait pire
+// que de les montrer deux fois.
+function filtreConfig(fp: { partenaireId?: string }) {
+  if (!fp.partenaireId) return {};
+  return { OR: [{ client: { is: { partenaireId: fp.partenaireId } } }, { clientId: null }] };
+}
+
 export async function fetchConfigsRouteur(): Promise<ConfigRouteurLigne[]> {
   const configs = await prisma.configRouteur.findMany({
+    // Une config importée suit le partenaire de son client.
+    where: filtreConfig(filtrePartenaire(await idPartenaireActif())),
     include: { client: { select: { raisonSociale: true } } },
     orderBy: { creeLe: "desc" },
   });
