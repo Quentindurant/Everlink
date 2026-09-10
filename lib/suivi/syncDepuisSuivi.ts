@@ -87,7 +87,12 @@ export async function runSuiviPull(): Promise<SuiviPullResultat> {
       // cron n'a pas de partenaire actif, il couvre les deux périmètres en un passage.
       if (!idParCode.has(code)) continue;
       const ligne = { ...ligneDepuisRow(r.data), codePartenaire: code };
-      if (ligne.client.trim()) parClient.set(`${code}|${ligne.client}`, ligne);
+      if (!ligne.client.trim()) continue;
+      // Dédoublonnage sur le nom comparé, pas sur le libellé : le même dossier s'écrit
+      // « S31- ARDI SAS » un mois et « ARDI SAS » le suivant. Sans ça chaque dossier
+      // apparaissait deux fois, et deux candidats identiques faisaient renoncer le
+      // rapprochement par mots au lieu de trancher.
+      parClient.set(`${code}|${cleComparaison(ligne.client)}`, ligne);
     }
   }
   if (moisLus.length === 0) {
