@@ -46,10 +46,8 @@ export interface DossierProjet {
   closLe: string | null;
   // etapeId -> { statut, commentaire }
   suivis: Record<string, { statut: string; commentaire: string | null }>;
-  /** Numéro de série de l'ONT repris chez ce client, s'il a été saisi. */
-  ontNumeroSerie: string | null;
-  /** Routeur Sewan repris chez ce client : numéro de série et modèle. */
-  routeurRecupere: { numeroSerie: string; type: string } | null;
+  /** Matériel repris chez ce client : plusieurs ONT et plusieurs routeurs sont possibles. */
+  materielRepris: { numeroSerie: string; type: string }[];
   nbResolues: number;
   pourcentage: number;
 }
@@ -111,6 +109,7 @@ export async function fetchChefProjet(
         articlesStock: {
           where: { origine: "CLIENT", archiveA: null },
           select: { numeroSerie: true, type: true },
+          orderBy: { creeLe: "asc" },
         },
       },
       // Interventions les plus proches d'abord, comme le provisionning.
@@ -152,8 +151,7 @@ export async function fetchChefProjet(
     return {
       clientId: c.id,
       raisonSociale: c.raisonSociale,
-      ontNumeroSerie: c.articlesStock.find((a) => a.type === "ONT")?.numeroSerie ?? null,
-      routeurRecupere: c.articlesStock.find((a) => a.type !== "ONT") ?? null,
+      materielRepris: c.articlesStock,
       lotNom: c.lot?.nom ?? null,
       postes,
       // Marques réellement présentes : le chef de projet sait d'avance s'il aura du

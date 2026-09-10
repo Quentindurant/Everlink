@@ -11,6 +11,7 @@ import {
   Info,
   Laptop,
   MessageSquare,
+  Plus,
   RotateCcw,
   X,
 } from "lucide-react";
@@ -78,12 +79,16 @@ const LIBELLE_ETAPE_ROUTEUR = "Récupérer le routeur du client";
 
 // Un numéro relevé sur l'appareil, ou la raison pour laquelle il n'y a rien à reprendre.
 // Le modèle n'est demandé que pour le routeur : l'ONT n'en a qu'un seul type.
+//
+// Un client peut rendre plusieurs appareils — deux ONT sur un site à deux liens, autant de
+// routeurs que de baies. Les appareils déjà relevés s'affichent en pastilles, et le « + »
+// rouvre la saisie pour le suivant.
 function SaisieMateriel({
   clientId,
   etapeId,
   typeFixe,
   typesDisponibles,
-  dejaRepris,
+  repris,
   raisonExistante,
 }: {
   clientId: string;
@@ -91,7 +96,7 @@ function SaisieMateriel({
   /** Type imposé (ONT) ; null quand le modèle est à choisir. */
   typeFixe: string | null;
   typesDisponibles: string[];
-  dejaRepris: { numeroSerie: string; type: string } | null;
+  repris: { numeroSerie: string; type: string }[];
   raisonExistante: string;
 }) {
   const [numero, setNumero] = useState("");
@@ -99,30 +104,61 @@ function SaisieMateriel({
   const [raison, setRaison] = useState(raisonExistante);
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
-
-  if (dejaRepris) {
-    return (
-      <span
-        className="ev-badge shrink-0"
-        style={{ background: "var(--pal-green-bg)", color: "var(--pal-green-fg)" }}
-        title={`${dejaRepris.type} enregistré au stock staging`}
-      >
-        <span className="ev-badge-dot" style={{ background: "var(--pal-green-dot)" }} />
-        {dejaRepris.numeroSerie}
-      </span>
-    );
-  }
+  // Saisie repliée dès qu'un appareil est enregistré : on ne rouvre que pour en ajouter un.
+  const [saisieOuverte, setSaisieOuverte] = useState(false);
 
   const enregistrer = async () => {
     setEnCours(true);
     setErreur(null);
-    const r = await enregistrerMaterielAction(clientId, etapeId, type, numero, raison);
+    // Une fois un appareil relevé, la raison d'absence n'a plus de sens : l'envoyer
+    // repasserait l'étape à « Aucun » alors que du matériel a bien été repris.
+    const r = await enregistrerMaterielAction(
+      clientId,
+      etapeId,
+      type,
+      numero,
+      repris.length > 0 ? "" : raison
+    );
     setEnCours(false);
-    if (!r.success) setErreur(r.error ?? "Échec de l'enregistrement.");
+    if (r.success) {
+      setNumero("");
+      setSaisieOuverte(false);
+    } else {
+      setErreur(r.error ?? "Échec de l'enregistrement.");
+    }
   };
+
+  const pastilles = repris.map((m) => (
+    <span
+      key={m.numeroSerie}
+      className="ev-badge shrink-0"
+      style={{ background: "var(--pal-green-bg)", color: "var(--pal-green-fg)" }}
+      title={`${m.type} enregistré au stock staging`}
+    >
+      <span className="ev-badge-dot" style={{ background: "var(--pal-green-dot)" }} />
+      {m.numeroSerie}
+    </span>
+  ));
+
+  if (repris.length > 0 && !saisieOuverte) {
+    return (
+      <span className="flex flex-wrap items-center gap-1.5">
+        {pastilles}
+        <button
+          type="button"
+          onClick={() => setSaisieOuverte(true)}
+          title="Ajouter un autre appareil repris chez ce client"
+          className="grid size-6 shrink-0 place-items-center rounded-md border text-muted-foreground hover:bg-[var(--ev-row-hover)]"
+        >
+          <Plus className="size-3.5" />
+        </button>
+      </span>
+    );
+  }
 
   return (
     <span className="flex flex-wrap items-center gap-1.5">
+      {pastilles}
       {typeFixe === null && (
         <select
           value={type}
@@ -143,12 +179,15 @@ function SaisieMateriel({
         placeholder="N° de série"
         className="h-7 w-36 rounded-md border border-input bg-transparent px-2 font-mono text-[12px] outline-none focus:border-ring"
       />
-      <input
-        value={raison}
-        onChange={(e) => setRaison(e.target.value)}
-        placeholder="ou raison de l'absence"
-        className="h-7 w-44 rounded-md border border-input bg-transparent px-2 text-[12px] outline-none focus:border-ring"
-      />
+      {/* La raison d'absence n'a de sens que tant qu'aucun appareil n'a été relevé. */}
+      {repris.length === 0 && (
+        <input
+          value={raison}
+          onChange={(e) => setRaison(e.target.value)}
+          placeholder="ou raison de l'absence"
+          className="h-7 w-44 rounded-md border border-input bg-transparent px-2 text-[12px] outline-none focus:border-ring"
+        />
+      )}
       <button
         type="button"
         onClick={enregistrer}
@@ -157,6 +196,20 @@ function SaisieMateriel({
       >
         {enCours ? "…" : "Enregistrer"}
       </button>
+      {saisieOuverte && (
+        <button
+          type="button"
+          onClick={() => {
+            setNumero("");
+            setErreur(null);
+            setSaisieOuverte(false);
+          }}
+          title="Annuler"
+          className="grid size-6 shrink-0 place-items-center rounded-md border text-muted-foreground hover:bg-[var(--ev-row-hover)]"
+        >
+          <X className="size-3.5" />
+        </button>
+      )}
       {erreur ? (
         <span className="text-[11px]" style={{ color: "var(--pal-red-fg)" }}>
           {erreur}
@@ -240,13 +293,9 @@ function LigneEtape({
           etapeId={etape.id}
           typeFixe={etape.libelle === LIBELLE_ETAPE_ONT ? "ONT" : null}
           typesDisponibles={typesMateriel}
-          dejaRepris={
-            etape.libelle === LIBELLE_ETAPE_ONT
-              ? dossier.ontNumeroSerie
-                ? { numeroSerie: dossier.ontNumeroSerie, type: "ONT" }
-                : null
-              : dossier.routeurRecupere
-          }
+          repris={dossier.materielRepris.filter((m) =>
+            etape.libelle === LIBELLE_ETAPE_ONT ? m.type === "ONT" : m.type !== "ONT"
+          )}
           raisonExistante={suivi?.commentaire ?? ""}
         />
       ) : (
