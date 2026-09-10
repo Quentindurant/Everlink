@@ -84,6 +84,7 @@ export async function runSuiviPull(): Promise<SuiviPullResultat> {
         id: true,
         raisonSociale: true,
         zohoNomSheet: true,
+        departement: true,
         statutSuivi: true,
         dateIntervention: true,
         creneauIntervention: true,

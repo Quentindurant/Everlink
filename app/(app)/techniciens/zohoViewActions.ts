@@ -78,13 +78,14 @@ export async function fetchRapprochementManquant(): Promise<RapprochementManquan
   const pid = await idPartenaireActif();
   const clients = await prisma.client.findMany({
     where: { archiveA: null, ...filtrePartenaire(pid) },
-    select: { id: true, raisonSociale: true, zohoNomSheet: true },
+    select: { id: true, raisonSociale: true, zohoNomSheet: true, departement: true },
     orderBy: { raisonSociale: "asc" },
   });
 
   const { apparies, lignesInconnues } = rapprocherLignes(
     vue.lignes.map((l) => ({
       client: l.client,
+      dpt: l.dpt,
       date: l.date,
       heure: l.heure,
       nomTech: l.nomTech,

@@ -6,8 +6,13 @@ import { rapprocherLignes, type ClientLite, type LigneSheetLite } from "./rappro
 // l'avaient changé — AQUADOUCE affichait « ATT CLIENT » côté app et « INSTALLATION » côté
 // tableau. Ces tests fixent les écritures qui doivent se retrouver.
 
-const ligne = (client: string, installation = "INSTALLATION"): LigneSheetLite => ({
+const ligne = (
+  client: string,
+  installation = "INSTALLATION",
+  dpt = ""
+): LigneSheetLite => ({
   client,
+  dpt,
   date: "",
   heure: "",
   nomTech: "",
@@ -15,10 +20,11 @@ const ligne = (client: string, installation = "INSTALLATION"): LigneSheetLite =>
   installation,
 });
 
-const client = (id: string, raisonSociale: string): ClientLite => ({
+const client = (id: string, raisonSociale: string, departement: string | null = null): ClientLite => ({
   id,
   raisonSociale,
   zohoNomSheet: null,
+  departement,
 });
 
 describe("rapprochement — séparateurs différents entre l'app et le tableau", () => {
@@ -77,5 +83,44 @@ describe("rapprochement — ce qui doit rester refusé", () => {
     );
     expect(r.apparies).toHaveLength(0);
     expect(r.lignesInconnues).toEqual(["MARTIN"]);
+  });
+});
+
+describe("rapprochement — un client, plusieurs sites au tableau", () => {
+  test("le département départage deux lignes du même nom", () => {
+    // Cas réel : le tableau porte deux sites BEHAGUE, l'app un seul dossier, en 78. Le
+    // préfixe était ambigu, la synchronisation renonçait, et le dossier restait sans date.
+    const lignes = [
+      ligne("ALLIANZ CABINET R. BEHAGUE ET P. HUGUET SAINT CYR L'ECOLE", "INSTALLATION", "78"),
+      ligne("ALLIANZ CABINET R. BEHAGUE ET P. HUGUET BOIS COLOMBES", "INSTALLATION", "92"),
+    ];
+    const clients = [client("c1", "ALLIANZ CABINET R. BEHAGUE ET P. HUGUET", "78")];
+
+    const r = rapprocherLignes(lignes, clients);
+    expect(r.apparies).toHaveLength(1);
+    expect(r.apparies[0].nomSheet).toBe(
+      "ALLIANZ CABINET R. BEHAGUE ET P. HUGUET SAINT CYR L'ECOLE"
+    );
+    // L'autre site reste orphelin : il n'a pas de dossier, et c'est l'information utile.
+    expect(r.lignesInconnues).toEqual(["ALLIANZ CABINET R. BEHAGUE ET P. HUGUET BOIS COLOMBES"]);
+  });
+
+  test("sans département au dossier, on ne tranche pas", () => {
+    const lignes = [
+      ligne("MARTIN PARIS", "INSTALLATION", "75"),
+      ligne("MARTIN LYON", "INSTALLATION", "69"),
+    ];
+    const r = rapprocherLignes(lignes, [client("c1", "MARTIN")]);
+    expect(r.apparies).toHaveLength(0);
+  });
+
+  test("deux lignes du même département restent ambiguës", () => {
+    // Départager au hasard écraserait le statut du mauvais site à chaque synchronisation.
+    const lignes = [
+      ligne("MARTIN NORD", "INSTALLATION", "75"),
+      ligne("MARTIN SUD", "INSTALLATION", "75"),
+    ];
+    const r = rapprocherLignes(lignes, [client("c1", "MARTIN", "75")]);
+    expect(r.apparies).toHaveLength(0);
   });
 });

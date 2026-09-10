@@ -47,6 +47,7 @@ export async function runZohoPull(): Promise<ZohoPullResultat> {
         id: true,
         raisonSociale: true,
         zohoNomSheet: true,
+        departement: true,
         statutSuivi: true,
         dateIntervention: true,
         creneauIntervention: true,

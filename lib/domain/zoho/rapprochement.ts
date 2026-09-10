@@ -12,6 +12,8 @@
 
 export interface LigneSheetLite {
   client: string;
+  /** Département de l'intervention (colonne dpt) : départage deux sites du même client. */
+  dpt: string;
   date: string;
   heure: string;
   nomTech: string;
@@ -24,6 +26,12 @@ export interface ClientLite {
   id: string;
   raisonSociale: string;
   zohoNomSheet: string | null;
+  departement: string | null;
+}
+
+/** "78", " 078 ", "78 " → "78". Un département vide ne départage rien. */
+function normaliserDepartement(brut: string | null): string {
+  return (brut ?? "").replace(/\D/g, "").replace(/^0+(?=\d)/, "").trim();
 }
 
 export interface Appariement {
@@ -104,8 +112,11 @@ export function rapprocherLignes(
       const n = cleComparaison(nom);
       return n.startsWith(normeClient) || normeClient.startsWith(n);
     });
-    if (candidats.length !== 1) continue;
-    const nomSheet = candidats[0];
+    // Un client, plusieurs sites au tableau : le département tranche quand il ne désigne
+    // qu'une seule ligne. Sans lui on renonçait, et le dossier restait sans date ni statut.
+    const retenus = candidats.length > 1 ? parDepartement(candidats, c, restantes) : candidats;
+    if (retenus.length !== 1) continue;
+    const nomSheet = retenus[0];
     const normeSheet = cleComparaison(nomSheet);
     const clientsCandidats = clients.filter((x) => {
       if (dejaApparies.has(x.id)) return false;
@@ -122,6 +133,22 @@ export function rapprocherLignes(
 }
 
 // "12/08/2026" → Date, sinon null (valeur vide ou illisible: on ne touche pas l'app).
+// Parmi des lignes qui portent toutes le nom du client, celles de son département. Renvoie
+// les candidats inchangés si le département ne départage pas — mieux vaut ne rien apparier
+// que d'écraser le statut du mauvais site à chaque synchronisation.
+function parDepartement(
+  candidats: string[],
+  client: ClientLite,
+  restantes: Map<string, LigneSheetLite>
+): string[] {
+  const dept = normaliserDepartement(client.departement);
+  if (!dept) return candidats;
+  const memeDept = candidats.filter(
+    (nom) => normaliserDepartement(restantes.get(nom)?.dpt ?? "") === dept
+  );
+  return memeDept.length === 1 ? memeDept : candidats;
+}
+
 export function parseDateSheet(brut: string): Date | null {
   const m = brut.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (!m) return null;

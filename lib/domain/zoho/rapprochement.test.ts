@@ -8,6 +8,7 @@ import {
 
 const ligne = (client: string, installation = "ATT CLIENT"): LigneSheetLite => ({
   client,
+  dpt: "",
   date: "",
   heure: "",
   nomTech: "", nomCp: "",
@@ -26,7 +27,7 @@ describe("rapprocherLignes", () => {
   test("le nom mémorisé (zohoNomSheet) prime, même très différent", () => {
     const r = rapprocherLignes(
       [ligne("S27 - AART ELECTRONICS CHANTELOUP")],
-      [{ id: "c1", raisonSociale: "AART ELECTRONICS", zohoNomSheet: "S27 - AART ELECTRONICS CHANTELOUP" }]
+      [{ id: "c1", raisonSociale: "AART ELECTRONICS", zohoNomSheet: "S27 - AART ELECTRONICS CHANTELOUP", departement: null }]
     );
     expect(r.apparies).toHaveLength(1);
     expect(r.apparies[0].clientId).toBe("c1");
@@ -35,7 +36,7 @@ describe("rapprocherLignes", () => {
   test("égalité normalisée : préfixe semaine ignoré", () => {
     const r = rapprocherLignes(
       [ligne("S31- ART PHOTO LAB")],
-      [{ id: "c1", raisonSociale: "ART PHOTO LAB", zohoNomSheet: null }]
+      [{ id: "c1", raisonSociale: "ART PHOTO LAB", zohoNomSheet: null, departement: null }]
     );
     expect(r.apparies).toHaveLength(1);
     expect(r.apparies[0].nomSheet).toBe("S31- ART PHOTO LAB");
@@ -44,7 +45,7 @@ describe("rapprocherLignes", () => {
   test("préfixe unique : suffixe de site toléré", () => {
     const r = rapprocherLignes(
       [ligne("S27 - AART ELECTRONICS CHANTELOUP")],
-      [{ id: "c1", raisonSociale: "AART ELECTRONICS", zohoNomSheet: null }]
+      [{ id: "c1", raisonSociale: "AART ELECTRONICS", zohoNomSheet: null, departement: null }]
     );
     expect(r.apparies).toHaveLength(1);
   });
@@ -52,7 +53,7 @@ describe("rapprocherLignes", () => {
   test("ambigu → jamais synchronisé", () => {
     const r = rapprocherLignes(
       [ligne("S31 - ALLIANZ CABINET SAINT CYR"), ligne("S31- ALLIANZ CABINET BOIS COLOMBES")],
-      [{ id: "c1", raisonSociale: "ALLIANZ CABINET", zohoNomSheet: null }]
+      [{ id: "c1", raisonSociale: "ALLIANZ CABINET", zohoNomSheet: null, departement: null }]
     );
     expect(r.apparies).toHaveLength(0);
     expect(r.lignesInconnues).toHaveLength(2);
@@ -61,7 +62,7 @@ describe("rapprocherLignes", () => {
   test("doublon Sheet (ligne re-poussée) : la dernière occurrence gagne", () => {
     const r = rapprocherLignes(
       [ligne("TRIALP", "ATT CLIENT"), ligne("TRIALP", "INSTALLATION")],
-      [{ id: "c1", raisonSociale: "TRIALP", zohoNomSheet: null }]
+      [{ id: "c1", raisonSociale: "TRIALP", zohoNomSheet: null, departement: null }]
     );
     expect(r.apparies).toHaveLength(1);
     expect(r.apparies[0].ligne.installation).toBe("INSTALLATION");
