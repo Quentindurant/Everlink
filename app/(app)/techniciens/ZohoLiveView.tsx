@@ -16,6 +16,7 @@ import {
 import type { LigneSuivi } from "@/lib/domain/suivi/ligneSuivi";
 import type { SuiviPullResultat } from "@/lib/suivi/syncDepuisSuivi";
 import { rafraichirZohoAction, synchroniserDepuisZohoAction } from "./zohoViewActions";
+import { RapprochementManuel } from "./RapprochementManuel";
 
 // Couleurs des statuts d'installation (approx. de la feuille).
 function classeStatut(s: string): string {
@@ -118,6 +119,8 @@ export function ZohoLiveView() {
           )}
         </div>
       )}
+
+      <RapprochementManuel />
 
       {!configure ? (
         <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">

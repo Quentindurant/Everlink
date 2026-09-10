@@ -10,6 +10,9 @@ import type { LigneSuivi } from "@/lib/domain/suivi/ligneSuivi";
 import { lireVueSuivi } from "@/lib/suivi/vueSuivi";
 import { runSuiviPull, type SuiviPullResultat } from "@/lib/suivi/syncDepuisSuivi";
 import { journaliser } from "@/lib/activite";
+import { prisma } from "@/lib/prisma";
+import { rapprocherLignes } from "@/lib/domain/zoho/rapprochement";
+import { filtrePartenaire, idPartenaireActif } from "@/lib/partenaire";
 
 export async function rafraichirZohoAction(): Promise<{
   configure: boolean;
@@ -37,4 +40,104 @@ export async function synchroniserDepuisZohoAction(): Promise<SuiviPullResultat>
   revalidatePath("/techniciens");
   revalidatePath("/clients");
   return r;
+}
+
+// ------------------------------------------------- Rapprochement manuel
+
+export interface LigneOrpheline {
+  nomSheet: string;
+  statut: string;
+  date: string;
+  tech: string;
+}
+
+export interface DossierOrphelin {
+  id: string;
+  raisonSociale: string;
+}
+
+export interface RapprochementManquant {
+  configure: boolean;
+  lignes: LigneOrpheline[];
+  dossiers: DossierOrphelin[];
+}
+
+/**
+ * Ce que la synchronisation automatique ne peut pas relier. Deux noms qu'aucune règle ne
+ * doit assimiler — « STEPHENSON - BOULOGNE » côté app, « - ODESEINE » côté tableau — laissent
+ * un dossier figé sur un statut périmé sans que personne le voie. On les met donc en face
+ * l'un de l'autre pour qu'un ADV tranche une fois pour toutes.
+ */
+export async function fetchRapprochementManquant(): Promise<RapprochementManquant> {
+  const session = await auth();
+  if (!session?.user) return { configure: false, lignes: [], dossiers: [] };
+
+  const vue = await lireVueSuivi();
+  if (!vue.configure) return { configure: false, lignes: [], dossiers: [] };
+
+  const pid = await idPartenaireActif();
+  const clients = await prisma.client.findMany({
+    where: { archiveA: null, ...filtrePartenaire(pid) },
+    select: { id: true, raisonSociale: true, zohoNomSheet: true },
+    orderBy: { raisonSociale: "asc" },
+  });
+
+  const { apparies, lignesInconnues } = rapprocherLignes(
+    vue.lignes.map((l) => ({
+      client: l.client,
+      date: l.date,
+      heure: l.heure,
+      nomTech: l.nomTech,
+      nomCp: l.nomCp,
+      installation: l.installation,
+    })),
+    clients
+  );
+  const apparieIds = new Set(apparies.map((a) => a.clientId));
+  const parNom = new Map(vue.lignes.map((l) => [l.client, l]));
+
+  return {
+    configure: true,
+    lignes: lignesInconnues.map((nom) => ({
+      nomSheet: nom,
+      statut: parNom.get(nom)?.installation ?? "",
+      date: parNom.get(nom)?.date ?? "",
+      tech: parNom.get(nom)?.nomTech ?? "",
+    })),
+    dossiers: clients
+      .filter((c) => !apparieIds.has(c.id))
+      .map((c) => ({ id: c.id, raisonSociale: c.raisonSociale })),
+  };
+}
+
+/**
+ * Mémorise le nom du tableau pour ce dossier, puis synchronise dans la foulée. Le lien vaut
+ * pour toutes les synchronisations suivantes : le rapprochement mémorisé passe avant toute
+ * comparaison de noms.
+ */
+export async function lierDossierAuTableauAction(
+  clientId: string,
+  nomSheet: string
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "Non authentifié." };
+  const nom = nomSheet.trim();
+  if (!nom) return { success: false, error: "Ligne du tableau manquante." };
+
+  // Un même nom de tableau ne peut pas désigner deux dossiers : le second écraserait le
+  // premier à chaque synchronisation, en silence.
+  const deja = await prisma.client.findFirst({
+    where: { zohoNomSheet: nom, NOT: { id: clientId }, archiveA: null },
+    select: { raisonSociale: true },
+  });
+  if (deja) {
+    return { success: false, error: `Cette ligne est déjà liée à ${deja.raisonSociale}.` };
+  }
+
+  await prisma.client.update({ where: { id: clientId }, data: { zohoNomSheet: nom } });
+  await journaliser("Client", clientId, "Rapprochement manuel", nom);
+  await runSuiviPull();
+  revalidatePath("/techniciens");
+  revalidatePath("/clients");
+  return { success: true };
 }
