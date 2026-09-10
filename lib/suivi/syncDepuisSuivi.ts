@@ -51,6 +51,7 @@ export async function runSuiviPull(): Promise<SuiviPullResultat> {
   const mois = moisAsynchroniser();
   const onglet = mois.map(libelleMoisSuivi).join(", ");
 
+
   // code du partenaire → identifiant, pour ranger chaque ligne du tableau de son côté.
   const partenaires = await prisma.partenaire.findMany({
     where: { actif: true },
@@ -66,21 +67,31 @@ export async function runSuiviPull(): Promise<SuiviPullResultat> {
   // ligne en septembre, et sans cette fenêtre son statut ne bougeait plus jamais. Un même
   // client présent dans deux mois garde la ligne la plus récente, écrite en dernier.
   const parClient = new Map<string, ReturnType<typeof ligneDepuisRow> & { codePartenaire: string }>();
-  try {
-    for (const m of mois) {
-      const rows = await suiviClient().lireLignesMois(m);
-      for (const r of rows) {
-        if (r.archived) continue;
-        const code = codePartenaireLigne(r.data);
-        // Toutes les lignes rattachées à un partenaire connu, pas seulement EVERLINK : le
-        // cron n'a pas de partenaire actif, il couvre les deux périmètres en un passage.
-        if (!idParCode.has(code)) continue;
-        const ligne = { ...ligneDepuisRow(r.data), codePartenaire: code };
-        if (ligne.client.trim()) parClient.set(`${code}|${ligne.client}`, ligne);
-      }
+  const moisLus: string[] = [];
+  let derniereErreur: string | null = null;
+  for (const m of mois) {
+    // Chaque mois est lu indépendamment : un onglet qui n'existe pas encore — le mois
+    // prochain, en début de période — ne doit pas empêcher les autres de se synchroniser.
+    let rows;
+    try {
+      rows = await suiviClient().lireLignesMois(m);
+    } catch (e) {
+      derniereErreur = e instanceof Error ? e.message : "Tableau de suivi injoignable.";
+      continue;
     }
-  } catch (e) {
-    return echec(onglet, e instanceof Error ? e.message : "Tableau de suivi injoignable.");
+    moisLus.push(m);
+    for (const r of rows) {
+      if (r.archived) continue;
+      const code = codePartenaireLigne(r.data);
+      // Toutes les lignes rattachées à un partenaire connu, pas seulement EVERLINK : le
+      // cron n'a pas de partenaire actif, il couvre les deux périmètres en un passage.
+      if (!idParCode.has(code)) continue;
+      const ligne = { ...ligneDepuisRow(r.data), codePartenaire: code };
+      if (ligne.client.trim()) parClient.set(`${code}|${ligne.client}`, ligne);
+    }
+  }
+  if (moisLus.length === 0) {
+    return echec(onglet, derniereErreur ?? "Tableau de suivi injoignable.");
   }
   const lignes = [...parClient.values()];
   if (lignes.length === 0) {
