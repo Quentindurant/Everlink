@@ -44,6 +44,26 @@ export function moisCourant(d = new Date()): string {
   return `${String(d.getUTCFullYear()).padStart(4, "0")}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
+/** Mois lus par la synchronisation : le précédent, le courant et les deux suivants. */
+const MOIS_AVANT = 1;
+const MOIS_APRES = 2;
+
+/**
+ * Fenêtre de mois que la synchronisation doit lire, du plus ancien au plus récent.
+ *
+ * Ne lire que le mois courant laissait tomber tout dossier planifié ailleurs : le 1er du
+ * mois, quatre-vingts dossiers d'un coup cessaient d'être mis à jour, et une intervention
+ * posée pour le mois prochain n'arrivait jamais dans l'app. L'ordre compte : les mois sont
+ * traités du plus ancien au plus récent, donc la ligne la plus récente l'emporte.
+ */
+export function moisAsynchroniser(d = new Date()): string[] {
+  const mois: string[] = [];
+  for (let i = -MOIS_AVANT; i <= MOIS_APRES; i++) {
+    mois.push(moisCourant(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + i, 1))));
+  }
+  return mois;
+}
+
 /** Mois cible d'un dossier : celui de la date d'intervention, sinon le mois courant. */
 export function moisDuDossier(dateIntervention: Date | null, maintenant = new Date()): string {
   return moisCourant(dateIntervention ?? maintenant);

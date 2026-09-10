@@ -124,3 +124,43 @@ describe("rapprochement — un client, plusieurs sites au tableau", () => {
     expect(r.apparies).toHaveLength(0);
   });
 });
+
+describe("rapprochement — noms voisins mais pas identiques", () => {
+  test("un site écrit différemment des deux côtés se retrouve par ses mots", () => {
+    // Cas réel : l'app dit « - BOULOGNE », le tableau « - ODESEINE ». Trois mots sur quatre
+    // en commun, même département : c'est le même dossier.
+    const r = rapprocherLignes(
+      [ligne("AMBULANCES NOUVELLES STEPHENSON - ODESEINE", "INSTALLATION", "92")],
+      [client("c1", "AMBULANCES NOUVELLES  STEPHENSON - BOULOGNE", "92")]
+    );
+    expect(r.apparies).toHaveLength(1);
+  });
+
+  test("deux villes différentes ne se confondent pas", () => {
+    // « MARTIN PARIS » et « MARTIN LYON » ne partagent qu'un mot sur deux : trop peu.
+    const r = rapprocherLignes(
+      [ligne("MARTIN LYON", "INSTALLATION", "69")],
+      [client("c1", "MARTIN PARIS", "69")]
+    );
+    expect(r.apparies).toHaveLength(0);
+  });
+
+  test("un département différent interdit le rapprochement par mots", () => {
+    const r = rapprocherLignes(
+      [ligne("AMBULANCES NOUVELLES STEPHENSON - ODESEINE", "INSTALLATION", "75")],
+      [client("c1", "AMBULANCES NOUVELLES STEPHENSON - BOULOGNE", "92")]
+    );
+    expect(r.apparies).toHaveLength(0);
+  });
+
+  test("deux lignes aussi proches l'une que l'autre restent refusées", () => {
+    const r = rapprocherLignes(
+      [
+        ligne("CABINET DUPONT MARTIN NORD", "INSTALLATION", "75"),
+        ligne("CABINET DUPONT MARTIN SUD", "INSTALLATION", "75"),
+      ],
+      [client("c1", "CABINET DUPONT MARTIN EST", "75")]
+    );
+    expect(r.apparies).toHaveLength(0);
+  });
+});

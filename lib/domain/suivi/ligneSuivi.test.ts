@@ -8,6 +8,7 @@ import {
   isoVersFr,
   libelleMoisSuivi,
   ligneDepuisRow,
+  moisAsynchroniser,
   moisCourant,
   moisDuDossier,
   trouverLigneCible,
@@ -325,5 +326,33 @@ describe("champsAMettreAJour (pull : un champ vide n'écrase jamais)", () => {
       "t1"
     );
     expect(data).toEqual({});
+  });
+});
+
+describe("moisAsynchroniser", () => {
+  test("couvre le mois courant, le précédent et les deux suivants", () => {
+    // Un dossier planifié en août n'a plus de ligne en septembre : sans fenêtre, son statut
+    // ne bougeait plus jamais. Les mois suivants couvrent les interventions déjà posées.
+    expect(moisAsynchroniser(new Date("2026-09-15T10:00:00Z"))).toEqual([
+      "2026-08",
+      "2026-09",
+      "2026-10",
+      "2026-11",
+    ]);
+  });
+
+  test("passe correctement d'une année à l'autre", () => {
+    expect(moisAsynchroniser(new Date("2026-12-03T10:00:00Z"))).toEqual([
+      "2026-11",
+      "2026-12",
+      "2027-01",
+      "2027-02",
+    ]);
+  });
+
+  test("le mois courant est toujours dans la fenêtre", () => {
+    const d = new Date("2026-01-01T00:00:00Z");
+    expect(moisAsynchroniser(d)).toContain("2026-01");
+    expect(moisAsynchroniser(d)[0]).toBe("2025-12");
   });
 });

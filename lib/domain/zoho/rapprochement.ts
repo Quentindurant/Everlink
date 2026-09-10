@@ -129,10 +129,52 @@ export function rapprocherLignes(
     dejaApparies.add(c.id);
   }
 
+  // 4. Mots communs dans le même département : les ADV écrivent le site autrement que l'app.
+  for (const c of clients.filter((x) => !dejaApparies.has(x.id))) {
+    const nomSheet = meilleureParMots(c, restantes);
+    if (!nomSheet) continue;
+    // Réciprocité : cette ligne doit elle aussi désigner ce dossier plutôt qu'un autre.
+    const retour = [...clients.filter((x) => !dejaApparies.has(x.id))]
+      .map((x) => ({ x, score: similarite(x.raisonSociale, nomSheet) }))
+      .sort((a, b) => b.score - a.score);
+    if (retour[0].x.id !== c.id) continue;
+    if (retour.length > 1 && retour[1].score === retour[0].score) continue;
+    apparies.push({ clientId: c.id, ligne: restantes.get(nomSheet)!, nomSheet });
+    restantes.delete(nomSheet);
+    dejaApparies.add(c.id);
+  }
+
   return { apparies, lignesInconnues: [...restantes.keys()] };
 }
 
 // "12/08/2026" → Date, sinon null (valeur vide ou illisible: on ne touche pas l'app).
+/** Proportion minimale de mots communs pour reconnaître deux écritures d'un même site. */
+const SIMILARITE_MINIMALE = 0.6;
+
+/** Mots significatifs d'un nom : accents et ponctuation retirés, mots d'une lettre ignorés. */
+function mots(nom: string): Set<string> {
+  return new Set(
+    normaliserNomSheet(nom)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .split(/[^0-9A-Za-z]+/)
+      .filter((m) => m.length > 1)
+      .map((m) => m.toUpperCase())
+  );
+}
+
+// Part de mots communs, rapportée au nom le plus long : « AMBULANCES NOUVELLES STEPHENSON
+// BOULOGNE » et « … ODESEINE » partagent trois mots sur quatre. Rapporter au plus long évite
+// qu'un nom court se fonde dans un nom long qui le contient.
+function similarite(a: string, b: string): number {
+  const ma = mots(a);
+  const mb = mots(b);
+  if (ma.size === 0 || mb.size === 0) return 0;
+  let communs = 0;
+  for (const m of ma) if (mb.has(m)) communs++;
+  return communs / Math.max(ma.size, mb.size);
+}
+
 // Parmi des lignes qui portent toutes le nom du client, celles de son département. Renvoie
 // les candidats inchangés si le département ne départage pas — mieux vaut ne rien apparier
 // que d'écraser le statut du mauvais site à chaque synchronisation.
@@ -147,6 +189,34 @@ function parDepartement(
     (nom) => normaliserDepartement(restantes.get(nom)?.dpt ?? "") === dept
   );
   return memeDept.length === 1 ? memeDept : candidats;
+}
+
+/**
+ * Dernier recours : la ligne dont le nom partage assez de mots avec celui du dossier, dans
+ * son département. Les ADV écrivent le site autrement que l'app — « - BOULOGNE » d'un côté,
+ * « - ODESEINE » de l'autre — et aucune règle sur les préfixes ne peut les relier.
+ *
+ * Trois garde-fous : le département doit correspondre, la similarité dépasser le seuil, et
+ * la meilleure ligne être seule à ce niveau. Une égalité laisse le dossier non apparié : le
+ * rapprochement manuel existe pour ça, et un mauvais lien écraserait le statut du voisin à
+ * chaque passage du cron.
+ */
+function meilleureParMots(
+  client: ClientLite,
+  restantes: Map<string, LigneSheetLite>
+): string | null {
+  const dept = normaliserDepartement(client.departement);
+  if (!dept) return null;
+
+  const scores = [...restantes.entries()]
+    .filter(([, l]) => normaliserDepartement(l.dpt) === dept)
+    .map(([nom]) => ({ nom, score: similarite(client.raisonSociale, nom) }))
+    .filter((x) => x.score >= SIMILARITE_MINIMALE)
+    .sort((a, b) => b.score - a.score);
+
+  if (scores.length === 0) return null;
+  if (scores.length > 1 && scores[1].score === scores[0].score) return null;
+  return scores[0].nom;
 }
 
 export function parseDateSheet(brut: string): Date | null {

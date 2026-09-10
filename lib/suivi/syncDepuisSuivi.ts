@@ -16,7 +16,7 @@ import {
   codePartenaireLigne,
   libelleMoisSuivi,
   ligneDepuisRow,
-  moisCourant,
+  moisAsynchroniser,
 } from "@/lib/domain/suivi/ligneSuivi";
 import { lireLabelsReferentiel } from "./referentielTechniciens";
 import { suiviClient, suiviConfig } from "./suiviClient";
@@ -48,8 +48,8 @@ function echec(onglet: string, message: string): SuiviPullResultat {
 }
 
 export async function runSuiviPull(): Promise<SuiviPullResultat> {
-  const mois = moisCourant();
-  const onglet = libelleMoisSuivi(mois);
+  const mois = moisAsynchroniser();
+  const onglet = mois.map(libelleMoisSuivi).join(", ");
 
   // code du partenaire → identifiant, pour ranger chaque ligne du tableau de son côté.
   const partenaires = await prisma.partenaire.findMany({
@@ -62,19 +62,29 @@ export async function runSuiviPull(): Promise<SuiviPullResultat> {
     return echec(onglet, "Tableau de suivi non configuré (variables SUIVI_API_* manquantes).");
   }
 
-  let lignes;
+  // Plusieurs mois, du plus ancien au plus récent : un dossier planifié en août n'a plus de
+  // ligne en septembre, et sans cette fenêtre son statut ne bougeait plus jamais. Un même
+  // client présent dans deux mois garde la ligne la plus récente, écrite en dernier.
+  const parClient = new Map<string, ReturnType<typeof ligneDepuisRow> & { codePartenaire: string }>();
   try {
-    const rows = await suiviClient().lireLignesMois(mois);
-    // Toutes les lignes rattachées à un partenaire connu, pas seulement EVERLINK : le cron
-    // n'a pas de partenaire actif, il couvre les deux périmètres en un seul passage.
-    lignes = rows
-      .filter((r) => !r.archived && idParCode.has(codePartenaireLigne(r.data)))
-      .map((r) => ({ ...ligneDepuisRow(r.data), codePartenaire: codePartenaireLigne(r.data) }));
+    for (const m of mois) {
+      const rows = await suiviClient().lireLignesMois(m);
+      for (const r of rows) {
+        if (r.archived) continue;
+        const code = codePartenaireLigne(r.data);
+        // Toutes les lignes rattachées à un partenaire connu, pas seulement EVERLINK : le
+        // cron n'a pas de partenaire actif, il couvre les deux périmètres en un passage.
+        if (!idParCode.has(code)) continue;
+        const ligne = { ...ligneDepuisRow(r.data), codePartenaire: code };
+        if (ligne.client.trim()) parClient.set(`${code}|${ligne.client}`, ligne);
+      }
+    }
   } catch (e) {
     return echec(onglet, e instanceof Error ? e.message : "Tableau de suivi injoignable.");
   }
+  const lignes = [...parClient.values()];
   if (lignes.length === 0) {
-    return echec(onglet, "Aucune ligne rattachée à un partenaire connu pour ce mois.");
+    return echec(onglet, "Aucune ligne rattachée à un partenaire connu sur la période lue.");
   }
 
   const [clients, techniciens] = await Promise.all([
