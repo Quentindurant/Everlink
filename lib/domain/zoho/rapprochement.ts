@@ -148,8 +148,14 @@ export function rapprocherLignes(
 }
 
 // "12/08/2026" → Date, sinon null (valeur vide ou illisible: on ne touche pas l'app).
-/** Proportion minimale de mots communs pour reconnaître deux écritures d'un même site. */
-const SIMILARITE_MINIMALE = 0.6;
+/**
+ * Proportion minimale de mots communs pour reconnaître deux écritures d'un même dossier.
+ *
+ * Mesuré sur les 91 dossiers de production : à 0,6 deux paires de sites distincts se
+ * touchent (« L'ENFANT BLEU LILLE » et « … PACA », « APEF SMJ SERVICES COURBEVOIE » et
+ * « … LA GARENNE ») ; à 0,7 plus aucune. Le seuil est donc calé sur les données réelles.
+ */
+const SIMILARITE_MINIMALE = 0.7;
 
 /** Mots significatifs d'un nom : accents et ponctuation retirés, mots d'une lettre ignorés. */
 function mots(nom: string): Set<string> {
@@ -206,10 +212,15 @@ function meilleureParMots(
   restantes: Map<string, LigneSheetLite>
 ): string | null {
   const dept = normaliserDepartement(client.departement);
-  if (!dept) return null;
 
   const scores = [...restantes.entries()]
-    .filter(([, l]) => normaliserDepartement(l.dpt) === dept)
+    // Le département exclut plutôt qu'il ne conditionne : deux départements connus et
+    // différents, ce sont deux sites. Mais beaucoup de dossiers n'en ont pas, et exiger
+    // le département les privait de tout rapprochement.
+    .filter(([, l]) => {
+      const dl = normaliserDepartement(l.dpt);
+      return !dept || !dl || dl === dept;
+    })
     .map(([nom]) => ({ nom, score: similarite(client.raisonSociale, nom) }))
     .filter((x) => x.score >= SIMILARITE_MINIMALE)
     .sort((a, b) => b.score - a.score);

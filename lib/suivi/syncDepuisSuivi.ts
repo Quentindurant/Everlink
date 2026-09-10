@@ -10,7 +10,7 @@ import {
   techniciensManquantsDuReferentiel,
 } from "@/lib/domain/suivi/referentielTechniciens";
 import { normaliserNomTech } from "@/lib/domain/technicien/disponibilite";
-import { rapprocherLignes } from "@/lib/domain/zoho/rapprochement";
+import { cleComparaison, rapprocherLignes } from "@/lib/domain/zoho/rapprochement";
 import {
   champsAMettreAJour,
   codePartenaireLigne,

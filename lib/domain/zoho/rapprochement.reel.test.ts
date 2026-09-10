@@ -164,3 +164,37 @@ describe("rapprochement — noms voisins mais pas identiques", () => {
     expect(r.apparies).toHaveLength(0);
   });
 });
+
+describe("rapprochement — dossiers sans département", () => {
+  test("un dossier sans département se retrouve quand même par ses mots", () => {
+    // Cas réel : le tableau écrit « ALLIANZ LEVEQUE CHARENTON », l'app « ALLIANZ RICHARD
+    // LEVEQUE CHARENTON », et le dossier n'a pas de département renseigné.
+    const r = rapprocherLignes(
+      [ligne("ALLIANZ LEVEQUE CHARENTON", "INSTALLATION", "94")],
+      [client("c1", "ALLIANZ RICHARD LEVEQUE CHARENTON", null)]
+    );
+    expect(r.apparies).toHaveLength(1);
+  });
+
+  test("deux sites du même client restent refusés faute de pouvoir trancher", () => {
+    // « GUIDET ET ASSOCIES » face à ANNECY et PARIS : les deux lignes sont aussi proches
+    // l'une que l'autre. En choisir une écraserait le statut de l'autre site.
+    const r = rapprocherLignes(
+      [
+        ligne("GUIDET ET ASSOCIES ANNECY", "INSTALLATION", "74"),
+        ligne("GUIDET ET ASSOCIES PARIS", "INSTALLATION", "75"),
+      ],
+      [client("c1", "GUIDET ET ASSOCIES", null)]
+    );
+    expect(r.apparies).toHaveLength(0);
+  });
+
+  test("deux agences d'une même enseigne ne se confondent pas", () => {
+    // Paire relevée en production : sous l'ancien seuil elles se touchaient.
+    const r = rapprocherLignes(
+      [ligne("L'ENFANT BLEU PACA", "INSTALLATION", "13")],
+      [client("c1", "L'ENFANT BLEU LILLE", null)]
+    );
+    expect(r.apparies).toHaveLength(0);
+  });
+});
