@@ -11,7 +11,7 @@ import { lireVueSuivi } from "@/lib/suivi/vueSuivi";
 import { runSuiviPull, type SuiviPullResultat } from "@/lib/suivi/syncDepuisSuivi";
 import { journaliser } from "@/lib/activite";
 import { prisma } from "@/lib/prisma";
-import { rapprocherLignes } from "@/lib/domain/zoho/rapprochement";
+import { parseDateSheet, rapprocherLignes } from "@/lib/domain/zoho/rapprochement";
 import { filtrePartenaire, idPartenaireActif } from "@/lib/partenaire";
 
 export async function rafraichirZohoAction(): Promise<{
@@ -49,6 +49,8 @@ export interface LigneOrpheline {
   statut: string;
   date: string;
   tech: string;
+  /** Département de l'intervention : c'est lui qui distingue ANNECY de PARIS à l'œil. */
+  dpt: string;
 }
 
 export interface DossierOrphelin {
@@ -104,6 +106,7 @@ export async function fetchRapprochementManquant(): Promise<RapprochementManquan
       statut: parNom.get(nom)?.installation ?? "",
       date: parNom.get(nom)?.date ?? "",
       tech: parNom.get(nom)?.nomTech ?? "",
+      dpt: parNom.get(nom)?.dpt ?? "",
     })),
     dossiers: clients
       .filter((c) => !apparieIds.has(c.id))
@@ -141,4 +144,73 @@ export async function lierDossierAuTableauAction(
   revalidatePath("/techniciens");
   revalidatePath("/clients");
   return { success: true };
+}
+
+/** "S31- GUIDET ET ASSOCIES PARIS" → "GUIDET ET ASSOCIES PARIS" : la semaine de pose n'est
+ * pas une partie du nom du client. La casse d'origine est conservée. */
+function raisonSocialeDepuisLigne(nomSheet: string): string {
+  return nomSheet.replace(/^S\d+\s*-\s*/i, "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Crée un dossier à partir d'une ligne du tableau qui n'en avait aucun.
+ *
+ * Deux agences d'un même cabinet — GUIDET ET ASSOCIES PARIS et ANNECY — migrent ensemble
+ * mais doivent se suivre séparément : chacune a ses postes, ses étapes et sa date. Les
+ * fusionner en un dossier fait perdre la trace de ce qui a été fait pour laquelle.
+ *
+ * Le dossier naît rattaché à sa ligne : le nom du tableau est mémorisé d'emblée, donc la
+ * synchronisation le reconnaîtra sans jamais repasser par une comparaison de noms.
+ */
+export async function creerDossierDepuisLigneAction(
+  nomSheet: string
+): Promise<{ success: boolean; error?: string; clientId?: string }> {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "Non authentifié." };
+
+  const nom = nomSheet.trim();
+  if (!nom) return { success: false, error: "Ligne du tableau manquante." };
+
+  const vue = await lireVueSuivi();
+  const ligne = vue.lignes.find((l) => l.client === nom);
+  if (!ligne) {
+    return { success: false, error: "Ligne introuvable : actualisez le tableau." };
+  }
+
+  const raisonSociale = raisonSocialeDepuisLigne(nom);
+  if (!raisonSociale) return { success: false, error: "Nom de client vide dans le tableau." };
+
+  // raisonSociale est unique : un homonyme signale soit un doublon, soit un dossier qu'il
+  // faut lier plutôt que recréer.
+  const homonyme = await prisma.client.findFirst({
+    where: { raisonSociale, archiveA: null },
+    select: { id: true },
+  });
+  if (homonyme) {
+    return {
+      success: false,
+      error: `Un dossier « ${raisonSociale} » existe déjà : utilisez « Lier » plutôt que de le recréer.`,
+    };
+  }
+
+  const cree = await prisma.client.create({
+    data: {
+      raisonSociale,
+      cleRapprochement: raisonSociale.toUpperCase(),
+      departement: ligne.dpt.trim() || null,
+      // Le dossier naît déjà lié à sa ligne : plus aucune comparaison de noms nécessaire.
+      zohoNomSheet: nom,
+      statutSuivi: ligne.installation.trim() || null,
+      dateIntervention: parseDateSheet(ligne.date),
+      creneauIntervention: ligne.heure.trim() || null,
+      // La vue du tableau est déjà bornée au partenaire affiché : le dossier naît du bon côté.
+      partenaireId: await idPartenaireActif(),
+    },
+    select: { id: true },
+  });
+
+  await journaliser("Client", cree.id, "Dossier créé depuis le tableau", nom);
+  revalidatePath("/techniciens");
+  revalidatePath("/clients");
+  return { success: true, clientId: cree.id };
 }

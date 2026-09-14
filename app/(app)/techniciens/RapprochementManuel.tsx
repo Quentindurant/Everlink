@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Link2, RefreshCw } from "lucide-react";
+import { Link2, Plus, RefreshCw } from "lucide-react";
 import {
+  creerDossierDepuisLigneAction,
   fetchRapprochementManquant,
   lierDossierAuTableauAction,
   type RapprochementManquant,
@@ -33,18 +34,22 @@ export function RapprochementManuel() {
   const { lignes, dossiers } = donnees;
   if (lignes.length === 0 && dossiers.length === 0) return null;
 
-  const lier = (nomSheet: string) => {
-    const clientId = choix[nomSheet];
-    if (!clientId) return;
+  const agir = (action: () => Promise<{ success: boolean; error?: string }>) => {
     startTransition(async () => {
-      const r = await lierDossierAuTableauAction(clientId, nomSheet);
+      const r = await action();
       if (!r.success) {
-        setErreur(r.error ?? "Échec du rapprochement.");
+        setErreur(r.error ?? "Échec.");
         return;
       }
       setErreur(null);
       setDonnees(await fetchRapprochementManquant());
     });
+  };
+
+  const lier = (nomSheet: string) => {
+    const clientId = choix[nomSheet];
+    if (!clientId) return;
+    agir(() => lierDossierAuTableauAction(clientId, nomSheet));
   };
 
   return (
@@ -70,7 +75,11 @@ export function RapprochementManuel() {
 
       <p className="text-[12px]" style={{ color: "var(--pal-amber-fg)" }}>
         Ces lignes portent un nom que l&apos;app ne peut pas relier seule. Tant qu&apos;elles ne
-        sont pas liées, le statut, la date et le technicien du dossier restent figés.
+        sont pas liées, le statut, la date et le technicien du dossier restent figés.{" "}
+        <strong>Lier</strong> rattache la ligne à un dossier existant ;{" "}
+        <strong>Créer</strong> ouvre un dossier propre à cette ligne — c&apos;est ce qu&apos;il
+        faut pour deux agences d&apos;un même cabinet, qui migrent ensemble mais se suivent
+        séparément.
       </p>
 
       {erreur && (
@@ -98,7 +107,8 @@ export function RapprochementManuel() {
                 {l.nomSheet}
               </span>
               <span className="shrink-0 text-[11.5px] text-muted-foreground">
-                {[l.statut, l.date, l.tech].filter(Boolean).join(" · ") || "—"}
+                {[l.dpt && `dpt ${l.dpt}`, l.statut, l.date, l.tech].filter(Boolean).join(" · ") ||
+                  "—"}
               </span>
               <select
                 value={choix[l.nomSheet] ?? ""}
@@ -120,6 +130,16 @@ export function RapprochementManuel() {
               >
                 <Link2 className="size-3" />
                 Lier
+              </button>
+              <button
+                type="button"
+                disabled={enCours}
+                onClick={() => agir(() => creerDossierDepuisLigneAction(l.nomSheet))}
+                title="Ouvrir un dossier propre à cette ligne, déjà rattaché au tableau"
+                className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md border px-2 text-[12px] font-semibold hover:bg-[var(--ev-row-hover)] disabled:opacity-40"
+              >
+                <Plus className="size-3" />
+                Créer
               </button>
             </li>
           ))}
