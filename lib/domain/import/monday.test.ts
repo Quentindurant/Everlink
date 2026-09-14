@@ -3,6 +3,7 @@ import ExcelJS from "exceljs";
 import {
   normaliserRaisonSociale,
   parseMondayWorkbook,
+  parseNumTracking,
   rapprocher,
   type MondayLigne,
 } from "./monday";
@@ -137,6 +138,10 @@ describe("rapprocher", () => {
       technoLien: null,
       debit: null,
       modeleCpe: null,
+      lienOperateur: null,
+      lienReference: null,
+      colisTransporteur: null,
+      colisNumeroSuivi: null,
       departement: null,
       postesDeployes: [],
       champsBruts: {},
@@ -251,5 +256,34 @@ describe("rapprocher", () => {
     expect(r.sites).toHaveLength(1);
     expect(r.sites[0].clientId).toBe("cl9");
     expect(r.sites[0].ligne.codeMonday).toBe("POCGC401");
+  });
+});
+
+describe("parseNumTracking", () => {
+  test("sépare le transporteur du numéro", () => {
+    // Monday écrit « CHRO XN401710170FR » dans une seule cellule.
+    expect(parseNumTracking("CHRO XN401710170FR")).toEqual({
+      transporteur: "Chronopost",
+      numero: "XN401710170FR",
+    });
+  });
+
+  test("reconnaît DHL", () => {
+    expect(parseNumTracking("DHL 4239479311")).toEqual({
+      transporteur: "DHL",
+      numero: "4239479311",
+    });
+  });
+
+  test("un numéro seul reste un numéro, sans transporteur inventé", () => {
+    expect(parseNumTracking("XN401710170FR")).toEqual({
+      transporteur: null,
+      numero: "XN401710170FR",
+    });
+  });
+
+  test("une cellule vide ne donne rien", () => {
+    expect(parseNumTracking("")).toEqual({ transporteur: null, numero: null });
+    expect(parseNumTracking("   ")).toEqual({ transporteur: null, numero: null });
   });
 });

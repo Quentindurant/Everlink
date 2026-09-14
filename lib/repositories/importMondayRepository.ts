@@ -38,6 +38,10 @@ function champsMondayDe(ligne: MondayLigne) {
     technoLien: ligne.technoLien,
     debit: ligne.debit,
     modeleCpe: ligne.modeleCpe,
+    lienOperateur: ligne.lienOperateur,
+    lienReference: ligne.lienReference,
+    colisTransporteur: ligne.colisTransporteur,
+    colisNumeroSuivi: ligne.colisNumeroSuivi,
     departement: ligne.departement,
     postesDeployesRaw: ligne.postesDeployes.join(", ") || null,
     mondayRaw: JSON.parse(

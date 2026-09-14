@@ -26,6 +26,12 @@ export interface MondayLigne {
   technoLien: string | null;
   debit: string | null;
   modeleCpe: string | null;
+  /** Opérateur du lien à déployer (colonne « Opé FTTH à déployer »). */
+  lienOperateur: string | null;
+  /** Référence de la commande du lien, saisie par la filiale. */
+  lienReference: string | null;
+  colisTransporteur: string | null;
+  colisNumeroSuivi: string | null;
   departement: string | null;
   postesDeployes: string[];
   // Toutes les colonnes non mappées, stockées dans Client.mondayRaw.
@@ -80,6 +86,9 @@ export function memeAdresse(a: string | null, b: string | null): boolean {
   return cle(a) === cle(b);
 }
 
+// Monday a renommé plusieurs colonnes entre deux exports. Les deux intitulés sont acceptés :
+// un ancien fichier doit continuer à s'importer, sinon un ré-import de rattrapage échoue sans
+// que personne comprenne pourquoi.
 const MAPPING: Record<string, keyof MondayLigne> = {
   Name: "codeMonday",
   Filiale: "filiale",
@@ -89,6 +98,7 @@ const MAPPING: Record<string, keyof MondayLigne> = {
   "Date d'inter": "dateIntervention",
   Intervention: "typeIntervention",
   Statut: "statutMonday",
+  "Statut migration": "statutMonday",
   Commentaire: "commentaire",
   "NB DE POSTE": "nbPostesAnnonce",
   "Nom (contact)": "contactNom",
@@ -98,10 +108,46 @@ const MAPPING: Record<string, keyof MondayLigne> = {
   "Mail (contact)": "contactEmail",
   "Techno lien": "technoLien",
   Débit: "debit",
+  "Débit FTTH": "debit",
   "Modèle CPE": "modeleCpe",
+  "Equipement à déployer": "modeleCpe",
+  "Opé FTTH à déployer": "lienOperateur",
+  "Réf commande lien": "lienReference",
   LOT: "lotNom",
   Département: "departement",
 };
+
+/** Codes transporteur tels que Monday les abrège dans la colonne « Num tracking ». */
+const TRANSPORTEURS: Record<string, string> = {
+  CHRO: "Chronopost",
+  CHRONO: "Chronopost",
+  CHRONOPOST: "Chronopost",
+  DHL: "DHL",
+  COLISSIMO: "Colissimo",
+  UPS: "UPS",
+};
+
+/**
+ * « CHRO XN401710170FR » → transporteur et numéro séparés. Monday les met dans une seule
+ * cellule ; l'app les stocke à part pour interroger l'API de suivi.
+ *
+ * Un préfixe inconnu n'est pas transformé en transporteur : le numéro repart entier, et le
+ * suivi restera manuel plutôt que d'échouer sur un transporteur inventé.
+ */
+export function parseNumTracking(brut: string): {
+  transporteur: string | null;
+  numero: string | null;
+} {
+  const t = brut.trim().replace(/\s+/g, " ");
+  if (!t) return { transporteur: null, numero: null };
+
+  const [premier, ...reste] = t.split(" ");
+  const connu = TRANSPORTEURS[premier.toUpperCase()];
+  if (connu && reste.length > 0) {
+    return { transporteur: connu, numero: reste.join("") };
+  }
+  return { transporteur: null, numero: t };
+}
 
 function celluleTexte(valeur: unknown): string | null {
   if (valeur === null || valeur === undefined) return null;
@@ -188,6 +234,10 @@ export function parseMondayWorkbook(wb: ExcelJS.Workbook): {
       technoLien: null,
       debit: null,
       modeleCpe: null,
+      lienOperateur: null,
+      lienReference: null,
+      colisTransporteur: null,
+      colisNumeroSuivi: null,
       departement: null,
       postesDeployes: [],
       champsBruts: {},
@@ -209,6 +259,13 @@ export function parseMondayWorkbook(wb: ExcelJS.Workbook): {
         ligne.nbPostesAnnonce = Number.isFinite(n) ? n : null;
         continue;
       }
+      if (entete === "Num tracking") {
+        const { transporteur, numero } = parseNumTracking(celluleTexte(brut) ?? "");
+        ligne.colisTransporteur = transporteur;
+        ligne.colisNumeroSuivi = numero;
+        continue;
+      }
+
       if (entete === "Clt VIP") {
         const t = celluleTexte(brut)?.toLowerCase();
         ligne.clientVip = t === "oui" || t === "true" || t === "vip" || t === "v" || t === "✓";
