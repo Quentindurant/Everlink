@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -21,7 +21,14 @@ import type { ChefProjetVue, DossierProjet } from "@/lib/repositories/chefProjet
 import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
 import { nomCompte } from "@/lib/domain/comptes";
 import { useEtatMemorise } from "@/components/useEtatMemorise";
-import { estPanasonic, RESET_PANASONIC } from "@/lib/domain/projet/panasonic";
+import {
+  AUTOPROVISION_PANASONIC,
+  IDENTIFIANTS_WEB_PANASONIC,
+  INTERFACE_WEB_PANASONIC,
+  RESET_PANASONIC,
+  URL_AUTOPROVISION_PANASONIC,
+  estPanasonic,
+} from "@/lib/domain/projet/panasonic";
 import {
   attribuerProjetAction,
   cloreProjetAction,
@@ -439,11 +446,10 @@ function PostesDossier({ dossier }: { dossier: DossierProjet }) {
   }
 
   // Les Panasonic remontent en premier : ce sont eux qui demandent un traitement à part
-  // (reset au clavier, fichier d'autoprovision par poste).
+  // (reset au clavier, autoprovision à saisir dans l'interface web).
   const postes = [...dossier.postes].sort(
     (a, b) => Number(estPanasonic(b.marque)) - Number(estPanasonic(a.marque))
   );
-  const urlsPanasonic = postes.filter((p) => p.urlAutoprovision);
 
   return (
     <div className="lg:sticky lg:top-0">
@@ -477,25 +483,29 @@ function PostesDossier({ dossier }: { dossier: DossierProjet }) {
         )}
       </div>
 
-      {/* Procédure de reset Panasonic : elle ne s'affiche que si le client en a. */}
+      {/* Procédure Panasonic : elle ne s'affiche que si le client en a. */}
       {dossier.aPanasonic && (
         <div
-          className="border-t px-3 py-2"
+          className="flex flex-col gap-2.5 border-t px-3 py-2"
           style={{ borderColor: "var(--ev-row-border)", background: "var(--pal-amber-bg)" }}
         >
-          <div className="mb-1.5 text-[11px] font-bold text-[color:var(--pal-amber-fg)]">
-            Reset d&apos;un poste Panasonic
-          </div>
-          <ol className="flex flex-col gap-1 text-[11.5px]">
-            {RESET_PANASONIC.map((etape, i) => (
-              <li key={i} className="flex items-start gap-1.5">
-                <span className="mt-0.5 grid size-4 shrink-0 place-items-center rounded-full bg-[color:var(--pal-amber-fg)] font-mono text-[9px] font-bold text-white">
-                  {i + 1}
-                </span>
-                <span>{etape}</span>
-              </li>
-            ))}
-          </ol>
+          <EtapesPanasonic titre="Reset d'un poste Panasonic" etapes={RESET_PANASONIC} />
+          <EtapesPanasonic titre="Accès à l'interface web" etapes={INTERFACE_WEB_PANASONIC}>
+            <div className="flex flex-wrap items-center gap-1.5 pl-[22px] text-[11px]">
+              <span className="text-muted-foreground">Identifiants par défaut</span>
+              <CopiePuce valeur={IDENTIFIANTS_WEB_PANASONIC.identifiant} titre="Identifiant" />
+              <CopiePuce valeur={IDENTIFIANTS_WEB_PANASONIC.motDePasse} titre="Mot de passe" />
+            </div>
+          </EtapesPanasonic>
+          <EtapesPanasonic titre="Autoprovision" etapes={AUTOPROVISION_PANASONIC}>
+            <div className="flex flex-wrap items-center gap-1.5 pl-[22px] text-[11px]">
+              <span className="text-muted-foreground">Provisioning Server</span>
+              <CopiePuce
+                valeur={URL_AUTOPROVISION_PANASONIC}
+                titre="À coller tel quel : le poste remplace lui-même {MODEL} et {MAC}"
+              />
+            </div>
+          </EtapesPanasonic>
         </div>
       )}
 
@@ -526,12 +536,10 @@ function PostesDossier({ dossier }: { dossier: DossierProjet }) {
               <Laptop className="size-2.5" />
               Speek — installation sur le PC
             </span>
-          ) : p.urlAutoprovision ? (
-            <CopiePuce
-              valeur={p.urlAutoprovision}
-              libelle={`copier le .cfg de ce poste`}
-              titre={p.urlAutoprovision}
-            />
+          ) : estPanasonic(p.marque) ? (
+            <span className="text-[11px] text-muted-foreground">
+              Autoprovision : voir la procédure ci-dessus
+            </span>
           ) : (
             <span className="text-[11px] text-muted-foreground">URL générique</span>
           )}
@@ -539,15 +547,35 @@ function PostesDossier({ dossier }: { dossier: DossierProjet }) {
         </div>
       ))}
 
-      {urlsPanasonic.length > 1 && (
-        <div className="border-t px-3 py-2" style={{ borderColor: "var(--ev-row-border)" }}>
-          <CopiePuce
-            valeur={urlsPanasonic.map((p) => p.urlAutoprovision).join("\n")}
-            libelle={`copier les ${urlsPanasonic.length} .cfg Panasonic`}
-            titre="Une URL par ligne, dans l'ordre des postes"
-          />
-        </div>
-      )}
+    </div>
+  );
+}
+
+// Un bloc de la procédure Panasonic : titre, étapes numérotées, puis d'éventuelles valeurs
+// à copier (identifiants, URL) alignées sous les étapes.
+function EtapesPanasonic({
+  titre,
+  etapes,
+  children,
+}: {
+  titre: string;
+  etapes: readonly string[];
+  children?: ReactNode;
+}) {
+  return (
+    <div>
+      <div className="mb-1 text-[11px] font-bold text-[color:var(--pal-amber-fg)]">{titre}</div>
+      <ol className="flex flex-col gap-1 text-[11.5px]">
+        {etapes.map((etape, i) => (
+          <li key={i} className="flex items-start gap-1.5">
+            <span className="mt-0.5 grid size-4 shrink-0 place-items-center rounded-full bg-[color:var(--pal-amber-fg)] font-mono text-[9px] font-bold text-white">
+              {i + 1}
+            </span>
+            <span>{etape}</span>
+          </li>
+        ))}
+      </ol>
+      {children && <div className="mt-1">{children}</div>}
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { estEtapeResolue } from "@/lib/domain/telephone/statuts";
-import { urlAutoprovision } from "@/lib/domain/projet/autoprovision";
 import { estPanasonic } from "@/lib/domain/projet/panasonic";
 import { filtrePartenaire, idPartenaireActif } from "@/lib/partenaire";
 
@@ -21,9 +20,6 @@ export interface PosteProjet {
   modele: string | null;
   marque: string | null;
   mac: string | null;
-  /** URL du fichier de configuration UNYC. Panasonic uniquement : les autres marques
-   *  s'autoprovisionnent par l'URL générique du serveur. */
-  urlAutoprovision: string | null;
   /** Softphone à réinstaller (DOKO → Speek) : pas de reset, une installation sur le PC. */
   softphone: boolean;
 }
@@ -36,7 +32,7 @@ export interface DossierProjet {
   /** Marques présentes chez le client : un Panasonic ne se configure pas comme un Yealink. */
   marques: string[];
   nbSoftphones: number;
-  /** Vrai si au moins un Panasonic : déclenche l'affichage de la procédure de reset. */
+  /** Vrai si au moins un Panasonic : déclenche l'affichage de la procédure Panasonic. */
   aPanasonic: boolean;
   dateInterventionIso: string | null;
   creneau: string | null;
@@ -143,7 +139,6 @@ export async function fetchChefProjet(
         modele,
         marque,
         mac: e.macBrut || null,
-        urlAutoprovision: urlAutoprovision(marque, modele, e.macBrut),
         softphone: e.modele?.type === "SOFTPHONE",
       };
     });
