@@ -64,6 +64,16 @@ model Partenaire {
   actif         Boolean @default(true)
   ordre         Int     @default(0)
 
+  // Réglages d'envoi des mails clients : chaque partenaire écrit en son nom.
+  /// Adresses mises en copie (Cc) de chaque envoi, séparées par des virgules.
+  copieMail       String?
+  /// Adresse d'expédition (From). Vide = SMTP_FROM. Doit être un expéditeur validé côté Mailjet.
+  expediteur      String?
+  /// Numéro de l'équipe migration, injecté dans {numero_gc}. Vide = NUMERO_GC.
+  telephone       String?
+  /// Lignes de la signature entre « Pôle migration » et l'adresse mail (raison sociale, adresse).
+  signatureLignes String?
+
   clients     Client[]
   articles    ArticleStock[]
   lotsRetour  LotRetourOnt[]
@@ -474,7 +484,8 @@ enum TypeMail {
 // Modèle de mail éditable (objet + corps avec variables {...}), par scénario et type.
 // Paramètres applicatifs clé → valeur, édités dans Paramètres :
 //   signatureMail — ajoutée sous le corps de chaque mail composé
-//   copieMail     — adresse mise en copie (Cc) de chaque envoi
+//   copieMail     : ancienne copie globale, repli seulement pour un client sans partenaire
+//                   (la copie se règle désormais sur Partenaire.copieMail)
 model ParametreApp {
   cle    String   @id
   valeur String

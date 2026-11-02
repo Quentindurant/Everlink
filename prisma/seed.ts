@@ -226,12 +226,15 @@ async function main() {
         "Ce rendez-vous mobilise nos équipes techniques. Toute demande de report devra nous parvenir au minimum 72h avant la date d'intervention, à migration.ext@everlink-services.fr ou au {numero_gc}.\n\nCordialement,\n\nPôle migration — Everlink Services",
     },
   ];
+  // Ces modèles sont ceux d'EVERLINK (créé par la migration des partenaires). Un modèle sans
+  // partenaire serait invisible : le filtre partenaire est strict.
+  const everlink = await prisma.partenaire.findUnique({ where: { code: "EVERLINK" } });
   for (const [ordre, m] of modelesMail.entries()) {
     const existant = await prisma.modeleMail.findFirst({
-      where: { scenario: m.scenario, type: m.type },
+      where: { scenario: m.scenario, type: m.type, partenaireId: everlink?.id ?? null },
     });
-    if (!existant) {
-      await prisma.modeleMail.create({ data: { ...m, ordre } });
+    if (!existant && everlink) {
+      await prisma.modeleMail.create({ data: { ...m, ordre, partenaireId: everlink.id } });
     }
   }
 

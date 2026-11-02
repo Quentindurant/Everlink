@@ -11,10 +11,12 @@ export interface ModeleMailLite {
   corps: string;
 }
 
-// Templates actifs (pour le sélecteur de la fiche client), ordonnés.
-export async function listModelesMail(): Promise<ModeleMailLite[]> {
+// Templates actifs (pour le sélecteur de la fiche client), ordonnés. La fiche passe le
+// partenaire du client : un dossier INOVACOM ouvert depuis un lien direct alors que le
+// sélecteur est sur EVERLINK doit quand même proposer les modèles INOVACOM.
+export async function listModelesMail(partenaireId?: string | null): Promise<ModeleMailLite[]> {
   const modeles = await prisma.modeleMail.findMany({
-    where: { actif: true, ...filtrePartenaire(await idPartenaireActif()) },
+    where: { actif: true, ...filtrePartenaire(partenaireId ?? (await idPartenaireActif())) },
     orderBy: [{ ordre: "asc" }, { scenario: "asc" }],
     select: { id: true, scenario: true, type: true, objet: true, corps: true },
   });
@@ -65,6 +67,55 @@ export async function compterSoftphones(clientId: string): Promise<number> {
   });
 }
 
+// --- Réglages d'envoi du partenaire (copie, expéditeur, signature, téléphone) ---
+
+export interface PartenaireEnvoi {
+  id: string;
+  code: string;
+  nom: string;
+  logo: string;
+  site: string | null;
+  mailMigration: string | null;
+  copieMail: string | null;
+  expediteur: string | null;
+  telephone: string | null;
+  signatureLignes: string | null;
+}
+
+const CHAMPS_ENVOI = {
+  id: true,
+  code: true,
+  nom: true,
+  logo: true,
+  site: true,
+  mailMigration: true,
+  copieMail: true,
+  expediteur: true,
+  telephone: true,
+  signatureLignes: true,
+} as const;
+
+export async function fetchPartenaireEnvoi(id: string | null | undefined): Promise<PartenaireEnvoi | null> {
+  if (!id) return null;
+  return prisma.partenaire.findUnique({ where: { id }, select: CHAMPS_ENVOI });
+}
+
+// Partenaire du dossier, pour signer et adresser un envoi en son nom.
+export async function fetchPartenaireEnvoiDuClient(clientId: string): Promise<PartenaireEnvoi | null> {
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: { partenaire: { select: CHAMPS_ENVOI } },
+  });
+  return client?.partenaire ?? null;
+}
+
+/** Champs d'envoi éditables depuis Paramètres. */
+export type ChampEnvoi = "copieMail" | "expediteur" | "mailMigration" | "telephone" | "signatureLignes" | "site";
+
+export async function updatePartenaireEnvoi(id: string, champ: ChampEnvoi, valeur: string | null): Promise<void> {
+  await prisma.partenaire.update({ where: { id }, data: { [champ]: valeur } });
+}
+
 // --- Paramètres applicatifs (signature, copie systématique) ---
 
 export async function getParametreApp(cle: string): Promise<string | null> {
@@ -110,8 +161,11 @@ export interface ModeleMailLigne extends ModeleMailLite {
   ordre: number;
 }
 
-export async function fetchModelesMailParam(): Promise<ModeleMailLigne[]> {
+// Modèles du partenaire actif seulement : sans filtre, l'écran mélangeait les modèles des deux
+// partenaires sans dire à qui chacun appartient.
+export async function fetchModelesMailParam(partenaireId: string | null): Promise<ModeleMailLigne[]> {
   const modeles = await prisma.modeleMail.findMany({
+    where: filtrePartenaire(partenaireId),
     orderBy: [{ ordre: "asc" }, { scenario: "asc" }],
   });
   return modeles.map((m) => ({
@@ -136,11 +190,16 @@ export async function creerModeleMail(
   scenario: string,
   type: TypeMail,
   objet: string,
-  corps: string
+  corps: string,
+  partenaireId: string | null
 ): Promise<void> {
-  const max = await prisma.modeleMail.aggregate({ _max: { ordre: true } });
+  // Rattaché au partenaire : un modèle sans partenaire n'apparaîtrait nulle part.
+  const max = await prisma.modeleMail.aggregate({
+    where: filtrePartenaire(partenaireId),
+    _max: { ordre: true },
+  });
   await prisma.modeleMail.create({
-    data: { scenario, type, objet, corps, ordre: (max._max.ordre ?? -1) + 1 },
+    data: { scenario, type, objet, corps, ordre: (max._max.ordre ?? -1) + 1, partenaireId },
   });
 }
 

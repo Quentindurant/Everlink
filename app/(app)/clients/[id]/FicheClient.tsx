@@ -92,6 +92,8 @@ export function FicheClient({
   envois,
   numeroGc,
   mailMigration,
+  copieMail,
+  nomPartenaire,
   nbSoftphones,
   nomsGuides,
   ongletInitial,
@@ -100,8 +102,12 @@ export function FicheClient({
   modelesMail: ModeleMailLite[];
   envois: EnvoiLigne[];
   numeroGc: string;
-  /** Boîte mail de migration de la filiale, paramètre applicatif. */
+  /** Boîte mail de migration du partenaire du dossier. */
   mailMigration: string;
+  /** Adresses mises en copie de chaque envoi (réglage du partenaire). */
+  copieMail: string[];
+  /** Partenaire au nom duquel le mail est signé. */
+  nomPartenaire: string;
   nbSoftphones: number;
   nomsGuides: string[];
   ongletInitial?: string;
@@ -308,6 +314,8 @@ export function FicheClient({
           envois={envois}
           numeroGc={numeroGc}
           mailMigration={mailMigration}
+          copieMail={copieMail}
+          nomPartenaire={nomPartenaire}
           nbSoftphones={nbSoftphones}
           nomsGuides={nomsGuides}
         />

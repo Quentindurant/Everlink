@@ -9,7 +9,8 @@ import {
   fetchModeles,
   fetchSyncRuns,
 } from "@/lib/repositories/parametresRepository";
-import { fetchModelesMailParam, getParametreApp } from "@/lib/repositories/mailRepository";
+import { fetchModelesMailParam, fetchPartenaireEnvoi } from "@/lib/repositories/mailRepository";
+import { idPartenaireActif } from "@/lib/partenaire";
 import { fetchActiviteEquipe } from "@/lib/repositories/activiteRepository";
 import { SectionActivite } from "./SectionActivite";
 import {
@@ -32,18 +33,21 @@ export default async function ParametresPage() {
   const session = await auth();
   if (session?.user?.role !== "ADMIN") redirect("/");
 
-  const [modeles, listes, etapes, etapesMigration, etapesProjet, modelesMail, comptes, syncRuns, activite, copieMail] =
+  // Les réglages d'envoi et les modèles de mail suivent le partenaire choisi dans la barre
+  // latérale, comme le reste de l'application.
+  const idPartenaire = await idPartenaireActif();
+  const [modeles, listes, etapes, etapesMigration, etapesProjet, modelesMail, comptes, syncRuns, activite, partenaire] =
     await Promise.all([
       fetchModeles(),
       fetchListesValeurs(),
       fetchEtapes(),
       fetchEtapesMigrationParam(),
       fetchEtapesProjetParam(),
-      fetchModelesMailParam(),
+      fetchModelesMailParam(idPartenaire),
       fetchComptes(),
       fetchSyncRuns(),
       fetchActiviteEquipe(),
-      getParametreApp("copieMail"),
+      fetchPartenaireEnvoi(idPartenaire),
     ]);
 
   const nbAQualifier = modeles.filter((m) => !m.eligibleExport && m.nbEquipements === 0).length;
@@ -68,8 +72,8 @@ export default async function ParametresPage() {
       <SectionModeles modeles={modeles} />
       <SectionEtapesMigration etapes={etapesMigration} />
       <SectionEtapesProjet etapes={etapesProjet} />
-      <SectionEnvoiMail copie={copieMail ?? ""} />
-      <SectionModelesMail modeles={modelesMail} />
+      <SectionEnvoiMail partenaire={partenaire} />
+      <SectionModelesMail modeles={modelesMail} nomPartenaire={partenaire?.nom ?? null} />
       <SectionListes listes={listes} />
       <SectionEtapes etapes={etapes} />
       <SectionComptes comptes={comptes} />

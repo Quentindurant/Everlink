@@ -9,9 +9,12 @@ import { envoyerMail } from "@/lib/mail/mailer";
 import {
   compterSoftphones,
   enregistrerEnvoi,
+  fetchPartenaireEnvoiDuClient,
   getParametreApp,
 } from "@/lib/repositories/mailRepository";
 import { listerGuides } from "@/lib/mail/guides";
+import { signatureDepuisPartenaire } from "@/lib/mail/signature";
+import { adressesCopie } from "@/lib/domain/mail/copie";
 
 type Resultat = { success: boolean; error?: string };
 
@@ -35,8 +38,10 @@ export async function envoyerMailAction(
 
   // CustomID Mailjet : corrélation avec l'état de délivrabilité relevé par le cron.
   const customId = randomUUID();
-  // Copie systématique (paramètre « copieMail »), sauf si c'est déjà le destinataire.
-  const copie = (await getParametreApp("copieMail"))?.trim() || undefined;
+  // Le mail part au nom du partenaire du dossier : sa copie, sa signature, son expéditeur.
+  // Un dossier sans partenaire garde l'ancien comportement (copie globale, signature EverLink).
+  const partenaire = await fetchPartenaireEnvoiDuClient(clientId);
+  const saisieCopie = partenaire ? partenaire.copieMail : await getParametreApp("copieMail");
   // Guides Speek joints à la confirmation d'un client qui a des softphones à réinstaller.
   const piecesJointes =
     type === "CONFIRMATION" && (await compterSoftphones(clientId)) > 0
@@ -47,8 +52,11 @@ export async function envoyerMailAction(
     subject: objet,
     text: corps,
     customId,
-    cc: copie && copie.toLowerCase() !== destinataire.trim().toLowerCase() ? copie : undefined,
+    cc: adressesCopie(saisieCopie, destinataire),
     piecesJointes,
+    ...(partenaire
+      ? { signature: signatureDepuisPartenaire(partenaire), expediteur: partenaire.expediteur }
+      : {}),
   });
 
   await enregistrerEnvoi({

@@ -18,9 +18,11 @@ import { listEtapesMigration } from "@/lib/repositories/migrationRepository";
 import {
   compterSoftphones,
   fetchEnvois,
+  fetchPartenaireEnvoi,
   getParametreApp,
   listModelesMail,
 } from "@/lib/repositories/mailRepository";
+import { decouperAdresses } from "@/lib/domain/mail/copie";
 import { listerGuides } from "@/lib/mail/guides";
 import { fetchPrestataires } from "@/lib/repositories/prestatairesRepository";
 import { PrestatairesClient } from "./PrestatairesClient";
@@ -70,7 +72,6 @@ export default async function ClientDetailPage({
   const [
     detail,
     etapesMigration,
-    modelesMail,
     envoisRaw,
     nbSoftphones,
     guides,
@@ -79,17 +80,30 @@ export default async function ClientDetailPage({
   ] = await Promise.all([
     fetchClientDetail(id),
     listEtapesMigration(),
-    listModelesMail(),
     fetchEnvois(id),
     compterSoftphones(id),
     listerGuides(),
     fetchPrestataires(id),
     getParametreApp("mailMigration"),
   ]);
-  // À défaut de paramètre propre, l'adresse mise en copie fait foi : c'est la même boîte.
-  const mailMigration = mailMigrationParam?.trim() || (await getParametreApp("copieMail"))?.trim() || "";
   if (!detail) notFound();
   const { client, etapes } = detail;
+
+  // Modèles, boîte migration, téléphone et copie suivent le partenaire du dossier, pas le
+  // partenaire choisi dans la barre latérale : un lien direct peut ouvrir l'autre périmètre.
+  const [modelesMail, partenaire] = await Promise.all([
+    listModelesMail(client.partenaireId),
+    fetchPartenaireEnvoi(client.partenaireId),
+  ]);
+  // Repli pour un dossier sans partenaire : paramètre global, puis l'adresse mise en copie
+  // (c'est la même boîte).
+  const mailMigration =
+    partenaire?.mailMigration?.trim() ||
+    mailMigrationParam?.trim() ||
+    (await getParametreApp("copieMail"))?.trim() ||
+    "";
+  const numeroGc = partenaire?.telephone?.trim() || process.env.NUMERO_GC || "";
+  const copieMail = partenaire ? partenaire.copieMail : await getParametreApp("copieMail");
 
   // Techniciens disponibles à la date d'intervention (ou tous les actifs si pas de date).
   const techniciensDisponibles = await fetchTechniciensDisponibles(
@@ -316,8 +330,10 @@ export default async function ClientDetailPage({
         detail={detail}
         modelesMail={modelesMail}
         envois={envois}
-        numeroGc={process.env.NUMERO_GC ?? ""}
+        numeroGc={numeroGc}
         mailMigration={mailMigration}
+        copieMail={decouperAdresses(copieMail)}
+        nomPartenaire={partenaire?.nom ?? "EverLink"}
         nbSoftphones={nbSoftphones}
         nomsGuides={guides.map((g) => g.filename)}
         ongletInitial={onglet}
