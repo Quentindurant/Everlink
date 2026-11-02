@@ -7,10 +7,13 @@ import { auth } from "@/auth";
 import { runSheetsSync } from "@/lib/sync/runSheetsSync";
 import {
   creerModeleMail,
-  setParametreApp,
   supprimerModeleMail,
   updateModeleMail,
+  updatePartenaireEnvoi,
+  type ChampEnvoi,
 } from "@/lib/repositories/mailRepository";
+import { adressesInvalides, decouperAdresses } from "@/lib/domain/mail/copie";
+import { idPartenaireActif } from "@/lib/partenaire";
 import {
   ajouterEtape,
   ajouterEtapeProjet,
@@ -218,19 +221,40 @@ export async function creerModeleMailAction(
   return garde(async () => {
     if (!scenario.trim() || !objet.trim())
       return { success: false, error: "Scénario et objet obligatoires." };
-    await creerModeleMail(scenario.trim(), type, objet.trim(), corps);
+    // Le modèle appartient au partenaire choisi dans la barre latérale, celui dont
+    // l'écran affiche les modèles.
+    await creerModeleMail(scenario.trim(), type, objet.trim(), corps, await idPartenaireActif());
   });
 }
 export async function supprimerModeleMailAction(id: string): Promise<Resultat> {
   return garde(() => supprimerModeleMail(id));
 }
 
-// Paramètres d'envoi de mail (signature, adresse en copie).
-export async function updateParametreAppAction(
-  cle: "signatureMail" | "copieMail",
+// Réglages d'envoi d'un partenaire (copie, expéditeur, boîte migration, téléphone, signature).
+// Une valeur vide repasse le champ à null, donc au comportement par défaut (SMTP_FROM,
+// NUMERO_GC, pas de copie).
+export async function updatePartenaireEnvoiAction(
+  partenaireId: string,
+  champ: ChampEnvoi,
   valeur: string
 ): Promise<Resultat> {
-  return garde(() => setParametreApp(cle, valeur.trim()));
+  return garde(async () => {
+    const saisie = valeur.trim();
+    if (champ === "copieMail") {
+      const invalides = adressesInvalides(saisie);
+      if (invalides.length)
+        return { success: false, error: `Adresse invalide : ${invalides.join(", ")}` };
+      const adresses = decouperAdresses(saisie);
+      await updatePartenaireEnvoi(partenaireId, champ, adresses.length ? adresses.join(", ") : null);
+      return;
+    }
+    if ((champ === "expediteur" || champ === "mailMigration") && saisie) {
+      const invalides = adressesInvalides(saisie);
+      if (invalides.length || decouperAdresses(saisie).length !== 1)
+        return { success: false, error: "Une seule adresse mail attendue." };
+    }
+    await updatePartenaireEnvoi(partenaireId, champ, saisie || null);
+  });
 }
 
 // --- Étapes de préparation du chef de projet ---

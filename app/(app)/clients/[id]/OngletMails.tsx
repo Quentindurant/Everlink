@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { contactSite, substituer, type VariablesMail } from "@/lib/domain/mail/substitution";
+import { adressesCopie } from "@/lib/domain/mail/copie";
 import type { ModeleMailLite } from "@/lib/repositories/mailRepository";
 import { SUIVI_MAIL } from "@/lib/domain/mail/suiviStatuts";
 import { blocGuidesSpeek, blocPreparationSpeek } from "@/lib/domain/mail/softphone";
@@ -85,6 +86,8 @@ export function OngletMails({
   nbSoftphones,
   nomsGuides,
   mailMigration,
+  copieMail,
+  nomPartenaire,
 }: {
   clientInfo: {
     id: string;
@@ -109,12 +112,17 @@ export function OngletMails({
   nbSoftphones: number;
   // Guides joints automatiquement a la confirmation quand il y a des softphones.
   nomsGuides: string[];
+  // Copie et signature du partenaire du dossier, affichées pour savoir qui recevra le mail.
+  copieMail: string[];
+  nomPartenaire: string;
 }) {
   // Défaut: 1er template dont le scénario matche celui du client, sinon le 1er.
   const modeleParDefaut =
     modeles.find((m) => m.scenario === clientInfo.scenario)?.id ?? modeles[0]?.id ?? "";
   const [modeleId, setModeleId] = useState(modeleParDefaut);
   const [destinataire, setDestinataire] = useState(clientInfo.contactEmail ?? "");
+  // Même règle que l'envoi : le destinataire n'est jamais remis en copie.
+  const copieAffichee = adressesCopie(copieMail.join(","), destinataire);
   const [date, setDate] = useState(clientInfo.dateIso ?? "");
   const [creneau, setCreneau] = useState(clientInfo.creneau ?? "");
   // null = suit le modèle (avec variables à jour) ; string = texte retouché à la main.
@@ -238,6 +246,14 @@ export function OngletMails({
           />
         </LigneChamp>
 
+        {copieAffichee.length > 0 && (
+          <LigneChamp libelle="Cc">
+            <span className="w-full truncate py-1 text-sm text-muted-foreground" title="Réglé dans Paramètres, par partenaire">
+              {copieAffichee.join(", ")}
+            </span>
+          </LigneChamp>
+        )}
+
         <LigneChamp libelle="Objet">
           <input
             value={objet}
@@ -253,7 +269,7 @@ export function OngletMails({
           className="block min-h-[380px] w-full resize-y bg-transparent px-4 py-3 text-[13.5px] leading-relaxed outline-none"
         />
         <p className="px-4 pb-2 text-[10.5px] text-muted-foreground">
-          La signature EverLink (logo Pôle migration) est ajoutée automatiquement à l&apos;envoi.
+          La signature {nomPartenaire} (logo, Pôle migration) est ajoutée automatiquement à l&apos;envoi.
         </p>
 
         {/* Softphones : ce que l'envoi va ajouter, visible avant de cliquer. */}

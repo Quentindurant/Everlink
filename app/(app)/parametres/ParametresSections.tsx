@@ -23,7 +23,7 @@ import type {
   ModeleLigne,
   ValeurListe,
 } from "@/lib/repositories/parametresRepository";
-import type { ModeleMailLigne } from "@/lib/repositories/mailRepository";
+import type { ChampEnvoi, ModeleMailLigne, PartenaireEnvoi } from "@/lib/repositories/mailRepository";
 import type { EtapeProjetLigne } from "@/lib/repositories/parametresRepository";
 import {
   ajouterEtapeProjetAction,
@@ -34,7 +34,7 @@ import {
   supprimerModeleMailAction,
   updateEtapeProjetAction,
   updateModeleMailAction,
-  updateParametreAppAction,
+  updatePartenaireEnvoiAction,
 } from "./actions";
 import { VARIABLES_DISPONIBLES } from "@/lib/domain/mail/substitution";
 import { horodateParis } from "@/lib/domain/horodatage";
@@ -656,43 +656,117 @@ const TYPE_MAIL_LABEL: Record<string, string> = {
   CONFIRMATION: "Confirmation RDV",
 };
 
-// Adresse mise en copie de chaque envoi. La signature EverLink (logo + Pôle migration)
-// est fixe et ajoutée automatiquement par le serveur d'envoi.
-export function SectionEnvoiMail({ copie }: { copie: string }) {
+// Réglages d'envoi du partenaire actif : copie, expéditeur, boîte migration, téléphone et
+// signature. Chaque partenaire écrit à ses clients en son nom ; pour régler l'autre, on change
+// de partenaire depuis le logo de la barre latérale.
+const CHAMPS_ENVOI: {
+  champ: ChampEnvoi;
+  libelle: string;
+  aide: string;
+  multiligne?: boolean;
+}[] = [
+  {
+    champ: "copieMail",
+    libelle: "Adresses en copie (Cc)",
+    aide: "Reçoivent chaque mail envoyé. Plusieurs adresses séparées par une virgule.",
+  },
+  {
+    champ: "mailMigration",
+    libelle: "Boîte migration",
+    aide: "Variable {mail_migration} et ligne mail de la signature.",
+  },
+  {
+    champ: "telephone",
+    libelle: "Téléphone équipe migration",
+    aide: "Variable {numero_gc}. Vide : numéro par défaut du serveur.",
+  },
+  {
+    champ: "site",
+    libelle: "Site",
+    aide: "Lien du logo et dernière ligne de la signature.",
+  },
+  {
+    champ: "signatureLignes",
+    libelle: "Signature : lignes sous « Pôle migration »",
+    aide: "Raison sociale, adresse... une information par ligne.",
+    multiligne: true,
+  },
+  {
+    champ: "expediteur",
+    libelle: "Adresse d'expédition",
+    aide: "Vide : adresse par défaut du serveur. À ne remplir qu'une fois l'adresse validée comme expéditeur dans Mailjet, sinon les mails sont bloqués.",
+  },
+];
+
+export function SectionEnvoiMail({ partenaire }: { partenaire: PartenaireEnvoi | null }) {
+  const [erreur, setErreur] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+
+  if (!partenaire) {
+    return (
+      <Section titre="Envoi de mail" description="Aucun partenaire actif : rien à régler.">
+        <span />
+      </Section>
+    );
+  }
+
+  const classeChamp =
+    "w-[28rem] max-w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/40";
+
   return (
     <Section
-      titre="Envoi de mail"
-      description="L'adresse en copie reçoit chaque mail envoyé depuis l'app. La signature EverLink (logo, Pôle migration) est ajoutée automatiquement."
+      titre={`Envoi de mail : ${partenaire.nom}`}
+      description={`Ces réglages valent pour les mails des dossiers ${partenaire.nom}. La signature (logo, Pôle migration, lignes ci-dessous, boîte migration, site) est ajoutée automatiquement. Pour régler l'autre partenaire, changez-le depuis le logo de la barre latérale.`}
     >
-      <div className="flex flex-col gap-1.5 rounded-xl border bg-card p-3 shadow-xs">
-        <label className="text-xs font-medium text-muted-foreground">Adresse en copie (Cc)</label>
-        <input
-          type="email"
-          defaultValue={copie}
-          placeholder="migration.ext@everlink-services.fr"
-          onBlur={(e) => {
-            if (e.target.value !== copie)
-              startTransition(async () => {
-                await updateParametreAppAction("copieMail", e.target.value);
-              });
-          }}
-          className="w-96 max-w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/40"
-        />
+      {/* key : l'écran se recharge sur un autre partenaire, les champs non contrôlés aussi. */}
+      <div key={partenaire.id} className="flex flex-col gap-3 rounded-xl border bg-card p-3 shadow-xs">
+        {CHAMPS_ENVOI.map(({ champ, libelle, aide, multiligne }) => {
+          const valeur = partenaire[champ] ?? "";
+          const enregistrer = (saisie: string) => {
+            if (saisie === valeur) return;
+            startTransition(async () => {
+              const r = await updatePartenaireEnvoiAction(partenaire.id, champ, saisie);
+              setErreur(r.success ? null : (r.error ?? "Échec de l'enregistrement."));
+            });
+          };
+          return (
+            <div key={champ} className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-muted-foreground">{libelle}</label>
+              {multiligne ? (
+                <textarea
+                  defaultValue={valeur}
+                  rows={3}
+                  onBlur={(e) => enregistrer(e.target.value)}
+                  className={classeChamp}
+                />
+              ) : (
+                <input defaultValue={valeur} onBlur={(e) => enregistrer(e.target.value)} className={classeChamp} />
+              )}
+              <span className="text-[11px] text-muted-foreground">{aide}</span>
+            </div>
+          );
+        })}
+        <Erreur texte={erreur} />
       </div>
     </Section>
   );
 }
 
 
-export function SectionModelesMail({ modeles }: { modeles: ModeleMailLigne[] }) {
+export function SectionModelesMail({
+  modeles,
+  nomPartenaire,
+}: {
+  modeles: ModeleMailLigne[];
+  nomPartenaire: string | null;
+}) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   return (
     <Section
-      titre="Modèles de mail"
-      description="Les mails de prévenance et de confirmation, par scénario. Modifiez le texte, les variables sont remplacées à l'envoi."
+      titre={nomPartenaire ? `Modèles de mail : ${nomPartenaire}` : "Modèles de mail"}
+      description="Les mails de prévenance et de confirmation, par scénario, du partenaire choisi dans la barre latérale. Un modèle ajouté ici lui appartient. Modifiez le texte, les variables sont remplacées à l'envoi."
     >
       <div className="rounded-xl border bg-muted/30 p-3 text-xs text-muted-foreground">
         Variables disponibles :{" "}

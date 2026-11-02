@@ -2,8 +2,10 @@ import nodemailer from "nodemailer";
 import {
   corpsEnHtml,
   pieceJointeLogo,
-  SIGNATURE_TEXTE,
+  SIGNATURE_EVERLINK,
   signatureHtml,
+  signatureTexte,
+  type SignatureMail,
 } from "@/lib/mail/signature";
 
 // Envoi SMTP. Config lue dans l'environnement pour ne jamais committer d'identifiants:
@@ -17,6 +19,8 @@ export async function envoyerMail({
   customId,
   cc,
   piecesJointes,
+  signature = SIGNATURE_EVERLINK,
+  expediteur,
 }: {
   to: string;
   subject: string;
@@ -24,10 +28,14 @@ export async function envoyerMail({
   // Identifiant de corrélation Mailjet (X-MJ-CustomID) : permet au cron mail-suivi de
   // retrouver l'état de délivrabilité du message via l'API REST. Ignoré hors Mailjet.
   customId?: string;
-  // Adresse mise en copie (paramètre « copieMail » de l'app).
-  cc?: string;
+  // Adresses mises en copie (réglage « copie » du partenaire).
+  cc?: string[];
   // Fichiers joints, lus sur le disque du serveur (guides Speek…).
   piecesJointes?: { filename: string; path: string }[];
+  // Signature du partenaire du dossier. Par défaut celle d'EverLink (alertes internes).
+  signature?: SignatureMail;
+  // Adresse d'expédition du partenaire ; à défaut SMTP_FROM.
+  expediteur?: string | null;
 }): Promise<{ success: boolean; error?: string }> {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_SECURE } = process.env;
 
@@ -46,20 +54,21 @@ export async function envoyerMail({
       secure: SMTP_SECURE === "1",
       auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
     });
-    // Version HTML (corps + signature EverLink avec logo inline) ; le texte brut reste en
+    // Version HTML (corps + signature du partenaire avec logo inline) ; le texte brut reste en
     // fallback pour les clients mail qui n'affichent pas le HTML.
-    const logo = pieceJointeLogo();
+    const logo = pieceJointeLogo(signature);
     // Une seule liste de pièces jointes : le logo inline de la signature ET les documents
     // (guides Speek). Deux clés `attachments` séparées s'écraseraient l'une l'autre.
     const attachments = [...(logo ? [logo] : []), ...(piecesJointes ?? [])];
+    const copie = (cc ?? []).map((a) => a.trim()).filter(Boolean);
     await transport.sendMail({
-      from: SMTP_FROM,
+      from: expediteur?.trim() || SMTP_FROM,
       to,
       subject,
-      text: `${text}\n\n${SIGNATURE_TEXTE}`,
-      html: corpsEnHtml(text) + signatureHtml(),
+      text: `${text}\n\n${signatureTexte(signature)}`,
+      html: corpsEnHtml(text) + signatureHtml(signature, logo !== null),
       ...(attachments.length ? { attachments } : {}),
-      ...(cc?.trim() ? { cc: cc.trim() } : {}),
+      ...(copie.length ? { cc: copie } : {}),
       ...(customId ? { headers: { "X-MJ-CustomID": customId } } : {}),
     });
     return { success: true };
