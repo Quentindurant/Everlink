@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { ChevronDown, PenLine, RotateCcw, Send } from "lucide-react";
+import { ChevronDown, PenLine, RotateCcw, Send, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -123,6 +123,10 @@ export function OngletMails({
   const [destinataire, setDestinataire] = useState(clientInfo.contactEmail ?? "");
   // Même règle que l'envoi : le destinataire n'est jamais remis en copie.
   const copieAffichee = adressesCopie(copieMail.join(","), destinataire);
+  // Adresses retirées pour cet envoi seulement (en minuscules). Le réglage du partenaire,
+  // lui, ne bouge pas : il se modifie dans Paramètres.
+  const [copieRetiree, setCopieRetiree] = useState<string[]>([]);
+  const copieEnvoyee = copieAffichee.filter((a) => !copieRetiree.includes(a.toLowerCase()));
   const [date, setDate] = useState(clientInfo.dateIso ?? "");
   const [creneau, setCreneau] = useState(clientInfo.creneau ?? "");
   // null = suit le modèle (avec variables à jour) ; string = texte retouché à la main.
@@ -180,7 +184,7 @@ export function OngletMails({
     startTransition(async () => {
       // Persiste date/créneau saisis, puis envoie le contenu tel qu'affiché (retouches incluses).
       await setCreneauInterventionAction(clientInfo.id, date, creneau);
-      const r = await envoyerMailAction(clientInfo.id, modele.type, destinataire, objet, corps);
+      const r = await envoyerMailAction(clientInfo.id, modele.type, destinataire, objet, corps, copieEnvoyee);
       setMessage(
         r.success
           ? { ok: true, texte: "Mail envoyé et étape avancée." }
@@ -248,9 +252,39 @@ export function OngletMails({
 
         {copieAffichee.length > 0 && (
           <LigneChamp libelle="Cc">
-            <span className="w-full truncate py-1 text-sm text-muted-foreground" title="Réglé dans Paramètres, par partenaire">
-              {copieAffichee.join(", ")}
-            </span>
+            <div className="flex w-full flex-wrap items-center gap-1.5 py-1">
+              {copieEnvoyee.map((a) => (
+                <span
+                  key={a}
+                  className="inline-flex items-center gap-1 rounded-md border bg-muted/40 py-0.5 pr-1 pl-2 text-[12px]"
+                >
+                  {a}
+                  <button
+                    type="button"
+                    onClick={() => setCopieRetiree((r) => [...r, a.toLowerCase()])}
+                    className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    title="Retirer de la copie pour cet envoi"
+                    aria-label={`Retirer ${a} de la copie`}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </span>
+              ))}
+              {copieEnvoyee.length === 0 && (
+                <span className="text-[12px] text-muted-foreground">Aucune copie pour cet envoi</span>
+              )}
+              {copieRetiree.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setCopieRetiree([])}
+                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+                  title="Remettre toutes les adresses réglées dans Paramètres"
+                >
+                  <RotateCcw className="size-3" />
+                  rétablir
+                </button>
+              )}
+            </div>
           </LigneChamp>
         )}
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { adressesCopie, adressesInvalides, decouperAdresses } from "./copie";
+import { adressesCopie, adressesInvalides, decouperAdresses, restreindreCopie } from "./copie";
 
 describe("decouperAdresses", () => {
   test("accepte virgule, point-virgule, espace et retour à la ligne", () => {
@@ -35,6 +35,28 @@ describe("adressesCopie", () => {
 
   test("le destinataire n'est pas remis en copie", () => {
     expect(adressesCopie("commercial@inovacom.fr, npereira@inovacom.fr", " NPereira@inovacom.fr ")).toEqual([
+      "commercial@inovacom.fr",
+    ]);
+  });
+});
+
+describe("restreindreCopie", () => {
+  const configurees = ["commercial@inovacom.fr", "npereira@inovacom.fr"];
+
+  test("sans retrait demandé, toute la copie réglée part", () => {
+    expect(restreindreCopie(configurees, undefined)).toEqual(configurees);
+  });
+
+  test("une adresse retirée dans le composeur ne part pas", () => {
+    expect(restreindreCopie(configurees, ["NPereira@inovacom.fr"])).toEqual(["npereira@inovacom.fr"]);
+  });
+
+  test("tout retirer : aucune copie", () => {
+    expect(restreindreCopie(configurees, [])).toEqual([]);
+  });
+
+  test("une adresse inconnue envoyée par le navigateur est ignorée", () => {
+    expect(restreindreCopie(configurees, ["commercial@inovacom.fr", "pirate@exemple.fr"])).toEqual([
       "commercial@inovacom.fr",
     ]);
   });

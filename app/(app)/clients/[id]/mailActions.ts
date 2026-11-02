@@ -14,7 +14,7 @@ import {
 } from "@/lib/repositories/mailRepository";
 import { listerGuides } from "@/lib/mail/guides";
 import { signatureDepuisPartenaire } from "@/lib/mail/signature";
-import { adressesCopie } from "@/lib/domain/mail/copie";
+import { adressesCopie, restreindreCopie } from "@/lib/domain/mail/copie";
 
 type Resultat = { success: boolean; error?: string };
 
@@ -30,7 +30,9 @@ export async function envoyerMailAction(
   type: TypeMail,
   destinataire: string,
   objet: string,
-  corps: string
+  corps: string,
+  // Adresses gardées en copie après les retraits faits dans le composeur.
+  copieRetenue?: string[]
 ): Promise<Resultat> {
   const session = await auth();
   if (!session?.user) return { success: false, error: "Non authentifié." };
@@ -52,7 +54,7 @@ export async function envoyerMailAction(
     subject: objet,
     text: corps,
     customId,
-    cc: adressesCopie(saisieCopie, destinataire),
+    cc: restreindreCopie(adressesCopie(saisieCopie, destinataire), copieRetenue),
     piecesJointes,
     ...(partenaire
       ? { signature: signatureDepuisPartenaire(partenaire), expediteur: partenaire.expediteur }

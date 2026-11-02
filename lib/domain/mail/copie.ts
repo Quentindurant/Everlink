@@ -27,6 +27,18 @@ export function adressesCopie(saisie: string | null | undefined, destinataire: s
   return decouperAdresses(saisie).filter((a) => a.toLowerCase() !== dest);
 }
 
+/**
+ * Copie d'un envoi après les retraits faits dans le composeur. La liste reçue du navigateur
+ * ne peut que retirer des adresses réglées dans Paramètres, jamais en ajouter : sinon
+ * l'action d'envoi servirait à écrire à n'importe qui en copie au nom du partenaire.
+ * Sans liste (undefined), toute la copie réglée part.
+ */
+export function restreindreCopie(configurees: string[], retenues: string[] | undefined): string[] {
+  if (!retenues) return configurees;
+  const gardees = new Set(retenues.map((a) => a.trim().toLowerCase()));
+  return configurees.filter((a) => gardees.has(a.toLowerCase()));
+}
+
 /** Adresses de la saisie qui n'ont pas la forme d'un mail, pour refuser l'enregistrement. */
 export function adressesInvalides(saisie: string | null | undefined): string[] {
   return decouperAdresses(saisie).filter((a) => !FORMAT_MAIL.test(a));
